@@ -3,7 +3,7 @@
 <head>
   <title>VillageCoin - Index</title>
   <link href='https://fonts.googleapis.com/css?family=Open+Sans:400,700' rel='stylesheet' type='text/css'>
-  <script src="./app.js"></script>
+  <script src="./common.js"></script>
 </head>
 <body>
   <h1>VillageCoin</h1>
@@ -14,5 +14,40 @@
 </body>
 </html>
 <script lang="javascript">
-window.addEventListener('load', function(){ App.populateCreateManagerProposalsTable() });
+
+function filterProposalBasicDetailsByExistentUnvotedAndType(proposal, requiredType) {
+  var isExistent = proposal[1];
+  var hasSenderVoted = proposal[2];
+  var proposalType = proposal[3];   
+  
+  return isExistent && !hasSenderVoted && proposalType == requiredType;
+}
+
+async function populateCreateManagerProposalsTable() 
+{
+    try 
+    {
+        var villageCoin = await app.contract.deployed();
+        var maxProposalId = await villageCoin.getMaxProposalId.call({from: app.account});
+        var allProposalIds = [...Array(maxProposalId.toNumber()).keys()];
+        var allProposalsBasicDetails = await Promise.all(allProposalIds.map(function(id){ return villageCoin.getProposalBasicDetails.call(id, {from: app.account}) }));
+        var activeUnvotedCreateManagerProposalsBasicDetails = allProposalsBasicDetails
+            .filter(function(proposal){ return filterProposalBasicDetailsByExistentUnvotedAndType(proposal, app.ProposalType.CreateManager) });
+        var activeUnvotedCreateManagerProposals = await Promise.all(activeUnvotedCreateManagerProposalsBasicDetails
+            .map(function(proposal) { return villageCoin.getCreateManagerProposal.call(proposal[0], {from: app.account}) }));
+
+        var createManagerProposalsTableHtml = activeUnvotedCreateManagerProposals
+            .map(function(proposal){ return "<tr><td>" + proposal[0] + "</td><td>" + proposal[1] + "</td><td><button onclick='App.vote(" + proposal[0].toNumber() + ", true)'>YES</button><button onclick='App.vote(" + proposal[0].toNumber() + ", false)'>NO</button></td></tr>";})
+            .reduce(function(accumulator, currentValue) { return accumulator + currentValue; }, "<tr><td>#</td><td>Address of Proposed Manager</td><td>Vote</td></tr>");
+
+        document.getElementById("tableProposals").innerHTML = createManagerProposalsTableHtml;
+    } 
+    catch(error)
+    {
+        console.log(error);
+        app.setStatus("Error fetching proposals; see log.");
+    }
+}
+
+window.addEventListener('load', function(){ populateCreateManagerProposalsTable() });
 </script>

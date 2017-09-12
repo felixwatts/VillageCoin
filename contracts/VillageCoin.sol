@@ -77,6 +77,7 @@ contract VillageCoin is ERC223, SafeMath {
         address deleteManagerId;
 
         address createAccountOwner;
+        string createAccountSupportingEvidenceUri;
 
         address deleteAccountOwner;
 
@@ -152,7 +153,7 @@ contract VillageCoin is ERC223, SafeMath {
         OnProposalCreated(proposalId);
     }
 
-    function proposeCreateAccount(address owner) public onlyManager {
+    function proposeCreateAccount(address owner, string supportingEvidenceUri) public {
         require(!_accounts[owner].isExistent);
 
         var proposalId = _nextProposalId++;
@@ -162,6 +163,7 @@ contract VillageCoin is ERC223, SafeMath {
         _proposals[proposalId].expiryTime = now + _parameters.proposalTimeLimit;
         _proposals[proposalId].typ = ProposalType.CreateAccount;
         _proposals[proposalId].createAccountOwner = owner;
+        _proposals[proposalId].createAccountSupportingEvidenceUri = supportingEvidenceUri;
 
         OnProposalCreated(proposalId);
     }
