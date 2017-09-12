@@ -1,4 +1,4 @@
-pragma solidity ^0.4.4;
+pragma solidity ^0.4.9;
 
 import "./Receiver_Interface.sol";
 import "./ERC223_Interface.sol";
@@ -127,7 +127,7 @@ contract VillageCoin is ERC223, SafeMath {
     function proposeCreateManager(address id) public onlyManager {
         require(!_managers[id].isExistent);
 
-        var proposalId = ++_nextProposalId;
+        var proposalId = _nextProposalId++;
         assert(!_proposals[proposalId].isExistent);
 
         _proposals[proposalId].isExistent = true;
@@ -141,7 +141,7 @@ contract VillageCoin is ERC223, SafeMath {
     function proposeDeleteManager(address id) public onlyManager {
         require(_managers[id].isExistent);
 
-        var proposalId = ++_nextProposalId;
+        var proposalId = _nextProposalId++;
         assert(!_proposals[proposalId].isExistent);
 
         _proposals[proposalId].isExistent = true;
@@ -155,7 +155,7 @@ contract VillageCoin is ERC223, SafeMath {
     function proposeCreateAccount(address owner) public onlyManager {
         require(!_accounts[owner].isExistent);
 
-        var proposalId = ++_nextProposalId;
+        var proposalId = _nextProposalId++;
         assert(!_proposals[proposalId].isExistent);
 
         _proposals[proposalId].isExistent = true;
@@ -169,7 +169,7 @@ contract VillageCoin is ERC223, SafeMath {
     function proposeDeleteAccount(address owner) public onlyManager {
         require(_accounts[owner].isExistent);
 
-        var proposalId = ++_nextProposalId;
+        var proposalId = _nextProposalId++;
         assert(!_proposals[proposalId].isExistent);
 
         _proposals[proposalId].isExistent = true;
@@ -185,7 +185,7 @@ contract VillageCoin is ERC223, SafeMath {
         uint proposalDecideThresholdPercent,
         uint proposalTimeLimitDays) public onlyManager 
     {
-        var proposalId = ++_nextProposalId;
+        var proposalId = _nextProposalId++;
         assert(!_proposals[proposalId].isExistent);
 
         _proposals[proposalId].isExistent = true;
@@ -199,7 +199,7 @@ contract VillageCoin is ERC223, SafeMath {
     }
 
     function proposeCreateMoney(uint amountPerAccount) public onlyManager {
-        var proposalId = ++_nextProposalId;
+        var proposalId = _nextProposalId++;
         assert(!_proposals[proposalId].isExistent);
 
         _proposals[proposalId].isExistent = true;
@@ -211,7 +211,7 @@ contract VillageCoin is ERC223, SafeMath {
     }
 
     function proposeTaxWealth(uint percent) public onlyManager {
-        var proposalId = ++_nextProposalId;
+        var proposalId = _nextProposalId++;
         assert(!_proposals[proposalId].isExistent);
 
         _proposals[proposalId].isExistent = true;
@@ -223,7 +223,7 @@ contract VillageCoin is ERC223, SafeMath {
     }
 
     function proposeSpendPublicMoney(address to, uint amount) public onlyManager {
-        var proposalId = ++_nextProposalId;
+        var proposalId = _nextProposalId++;
         assert(!_proposals[proposalId].isExistent);
 
         _proposals[proposalId].isExistent = true;
@@ -266,8 +266,77 @@ contract VillageCoin is ERC223, SafeMath {
     }
 
     //
-    // Data access
+    // Views
     //
+
+    function isManager(address addr) constant returns (bool) {
+        return _managers[addr].isExistent;
+    }
+
+    function hasAccount(address addr) constant returns (bool) {
+        return _accounts[addr].isExistent;
+    }
+
+    function getMaxProposalId() constant returns (uint) {
+        return _nextProposalId;
+    }
+
+    function getProposalBasicDetails(uint proposalId) constant onlyManager returns (uint, bool, bool, ProposalType) {
+        return (proposalId, _proposals[proposalId].isExistent, _proposals[proposalId].hasVoted[msg.sender], _proposals[proposalId].typ);
+    }
+
+    function getCreateManagerProposal(uint proposalId) constant onlyManager returns ( // apparently you cannot have more than 8 return values!!
+        uint id, 
+        address createManagerId)
+        {
+            id = proposalId;
+            createManagerId = _proposals[id].createManagerId;
+
+            return;
+        }
+
+    //         function getProposal(uint proposalId) constant onlyManager returns ( // apparently you cannot have more than 8 return values!!
+    //     uint id, 
+    //     ProposalType typ, 
+    //     uint voteCountYes, 
+    //     uint voteCountNo, 
+    //     bool hasSenderVoted,
+    //     bool isExistent,
+    //     uint expiryTime,
+    //     address createManagerId,
+    //     address deleteManagerId,
+    //     address createAccountOwner,
+    //     address deleteAccountOwner,
+    //     uint contractParametersInitialAccountBalance,
+    //     uint contractParametersProposalDecideThresholdPercent,
+    //     uint contractParametersProposalTimeLimit,
+    //     uint createMoneyAmountPerAccount,
+    //     uint taxWealthPercent,
+    //     address spendPublicMoneyTo,
+    //     uint spendPublicMoneyAmount
+    //  )
+    //     {
+    //         id = proposalId;
+    //         typ = _proposals[id].typ; 
+    //       //  voteCountYes = _proposals[id].voteCountYes;
+    //       //  voteCountNo = _proposals[id].voteCountNo; 
+    //         hasSenderVoted = _proposals[id].hasVoted[msg.sender];
+    //         isExistent = _proposals[id].isExistent;
+    //         expiryTime = _proposals[id].expiryTime;
+    //         createManagerId = _proposals[id].createManagerId;
+    //       //  deleteManagerId = _proposals[id].deleteManagerId;
+    //       //  createAccountOwner = _proposals[id].createAccountOwner;
+    //       //  deleteAccountOwner = _proposals[id].deleteAccountOwner;
+    //       //  contractParametersInitialAccountBalance = _proposals[id].setContractParametersParameters.initialAccountBalance;
+    //       //  contractParametersProposalDecideThresholdPercent = _proposals[id].setContractParametersParameters.proposalDecideThresholdPercent;
+    //       //  contractParametersProposalTimeLimit = _proposals[id].setContractParametersParameters.proposalTimeLimit;
+    //       //  createMoneyAmountPerAccount = _proposals[id].createMoneyAmountPerAccount;
+    //        // taxWealthPercent = _proposals[id].taxWealthPercent;
+    //       //  spendPublicMoneyTo = _proposals[id].spendPublicMoneyTo;
+    //       //  spendPublicMoneyAmount = _proposals[id].spendPublicMoneyAmount;
+
+    //         return;
+    //     }
 
     //
     // ERC223
@@ -398,7 +467,7 @@ contract VillageCoin is ERC223, SafeMath {
     }
 
     // function createProposal(Proposal proposal) private onlyManager {
-    //     proposal.id = ++_nextProposalId;
+    //     proposal.id = _nextProposalId++;
     //     proposal.isExistent = true;
     //     _proposals[proposal.id] = proposal;
 
