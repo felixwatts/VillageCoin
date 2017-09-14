@@ -1,24 +1,116 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>VillageCoin - Index</title>
+  <title>VillageCoin - Home</title>
   <link href='https://fonts.googleapis.com/css?family=Open+Sans:400,700' rel='stylesheet' type='text/css'>
-  <script src="./app.js"></script>
+  <script src="./common.js"></script>
 </head>
 <body>
-  <h1>VillageCoin</h1>
-  <h2>Index</h2>
+    <h1>VillageCoin</h1>
+    <h2>Home</h2>
+    <ul class="menu">
+        <li><a href="index.html">Home</a></li>
+        <li><a href="proposals.html">Vote</a></li>
+        <li><a href="createProposal.html">Make a Proposal</a></li>
+    </ul>
 
-  <ul>
-      <li><a href="proposals.html">Vote on a Proposal</a></li>
-      <li>Propose Something
-          <ul>
-              <li><a href="createManager.html">Create a New Manager</a></li>
-              <li><a href="deleteManager.html">Delete an Existing Manager</a></li>
-              <li><a href="createAccount.html">Create a New Citizen Account</a></li>
-              <li><a href="deleteAccount.html">Delete a Citizen Account</a></li>
-          </ul>
-      </li>    
-  </ul>
+    <h3>VillageCoin Balance: <strong id="balance"></strong></h3>
+
+    <h3>Send VillageCoin</h3>    
+    <br><label for="amount">Amount:</label><input type="text" id="amount" placeholder="e.g., 5" onchange="validateSendForm()"></input>  
+    <br><label for="toAddress">To Account:</label><input type="text" id="toAddress" placeholder="e.g., 0x93e66d9baea28c17d9fc393b53e3fbdd76899dae" onchange="validateSendForm()"></input>    
+    <br><br><button id="send" onclick="send()" disabled>Send</button><span id="sendInvalidMessage"></span>
+    <br>
+    <span id="status"></span>    
 </body>
 </html>
+<script>
+
+    async function validateSendForm() {
+
+        try
+        {
+            var isValid = true;
+            var invalidReason = "";
+
+            var amount = parseInt(document.getElementById("amount").value);
+            if(isNaN(amount) || amount < 0)
+            {
+                isValid = false;
+                invalidReason = "The amount must be a positive integer";
+            }
+            else
+            {
+                var toAddress = document.getElementById("toAddress").value;
+                var isValidAddress = web3.isAddress(toAddress);
+                if(isValidAddress)
+                {
+                    var villageCoin = await app.contract.deployed();                
+                    var isExistentAccount = await villageCoin.hasAccount(toAddress, amount, {from: app.account});
+                    if(!isExistentAccount)
+                    {
+                        isValid = false;
+                        invalidReason = "The 'To Account' is not a valid VillageCoin account";
+                    }
+                }
+                else
+                {
+                    isValid = false;
+                    invalidReason = "The 'To Account' is not a valid Ethereum address";
+                }
+            }
+
+            var sendButton = document.getElementById("send");
+            sendButton.disabled = !isValid;
+            var sendInvalidMessage = document.getElementById("sendInvalidMessage");
+            sendInvalidMessage.innerHTML = invalidReason;
+        }
+        catch(error)
+        {
+            app.setStatus(error);
+        }
+    }
+
+    async function populateBalance() 
+    {
+        try
+        {
+            var villageCoin = await app.contract.deployed();
+            var decimals = await villageCoin.decimals.call({from: app.account});
+            var symbol = await villageCoin.symbol.call({from: app.account});
+            var balance = await villageCoin.balanceOf.call(app.account, {from: app.account});
+            document.getElementById("balance").innerHTML = balance.toFormat(decimals.toNumber()) + symbol;
+        }
+        catch(error)
+        {
+            app.setStatus(error);
+        }
+    }    
+
+    async function send()
+    {
+        try
+        {
+            app.setStatus("Sending VillageCoin...");
+
+            var villageCoin = await app.contract.deployed();
+            var amount = parseInt(document.getElementById("amount").value);
+            var toAddress = document.getElementById("toAddress").value;
+
+            await villageCoin.transfer(toAddress, amount, {from: app.account});
+
+            populateBalance();
+            app.setStatus("Sending succeeded");
+        }
+        catch(error)
+        {
+            app.setStatus(error);
+        }
+    }
+
+    window.addEventListener('load', async function()
+    { 
+        app.redirectNonUser(); 
+        await populateBalance();
+    });
+</script>

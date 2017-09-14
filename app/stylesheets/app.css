@@ -50,3 +50,14 @@ h3 {
 .hint {
   color: #666;
 }
+
+#status {
+  border-width: 2px;
+  border-color: #ffcc00;
+  background-color: #fff8de;
+  border-radius: 8px;
+  padding: 16px;
+  margin: 16px;
+  text-align: center;
+  visibility: hidden;  
+}

@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>VillageCoin - Index</title>
+    <title>VillageCoin - Claim Your Account</title>
     <link href='https://fonts.googleapis.com/css?family=Open+Sans:400,700' rel='stylesheet' type='text/css'>
     <script src="./common.js"></script>
 </head>
@@ -10,9 +10,10 @@
     <h2>Claim Your Account</h2>    
 
     <p>Every person who has a government issued ID or Passport is entitled to one VillageCoin account. In order for us to determine that you are a real person and that you don't already have an account, you need to provide some documents.</p>
-    <p>The items you provide here will only be visible to members of the management committee, and are only used to verify that you are eligable for an account. </p>
-    <p>Once your account is created it is not tracable to your identity.</p>
-    <p>After you submit your application it will be assessed by the management committee, which can take several days, after which your account will be available.</p>
+    <p>The items you provide here will only be visible to members of the GateKeeper Committee, and are only used to verify that you are eligible for an account. </p>
+    <p>Once your account is created it is not traceable to your identity.</p>
+    <p>After you submit your application it will be assessed by the GateKeeper Committee, which can take several days, after which your account will be available.</p>
+    <p>For a detailed description of how the gate keeping process works <a href="accountVerificationProcess.html">see here</a> or take a look at the <a href="https://github.com/felixwatts/VillageCoin">source code</a></p>
     <p>To complete the application you will need..
         <ul>
             <li>Your government issued ID or Passport, or a photo of it</li>
@@ -24,7 +25,7 @@
     <h3>1. Ethereum Address</h3>
     <p>Choose which Ethereum account/address will be associated with your VillageCoin account.
         <ul>
-            <li>To maximise annonymity you should generate a new address for this</li>
+            <li>To maximize anonymity you should generate a new address for this</li>
             <li>Once your account is created you cannot change which Ethereum account it is linked to</li>
         </ul>
     </p>
@@ -51,7 +52,7 @@
     <input type="file" id="proofOfIntention"/>
 
     <button onclick="submit()">Submit</button>
-    <span id="status"></span>
+    <div id="status"></div>
   
 </body>
 </html>
@@ -59,13 +60,26 @@
 
 function tryReadSelectedFileAsBinaryString(inputElementId, inputDescription)
 {
-    var files = document.getElementById(inputElementId).files;
-    if(files.length != 1) throw("You must select a " + inputDescription);
-    var file = files[0];
-    if (!file.type.match('image.*')) throw("Invalid " + inputDescription);
-    var reader = new FileReader();
-    var binaryString = reader.readAsBinaryString(file);
-    return binaryString; // this doesnt work - need to handle events and promisify and async/await
+    var promise = new Promise(function(resolve, reject) 
+    {
+        try 
+        {
+            var files = document.getElementById(inputElementId).files;
+            if(files.length != 1) reject("You must select a " + inputDescription);
+            var file = files[0];
+            if (!file.type.match('image.*')) reject("Invalid " + inputDescription);
+            var reader = new FileReader();
+            reader.onload = function(e) { resolve(reader.result); }
+            reader.onerror = function(e) { reject(e); }
+            reader.readAsBinaryString(file);
+        } 
+        catch(error)
+        {
+            reject(error);
+        }
+    });
+
+    return promise;
 }
 
 async function submit() {
@@ -79,30 +93,32 @@ async function submit() {
         if(selectedAccount == undefined) throw("You must select an ethereum account");
         
         // get proof of identity file data
-        var proofOfIdentityData = tryReadSelectedFileAsBinaryString("proofOfIdentity", "proof of identity image");
+        var proofOfIdentityData = await tryReadSelectedFileAsBinaryString("proofOfIdentity", "proof of identity image");
 
         // get proof of intention file data
-        var proofOfIntentionData = tryReadSelectedFileAsBinaryString("proofOfIntention", "proof of intention image");
+        var proofOfIntentionData = await tryReadSelectedFileAsBinaryString("proofOfIntention", "proof of intention image");
 
-        // get addresses of all managers
+        // TODO when swarm is properly available
+        // // get addresses of all managers
 
-        // encrypt proof of identity file for each manager
+        // // encrypt proof of identity file for each manager
         
-        // encrypt proof of intention file for each manager
+        // // encrypt proof of intention file for each manager
 
-        // upload the files to swarm
+        // // upload the files to swarm
 
-        var bzz = web3.bzz;
+        // var bzz = web3.bzz;
 
         // var dir = {
-        //     "/foo.txt": {type: "text/plain", data: "sample file"},
-        //     "/bar.txt": {type: "text/plain", data: "another file"}
+        //      "/proofOfIdentity": {type: "application/octet-stream", data: proofOfIdentityData},
+        //      "/proofOfIntention": {type: "application/octet-stream", data: proofOfIntentionData}
         // };
-        var supportingEvidenceSwarmHash = await bzz.upload(dir);
+        // var supportingEvidenceSwarmHash = await bzz.upload(dir);
 
-        // execute the createAccount transaction with the URI of the supporting evidence
+        // // execute the createAccount transaction with the URI of the supporting evidence
         
-        await app.contract.proposeCreateAccount(selectedAccount, supportingEvidenceSwarmHash, {from: selectedAccount});
+        var villageCoin = await app.contract.deployed();
+        await villageCoin.proposeCreateAccount(selectedAccount, "supporting evidence" /* TODO */, {from: selectedAccount});
 
         app.setStatus("Transaction complete!");
 
@@ -111,21 +127,25 @@ async function submit() {
     {
         app.setStatus(error);
     }
-
 }
 
 function populateProofOfIntentionText() {
     var dropDown = document.getElementById("ethereumAddress");
     var selectedAccount = dropDown.options[dropDown.selectedIndex].value;
-    var text = "I want a VillageCoin account for " + selectedAccount.substring(0, 8);
+    var text = "I want VillageCoin account " + selectedAccount.substring(0, 10);
     document.getElementById("proofOfIntentionText").innerHTML = text;
 }
 
 function populateAccountsDropDown() {
+
+    console.log(web3.eth.accounts.wallet);
+
     web3.eth.getAccounts(function(err, accs) {
         if (err != null) {
             return;
         }
+
+        console.log(accs);
 
         var html = accs
             .map(function(account){ return "<option value='" + account + "'>" + account + "</option>";})
@@ -137,6 +157,7 @@ function populateAccountsDropDown() {
 }
 
 window.addEventListener('load', function() { 
+    app.redirectUser();
     populateAccountsDropDown();    
 });
 

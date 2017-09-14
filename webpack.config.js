@@ -13,7 +13,10 @@ module.exports = {
       { from: './app/index.html', to: "index.html" },
       { from: './app/createManager.html', to: "createManager.html" },
       { from: './app/createAccount.html', to: "createAccount.html" },
-      { from: './app/proposals.html', to: "proposals.html" }
+      { from: './app/proposals.html', to: "proposals.html" },
+      { from: './app/welcome.html', to: "welcome.html" },
+      { from: './app/gatekeeper.html', to: "gatekeeper.html" },
+      { from: './app/createProposal.html', to: "createProposal.html" }
     ])
   ],
   module: {
