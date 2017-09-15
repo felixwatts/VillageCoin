@@ -85,23 +85,10 @@
 </html>
 <script>
 
-    var parseQueryString = function(url) 
-    {
-        var urlParams = {};
-        url.replace(
-            new RegExp("([^?=&]+)(=([^&]*))?", "g"),
-            function($0, $1, $2, $3) {
-            urlParams[$1] = $3;
-            }
-        );
-        
-        return urlParams;
-    }
-
     function getProposalId()
     {
         var url = location.search;  
-        var urlParameters = parseQueryString(url);
+        var urlParameters = app.parseQueryString(url);
         var proposalId = parseInt(urlParameters.id);
         if(isNaN(proposalId) || proposalId < 0) throw("Invalid proposal ID");
 
@@ -114,7 +101,7 @@
         {
             var proposalId = getProposalId();
 
-            var villageCoin = await app.contract.deployed();
+            var villageCoin = app.contract;
             await villageCoin.voteOnProposal(proposalId, isYes, {from: app.account});
 
             window.location.reload();
@@ -130,7 +117,7 @@
         try 
         {
             var proposalId = getProposalId();
-            var villageCoin = await app.contract.deployed();
+            var villageCoin = app.contract;
             await villageCoin.tryDecideProposal(proposalId, {from: app.account});
 
             window.location.reload();
@@ -251,7 +238,7 @@
 
             document.getElementById("proposalName").innerHTML = "Proposal #" + proposalId;
             
-            var villageCoin = await app.contract.deployed();
+            var villageCoin = app.contract;
 
             var isCitizen = await villageCoin.isCitizen.call(app.account, {from: app.account});      
             var isGatekeeper = await villageCoin.isGatekeeper.call(app.account, {from: app.account}); 
@@ -293,6 +280,7 @@
     window.addEventListener('load', async function()
     { 
         await init();
+        await app.initVillage();
         await populatePage(); 
     });
 </script>

@@ -8,101 +8,76 @@
 <body>
     <h1>VillageCoin</h1>
     <h2>Home</h2>
-    <ul class="menu">
-        <li><a href="index.html">Home</a></li>
-        <li><a href="proposals.html">Vote</a></li>
-        <li><a href="createProposal.html">Make a Proposal</a></li>
-    </ul>
 
-    <h3>VillageCoin Balance: <strong id="balance"></strong></h3>
+    <p>VillageCoin is a platform on which you can create your own <em>Democratic Currency</em></p>
 
-    <h3>Send VillageCoin</h3>    
-    <br><label for="amount">Amount:</label><input type="text" id="amount" placeholder="e.g., 5" onchange="validateSendForm()"></input>  
-    <br><label for="toAddress">To Account:</label><input type="text" id="toAddress" placeholder="e.g., 0x93e66d9baea28c17d9fc393b53e3fbdd76899dae" onchange="validateSendForm()"></input>    
-    <br><br><button id="btnSend" onclick="send()" disabled>Send</button><span id="formInvalidMessage"></span>
+    <h3>Spawn a Village</h3>    
+    <br><label for="newVillageName">Name:</label><input type="text" id="newVillageName" placeholder="The name of your currency, e.g., MyCoin" onchange="validateNewVillageForm()"></input>  
+    <br><label for="newVillageSymbol">Symbol:</label><input type="text" id="newVillageSymbol" placeholder="The ticker symbol for your currency e.g., MC" onchange="validateNewVillageForm()"></input>    
+    <br><label for="newVillageDecimals">Decimals:</label><input type="text" id="newVillageDecimals" placeholder="How many decimal places when printing amounts in your currency" onchange="validateNewVillageForm()"></input>    
+    <br><br><button id="btnSpawn" onclick="spawnVillage()" disabled>Send</button><span id="formInvalidMessage"></span>
     <br>
+
+    <table id="tableVillages"></table>
+
     <span id="status"></span>    
 </body>
 </html>
 <script>
 
-    async function validateSendForm() {
-
+    async function validateNewVillageForm() 
+    {
         try
         {
             var isValid = true;
             var invalidReason = "";
 
-            var amount = parseInt(document.getElementById("amount").value);
-            if(isNaN(amount) || amount < 0)
+            var name = document.getElementById("newVillageName").value;
+            var symbol = document.getElementById("newVillageSymbol").value;
+            var decimals = parseInt(document.getElementById("newVillageDecimals").value);
+
+            if(name == undefined || name == "")
             {
                 isValid = false;
-                invalidReason = "The amount must be a positive integer";
+                invalidReason = "You must specify a name for the village";
             }
-            else
+            else if(symbol == undefined || symbol == "")
             {
-                var toAddress = document.getElementById("toAddress").value;
-                var isValidAddress = web3.isAddress(toAddress);
-                if(isValidAddress)
-                {
-                    var villageCoin = await app.contract.deployed();                
-                    var isCitizen = await villageCoin.isCitizen.call(toAddress, amount, {from: app.account});
-                    if(!isCitizen)
-                    {
-                        isValid = false;
-                        invalidReason = "The 'To Account' is not a VillageCoin citizen";
-                    }
-                }
-                else
-                {
-                    isValid = false;
-                    invalidReason = "The 'To Account' is not a valid Ethereum address";
-                }
+                isValid = false;
+                invalidReason = "You must specify a name for the currency";
             }
+            else if(isNaN(decimals) || decimals < 0)
+            {
+                isValid = false;
+                invalidReason = "The decimals must be a positive integer";
+            }            
 
-            var sendButton = document.getElementById("btnSend");
-            sendButton.disabled = !isValid;
-            var sendInvalidMessage = document.getElementById("formInvalidMessage");
-            sendInvalidMessage.innerHTML = invalidReason;
+            var spawnButton = document.getElementById("btnSpawn");
+            spawnButton.disabled = !isValid;
+            var formInvalidMessage = document.getElementById("formInvalidMessage");
+            formInvalidMessage.innerHTML = invalidReason;
         }
         catch(error)
         {
             console.log(error);
             app.setStatus(error);
         }
-    }
+    }   
 
-    async function populateBalance() 
+    async function spawnVillage()
     {
         try
         {
-            var villageCoin = await app.contract.deployed();
-            var decimals = await villageCoin.decimals.call({from: app.account});
-            var symbol = await villageCoin.symbol.call({from: app.account});
-            var balance = await villageCoin.balanceOf.call(app.account, {from: app.account});
-            document.getElementById("balance").innerHTML = balance.toFormat(decimals.toNumber()) + " " + symbol;
-        }
-        catch(error)
-        {
-            console.log(error);
-            app.setStatus(error);
-        }
-    }    
+            var name = document.getElementById("newVillageName").value;
+            var symbol = document.getElementById("newVillageSymbol").value;
+            var decimals = parseInt(document.getElementById("newVillageDecimals").value);
 
-    async function send()
-    {
-        try
-        {
-            app.setStatus("Sending VillageCoin...");
+            var spawner = app.spawner;
 
-            var villageCoin = await app.contract.deployed();
-            var amount = parseInt(document.getElementById("amount").value);
-            var toAddress = document.getElementById("toAddress").value;
+            var receipt = await spawner.spawnVillage(name, symbol, decimals, {from: app.account});
 
-            await villageCoin.transfer(toAddress, amount, {from: app.account});
-
-            populateBalance();
-            app.setStatus("Sending succeeded");
+            var villageAddress = receipt.logs[0].args.addr;
+            window.location.replace("villageIndex.html?contractAddress=" + villageAddress);
         }
         catch(error)
         {
@@ -114,7 +89,5 @@
     window.addEventListener('load', async function()
     { 
         await init();
-        app.redirectNonCitizen(); 
-        await populateBalance();
     });
 </script>

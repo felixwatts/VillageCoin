@@ -39,7 +39,7 @@ async function populateProposalsTable()
 {
     try 
     {
-        var villageCoin = await app.contract.deployed();
+        var villageCoin = app.contract;
         var maxProposalId = await villageCoin.getMaxProposalId.call({from: app.account});
         var allProposalIds = [...Array(maxProposalId.toNumber()).keys()];
         var allProposalsBasicDetails = await Promise.all(allProposalIds.map(function(id){ return villageCoin.getProposalBasicDetails.call(id, {from: app.account}) }));
@@ -66,6 +66,7 @@ async function populateProposalsTable()
 window.addEventListener('load', async function()
 {
     await init();
+    await app.initVillage();
     app.redirectNonUser();
     await populateProposalsTable();
 });

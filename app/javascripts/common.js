@@ -3,21 +3,25 @@ import "../stylesheets/app.css";
 
 // Import libraries we need.
 import { default as Web3 } from 'web3';
-import { default as contract } from 'truffle-contract'
+import { default as contract } from 'truffle-contract';
 
 // Import our contract artifacts and turn them into usable abstractions.
-import villagecoin_artifacts from '../../build/contracts/VillageCoin.json'
+import spawner_artifacts from '../../build/contracts/Spawner.json';
+import villagecoin_artifacts from '../../build/contracts/VillageCoin.json';
 
 // VillageCoin is our usable abstraction, which we'll use through the code below.
+var Spawner = contract(spawner_artifacts);
 var VillageCoin = contract(villagecoin_artifacts);
 
-function setStatus (message) {
+function setStatus (message) 
+{
     var status = document.getElementById("status");
     status.innerHTML = message;
     status.style.visibility = "visible";
 }
 
-function setupWeb3Provider() {
+function setupWeb3Provider() 
+{
     // Checking if Web3 has been injected by the browser (Mist/MetaMask)
     if (typeof web3 !== 'undefined') {
         console.warn("Using web3 detected from external source. If you find that your accounts don't appear or you have 0 MetaCoin, ensure you've configured that source properly. If using MetaMask, see the following link. Feel free to delete this warning. :) http://truffleframework.com/tutorials/truffle-and-metamask")
@@ -30,17 +34,36 @@ function setupWeb3Provider() {
     }
 }
 
-function setupContract() {
+function parseQueryString(url) 
+{
+    var urlParams = {};
+    url.replace(
+        new RegExp("([^?=&]+)(=([^&]*))?", "g"),
+        function($0, $1, $2, $3) {
+        urlParams[$1] = $3;
+        }
+    );
+    
+    return urlParams;
+}
 
+function getContractAddress() 
+{
+    var url = location.search;  
+    var urlParameters = parseQueryString(url);
+    var contractAddress = urlParameters.contractAddress;
+    var isValidAddress = web3.isAddress(contractAddress);
+    if(!isValidAddress) throw("invalid contract address");
+
+    return contractAddress;
+}
+
+function setupAccounts()
+{
     var promise = new Promise(function(resolve, reject) 
     {
         try 
-        {
-            // Bootstrap the VillageCoin abstraction for Use.
-            VillageCoin.setProvider(web3.currentProvider);
-        
-            window.app.contract = VillageCoin;
-        
+        {        
             // Get the initial account balance so it can be displayed.
             web3.eth.getAccounts(function(err, accs) 
             {
@@ -70,31 +93,44 @@ function setupContract() {
 
 async function redirectNonCitizen()
 {
-    var villageCoin = await app.contract.deployed();
+    var villageCoin = app.contract;
     var isCitizen = await villageCoin.isCitizen.call(window.app.account);
 
-    if(!isCitizen) window.location.replace("welcome.html");
+    if(!isCitizen) window.location.replace("welcome.html?contractAddress=" + villageCoin.address);
 }
 
 async function redirectCitizen()
 {
-    var villageCoin = await app.contract.deployed();
+    var villageCoin = app.contract;
     var isCitizen = await villageCoin.isCitizen.call(window.app.account);
 
-    if(isCitizen) window.location.replace("index.html");
+    if(isCitizen) window.location.replace("villageIndex.html?contractAddress=" + villageCoin.address);
 }
 
 async function redirectNonGatekeeper()
 {
-    var villageCoin = await app.contract.deployed();
+    var villageCoin = app.contract;
     var isGatekeeper = await villageCoin.isGatekeeper(window.app.account);
 
-    if(!isGatekeeper) window.location.replace("index.html");
+    if(!isGatekeeper) window.location.replace("villageIndex.html?contractAddress=" + villageCoin.address);
+}
+
+async function populateVillageName()
+{
+    var villageCoin = app.contract;
+    var villageName = await villageCoin.name.call({from: app.account});
+
+    var villageNameElements = document.getElementsByClassName("villageName");
+
+    for (var i = 0; i < villageNameElements.length; i++) 
+    {
+        villageNameElements[i].innerHTML = villageName;
+    }    
 }
 
 async function getProposalDescription(proposalId)
 {
-    var villageCoin = await app.contract.deployed();
+    var villageCoin = app.contract;
 
     var proposalBasicDetails = await villageCoin.getProposalBasicDetails.call(proposalId, {from: app.account});
     var isExistent = proposalBasicDetails[1];
@@ -128,11 +164,16 @@ async function getProposalDescription(proposalId)
 
 function setupCommonFunctions() 
 {
+    window.app.VillageCoin = VillageCoin;
+
+    window.app.parseQueryString = parseQueryString;
+    window.app.initVillage = initVillage;
     window.app.setStatus = setStatus;
     window.app.redirectCitizen = redirectCitizen;
     window.app.redirectNonCitizen = redirectNonCitizen;
     window.app.redirectNonGatekeeper = redirectNonGatekeeper;
     window.app.getProposalDescription = getProposalDescription;
+    window.app.populateVillageName = populateVillageName;
 
     var ProposalType = {};
     ProposalType.AppointGatekeeper = 0; 
@@ -153,18 +194,36 @@ function setupCommonFunctions()
     window.app.ProposalDecision = ProposalDecision;
 }
 
+async function initVillage()
+{
+    try
+    {
+
+        console.log("a");
+        var contractAddress = getContractAddress();
+        console.log("b");
+
+        VillageCoin.setProvider(web3.currentProvider);
+        console.log("c");
+        var contractAddress = getContractAddress();
+        console.log("d");
+        window.app.contract = await app.VillageCoin.at(contractAddress);  
+        console.log("e");
+    }
+    catch(error)
+    {
+        window.location.replace("index.html");
+    }
+} 
+
 window.init = async function()
 {
     window.app = {};
-
+    
     setupWeb3Provider();
-    await setupContract(); 
-    setupCommonFunctions(); 
+    await setupAccounts();
+    setupCommonFunctions();
 
-    var villageCoin = await app.contract.deployed();
-    var events = villageCoin.allEvents(function(error, log){
-        if (!error)
-          console.log(log);
-        else console.log(error);
-      });
+    Spawner.setProvider(web3.currentProvider);
+    window.app.spawner = await Spawner.deployed();
 };

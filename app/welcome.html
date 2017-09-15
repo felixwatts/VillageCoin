@@ -30,7 +30,22 @@
       <li>Electing and dismissing gatekeepers</li>
   </ul>
 
-  <p>If you would like to join the VillageCoin economy why not <a href="createAccount.html">claim your account</a></p>
+  <p>If you would like to join the VillageCoin economy why not <a href="#" id="linkClaimAccount">claim your account</a></p>
 
 </body>
 </html>
+</html>
+<script>
+    window.addEventListener('load', async function()
+    { 
+      console.log("1");
+        await init();
+        console.log("2");
+        await app.initVillage();
+        console.log("3");
+
+        document.getElementById("linkClaimAccount").href = "requestCitizenship.html?contractAddress=" + app.contract.address;
+
+        console.log("4");
+    });
+</script>

@@ -48,7 +48,7 @@
                 }
                 else
                 {
-                    var villageCoin = await app.contract.deployed();
+                    var villageCoin = app.contract;
                     var isCitizen = await villageCoin.isCitizen.call(toAddress, {from: app.account});
 
                     if(!isCitizen)
@@ -87,7 +87,7 @@ async function submit()
 
         var gatekeeperAddress = document.getElementById("gatekeeperAddress").value;
         
-        var villageCoin = await app.contract.deployed();
+        var villageCoin = app.contract;
         var receipt = await villageCoin.proposeAppointGatekeeper(gatekeeperAddress, {from: app.account});
 
         var proposalId = receipt.logs[0].args.proposalId.toNumber();
@@ -102,6 +102,7 @@ async function submit()
 window.addEventListener('load', async function()
 {
     await init();
+    await app.initVillage();
     app.redirectNonCitizen();
 });
 

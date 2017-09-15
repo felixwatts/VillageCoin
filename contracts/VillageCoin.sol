@@ -99,8 +99,8 @@ contract VillageCoin is ERC223, SafeMath {
         
         addCitizen(PUBLIC_ACCOUNT);
         _citizenCount = 0; // public account doesnt count towards the citizen count because it does not vote
-        addCitizen(msg.sender);
-        appointGatekeeper(msg.sender);
+        addCitizen(tx.origin);
+        appointGatekeeper(tx.origin);
     }
 
     //

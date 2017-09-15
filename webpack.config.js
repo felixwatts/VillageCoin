@@ -17,7 +17,9 @@ module.exports = {
       { from: './app/proposal.html', to: "proposal.html" },
       { from: './app/welcome.html', to: "welcome.html" },
       { from: './app/gatekeeper.html', to: "gatekeeper.html" },
-      { from: './app/createProposal.html', to: "createProposal.html" }
+      { from: './app/createProposal.html', to: "createProposal.html" },
+      { from: './app/requestCitizenship.html', to: "requestCitizenship.html" },
+      { from: './app/villageIndex.html', to: "villageIndex.html" }
     ])
   ],
   module: {

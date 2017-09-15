@@ -31,7 +31,7 @@ async function vote(proposalId, isYes)
     try 
     {
         app.setStatus("Voting...");
-        var villageCoin = await app.contract.deployed();
+        var villageCoin = app.contract;
         await villageCoin.voteOnProposal(proposalId, isYes, {from: app.account});
         app.setStatus("Your vote was recorded");
         await populateCreateAccountProposalsTable();
@@ -47,6 +47,7 @@ async function vote(proposalId, isYes)
 window.addEventListener('load', async function()
 {
     await init();
+    await app.initVillage();
     app.redirectNonManager();
     populateCreateAccountProposalsTable();
 });
