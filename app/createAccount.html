@@ -118,9 +118,10 @@ async function submit() {
         // // execute the createAccount transaction with the URI of the supporting evidence
         
         var villageCoin = await app.contract.deployed();
-        await villageCoin.proposeCreateAccount(selectedAccount, "supporting evidence" /* TODO */, {from: selectedAccount});
+        var receipt = await villageCoin.proposeAddCitizen(selectedAccount, "supporting evidence" /* TODO */, {from: selectedAccount});
+        var proposalId = receipt.logs[0].args.proposalId.toNumber();
 
-        app.setStatus("Transaction complete!");
+        window.location.replace("proposal.html?id=" + proposalId);
 
     } 
     catch(error) 
@@ -138,14 +139,10 @@ function populateProofOfIntentionText() {
 
 function populateAccountsDropDown() {
 
-    console.log(web3.eth.accounts.wallet);
-
     web3.eth.getAccounts(function(err, accs) {
         if (err != null) {
             return;
         }
-
-        console.log(accs);
 
         var html = accs
             .map(function(account){ return "<option value='" + account + "'>" + account + "</option>";})
@@ -156,8 +153,9 @@ function populateAccountsDropDown() {
     });    
 }
 
-window.addEventListener('load', function() { 
-    app.redirectUser();
+window.addEventListener('load', async function() { 
+    await init();
+    app.redirectCitizen();
     populateAccountsDropDown();    
 });
 

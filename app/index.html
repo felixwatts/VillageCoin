@@ -19,7 +19,7 @@
     <h3>Send VillageCoin</h3>    
     <br><label for="amount">Amount:</label><input type="text" id="amount" placeholder="e.g., 5" onchange="validateSendForm()"></input>  
     <br><label for="toAddress">To Account:</label><input type="text" id="toAddress" placeholder="e.g., 0x93e66d9baea28c17d9fc393b53e3fbdd76899dae" onchange="validateSendForm()"></input>    
-    <br><br><button id="send" onclick="send()" disabled>Send</button><span id="sendInvalidMessage"></span>
+    <br><br><button id="btnSend" onclick="send()" disabled>Send</button><span id="formInvalidMessage"></span>
     <br>
     <span id="status"></span>    
 </body>
@@ -46,11 +46,11 @@
                 if(isValidAddress)
                 {
                     var villageCoin = await app.contract.deployed();                
-                    var isExistentAccount = await villageCoin.hasAccount(toAddress, amount, {from: app.account});
-                    if(!isExistentAccount)
+                    var isCitizen = await villageCoin.isCitizen.call(toAddress, amount, {from: app.account});
+                    if(!isCitizen)
                     {
                         isValid = false;
-                        invalidReason = "The 'To Account' is not a valid VillageCoin account";
+                        invalidReason = "The 'To Account' is not a VillageCoin citizen";
                     }
                 }
                 else
@@ -60,13 +60,14 @@
                 }
             }
 
-            var sendButton = document.getElementById("send");
+            var sendButton = document.getElementById("btnSend");
             sendButton.disabled = !isValid;
-            var sendInvalidMessage = document.getElementById("sendInvalidMessage");
+            var sendInvalidMessage = document.getElementById("formInvalidMessage");
             sendInvalidMessage.innerHTML = invalidReason;
         }
         catch(error)
         {
+            console.log(error);
             app.setStatus(error);
         }
     }
@@ -79,10 +80,11 @@
             var decimals = await villageCoin.decimals.call({from: app.account});
             var symbol = await villageCoin.symbol.call({from: app.account});
             var balance = await villageCoin.balanceOf.call(app.account, {from: app.account});
-            document.getElementById("balance").innerHTML = balance.toFormat(decimals.toNumber()) + symbol;
+            document.getElementById("balance").innerHTML = balance.toFormat(decimals.toNumber()) + " " + symbol;
         }
         catch(error)
         {
+            console.log(error);
             app.setStatus(error);
         }
     }    
@@ -104,13 +106,15 @@
         }
         catch(error)
         {
+            console.log(error);
             app.setStatus(error);
         }
     }
 
     window.addEventListener('load', async function()
     { 
-        app.redirectNonUser(); 
+        await init();
+        app.redirectNonCitizen(); 
         await populateBalance();
     });
 </script>

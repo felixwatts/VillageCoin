@@ -61,3 +61,26 @@ h3 {
   text-align: center;
   visibility: hidden;  
 }
+
+.voteButton {
+  margin: 0;
+  padding: 16px;
+  background: gray;
+  border-radius: 8px;
+  min-width: 150px;
+  border: 0;
+  box-shadow:none;
+  width:100%
+}
+
+.voteButtonTitle {
+  color: white;
+  font-weight: bold;
+  font-size: 16pt;
+  text-align: center;
+}
+
+.voteButtonDescription {
+  color: white;
+  text-align: center;
+}

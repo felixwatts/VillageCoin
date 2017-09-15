@@ -12,73 +12,49 @@
         <li><a href="proposals.html">Vote</a></li>
         <li><a href="createProposal.html">Make a Proposal</a></li>
     </ul>
-    <h2>Decided Proposals</h2>
-    <p class="hint">This is a list of proposals that have reached enough YES or NO votes to be decided. Any citizen may now choose APPLY DECISION to enact the decision, but be aware this may incur a significant gas cost</p>
-    <table id="tableDecidedProposals"></table>
 
     <h2>Open Proposals</h2>  
-    <p class="hint">This is a list of proposals that are awaiting your vote. Although you never <em>have</em> to vote, it's important if you want to influence the future of the currency</p>
-    <h3>Appoint Gatekeeper</h3>
-    <table id="tableCreateManagerProposals"></table>
+    <p class="hint">This is a list of proposals that are awaiting your vote. Although you never <em>have</em> to vote, it's important if you want to influence the future of the currency</p>    
+    <table id="tableProposals"></table>
 
     <div id="status"></div>    
 </body>
 </html>
 <script lang="javascript">
 
-async function populateDecidedProposalsTable() 
+function filterProposalByVotable(proposal) 
 {
-    await app.populateProposalsTable(
-        "tableDecidedProposals", 
-        app.filterProposalByDecided, 
-        function(contract){ return contract.getProposalBasicDetails; }, 
-        "<tr><td>#</td><td></td></tr>",
-        function(proposal){ return "<tr><td>" + proposal[0] + "</td><td><button onclick='decide(" + proposal[0].toNumber() + ")'>APPLY DECISION</button></td></tr>";});
+    var isExistent = proposal[1];
+    return isExistent;
 }
 
-async function populateCreateManagerProposalsTable() 
+async function buildProposalRow(proposal)
 {
-    await app.populateProposalsTable(
-        "tableCreateManagerProposals", 
-        function(proposal) { return app.filterProposalByExistentUnvotedAndType(proposal, app.ProposalType.CreateManager); }, 
-        function(contract){ return contract.getCreateManagerProposal; }, 
-        "<tr><td>#</td><td>Address of Proposed Gatekeeper</td><td>Vote</td></tr>",
-        function(proposal){ return "<tr><td>" + proposal[0] + "</td><td>" + proposal[1] + "</td><td><button onclick='vote(" + proposal[0].toNumber() + ", true)'>YES</button><button onclick='vote(" + proposal[0].toNumber() + ", false)'>NO</button></td></tr>";});
+    var proposalId = proposal[0].toNumber();
+    var description = await app.getProposalDescription(proposalId);
+    return "<tr><td><a href='proposal.html?id=" + proposalId + "'>proposal #" + proposalId + "</a></td><td>" + description + "</a>";
 }
 
-async function populateAllProposalsTables()
-{
-    await populateDecidedProposalsTable();
-    await populateCreateManagerProposalsTable();
-}
-
-async function vote(proposalId, isYes)
+async function populateProposalsTable() 
 {
     try 
     {
-        app.setStatus("Voting...");
         var villageCoin = await app.contract.deployed();
-        await villageCoin.voteOnProposal(proposalId, isYes, {from: app.account});
-        app.setStatus("Your vote was recorded");
-        await populateAllProposalsTables();
-    } 
-    catch(error)
-    {
-        console.log(error);
-        app.setStatus(error);
-    }
+        var maxProposalId = await villageCoin.getMaxProposalId.call({from: app.account});
+        var allProposalIds = [...Array(maxProposalId.toNumber()).keys()];
+        var allProposalsBasicDetails = await Promise.all(allProposalIds.map(function(id){ return villageCoin.getProposalBasicDetails.call(id, {from: app.account}) }));
 
-}
+        var votableProposalsBasicDetails = allProposalsBasicDetails
+            .filter(filterProposalByVotable);
+        var votableProposals = await Promise.all(votableProposalsBasicDetails
+            .map(buildProposalRow));
 
-async function decide(proposalId)
-{
-    try 
-    {
-        app.setStatus("Applying decision...");
-        var villageCoin = await app.contract.deployed();
-        await villageCoin.tryDecideProposal(proposalId, {from: app.account});
-        app.setStatus("The decision was applied");
-        await populateAllProposalsTables();
+        var proposalsTableHtml = votableProposals.length == 0 
+            ? "There are no outstanding proposals" 
+            : votableProposals
+                .reduce(function(accumulator, currentValue) { return accumulator + currentValue; }, "");
+
+        document.getElementById("tableProposals").innerHTML = proposalsTableHtml;
     } 
     catch(error)
     {
@@ -87,9 +63,10 @@ async function decide(proposalId)
     }
 }
 
-window.addEventListener('load', function()
+window.addEventListener('load', async function()
 {
+    await init();
     app.redirectNonUser();
-    populateAllProposalsTables();
+    await populateProposalsTable();
 });
 </script>

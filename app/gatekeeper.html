@@ -44,8 +44,9 @@ async function vote(proposalId, isYes)
 
 }
 
-window.addEventListener('load', function()
+window.addEventListener('load', async function()
 {
+    await init();
     app.redirectNonManager();
     populateCreateAccountProposalsTable();
 });

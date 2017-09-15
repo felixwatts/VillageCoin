@@ -14,8 +14,9 @@
         <li><a href="createProposal.html">Make a Proposal</a></li>
     </ul>
     <br>
-        <br><label for="managerAddress">New Gatekeeper's Address:</label><input type="text" id="managerAddress" placeholder="e.g., 0x93e66d9baea28c17d9fc393b53e3fbdd76899dae"></input>    
-        <br><br><button id="send" onclick="submit()">Create Proposal</button>
+        <br><label for="gatekeeperAddress">New Gatekeeper's Address:</label>
+        <input type="text" id="gatekeeperAddress" placeholder="e.g., 0x93e66d9baea28c17d9fc393b53e3fbdd76899dae" onchange="validateForm()"></input>    
+        <br><br><button id="btnSend" onclick="submit()" disabled>Create Proposal</button><span id="formInvalidMessage"></span>
         <br><br>    
     <br>
     <div id="status"></div>
@@ -23,19 +24,74 @@
 </html>
 <script>
 
+    async function validateForm() {
+
+        try
+        {
+            var isValid = true;
+            var invalidReason = "";
+
+            var toAddress = document.getElementById("gatekeeperAddress").value;
+            
+            if(toAddress == undefined)
+            {
+                isValid = false;
+                invalidReason = "You must enter the address of the new gatekeeper";
+            }
+            else
+            {
+                var isValidAddress = web3.isAddress(toAddress);
+                if(!isValidAddress)
+                {
+                    isValid = false;
+                    invalidReason = "The gatekeeper address is not a valid Ethereum address";
+                }
+                else
+                {
+                    var villageCoin = await app.contract.deployed();
+                    var isCitizen = await villageCoin.isCitizen.call(toAddress, {from: app.account});
+
+                    if(!isCitizen)
+                    {
+                        isValid = false;
+                        invalidReason = "The gatekeeper must be a citizen";
+                    }
+                    else
+                    {
+                        var isGatekeeper = await villageCoin.isGatekeeper.call(toAddress, {from: app.account});
+                        if(isGatekeeper)
+                        {
+                            isValid = false;
+                            invalidReason = "The specified address is already a gatekeeper";
+                        }
+                    }
+                }
+            }
+
+            var sendButton = document.getElementById("btnSend");
+            sendButton.disabled = !isValid;
+            var sendInvalidMessage = document.getElementById("formInvalidMessage");
+            sendInvalidMessage.innerHTML = invalidReason;
+        }
+        catch(error)
+        {
+            app.setStatus(error);
+        }
+    }
+
 async function submit() 
 {
     try 
     {
         app.setStatus("Initiating transaction... (please wait)");
 
-        var managerAddress = document.getElementById("managerAddress").value;
-        if(managerAddress == undefined) throw("You must enter the address of the proposed gatekeeper");
+        var gatekeeperAddress = document.getElementById("gatekeeperAddress").value;
         
         var villageCoin = await app.contract.deployed();
-        await villageCoin.proposeCreateManager(managerAddress, {from: app.account});
+        var receipt = await villageCoin.proposeAppointGatekeeper(gatekeeperAddress, {from: app.account});
 
-        app.setStatus("Transaction complete!");  
+        var proposalId = receipt.logs[0].args.proposalId.toNumber();
+        window.location.replace("proposal.html?id=" + proposalId);
     } 
     catch(error) 
     {
@@ -43,9 +99,10 @@ async function submit()
     }
 }
 
-window.addEventListener('load', function()
+window.addEventListener('load', async function()
 {
-    app.redirectNonUser();
+    await init();
+    app.redirectNonCitizen();
 });
 
 </script>

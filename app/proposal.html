@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>VillageCoin - Proposal</title>
+  <link href='https://fonts.googleapis.com/css?family=Open+Sans:400,700' rel='stylesheet' type='text/css'>
+  <script src="./common.js"></script>
+</head>
+<body>
+    <h1>VillageCoin</h1>
+    <h2 id="proposalName"></h2>
+    <ul class="menu">
+        <li><a href="index.html">Home</a></li>
+        <li><a href="proposals.html">Vote</a></li>
+        <li><a href="createProposal.html">Make a Proposal</a></li>
+    </ul>  
+      
+    <div id="proposalDetails" style="display: none">
+
+        <p id="proposalDescription" style="font-size:16pt;padding:8px;border-left-style: solid; border-left-width: 3px;border-left-color:black"></p>
+        <div style="display:grid;grid-template-rows:1fr;grid-template-columns:1fr 7fr;height:60px;padding:16px;background-color:#fff8de;border-radius:8px">
+            <div style="grid-row:1;grid-column:1;display:grid;grid-template-rows:repeat(2, 1fr);grid-row-gap:8px;">
+                <div id="labelYesVotes" style="grid-row:1;grid-column:1;line-height:26px">YES</div>
+                <div id="labelNoVotes" style="grid-row:2;grid-column:1;line-height:26px">NO</div>
+            </div>
+            <div id="votesChartContainer" style="grid-row:1;grid-column:2;display:grid;grid-template-rows:repeat(2, 1fr);grid-row-gap:8px;grid-template-columns: repeat(100, 1fr);width:100%">
+                    <div id="voteChartBarYes" style="grid-column-start:1;grid-column-end: 101;grid-row-start:1;grid-row-end:2;border-radius: 0 5px 5px 0;background:#34A853"></div>
+                    <div id="voteChartBarNo" style="grid-column-start:1;grid-column-end: 101;grid-row-start:2;grid-row-end:3;border-radius: 0 5px 5px 0;background:#EA4335"></div>
+                    <div style="grid-column-start:1;grid-column-end: 1;grid-row-start:1;grid-row-end:3;border-left-style: solid;border-left-width: 2px;border-left-color: black"></div>
+                    <div style="grid-column-start:60;grid-column-end: 61;grid-row-start:1;grid-row-end:3;border-left-style: dashed;border-left-width: 2px;border-left-color: black"></div>
+                    <div style="grid-column-start:100;grid-column-end: 101;grid-row-start:1;grid-row-end:3;border-left-style: solid;border-left-width: 2px;border-left-color: black"></div>
+            </div>
+        </div>
+        <p id="proposalExpiry"></p>
+
+        <div id="msgCannotVoteDecidedAccepted" style="display: none">Voting has finished for this proposal. The proposal was ACCEPTED</div>
+        <div id="msgCannotVoteDecidedRejected" style="display: none">Voting has finished for this proposal. The proposal was REJECTED</div>
+        <div id="msgCannotVoteDecidedExpired" style="display: none">Voting has finished for this proposal. The proposal expired with insufficient votes and so was REJECTED</div>
+
+        <div id="msgCannotVoteNonCitizen" style="display: none">You cannot vote on this proposal because you are not a citizen</div>
+        <div id="msgCannotVoteNonGatekeeper" style="display: none">You cannot vote on this proposal because you are not a gatekeeper</div>
+        <div id="msgCannotVoteAlreadyVoted" style="display: none">You have already voted on this proposal</div>
+        
+
+        <div id="voteButtonsContainer" style="display: none">
+            <p>You may vote using the buttons below</p>
+            <div>
+                <button class="voteButton" style="background:#34A853" onclick="vote(true)">
+                    <div class="voteButtonTitle">YES</div>
+                    <div class="voteButtonDescription" id="yesButtonDescription"></div>
+                </button>
+            </div>
+            <br>
+            <div>
+                <button class="voteButton" style="background:#EA4335" onclick="vote(false)">
+                        <div class="voteButtonTitle">NO</div>
+                        <div class="voteButtonDescription" id="noButtonDescription"></div>
+                </button>
+            </div>
+        </div>
+        <div id="proposalStatusOpen" style="display: none">
+            <p>The proposal needs more votes before it can be decided</p>
+        </div>
+        <div id="proposalStatusYes" style="display: none">
+            <p>The proposal has received enough YES votes to be accepted. You may click the button below to accept and enact the proposal. Be aware this may incur significant gas costs</p>
+            <button class="voteButton" onclick="decide()">
+                    <div class="voteButtonTitle">ACCEPT PROPOSAL</div>
+                    <div class="voteButtonDescription" id="enactButtonDescription"></div>
+            </button>
+        </div>
+        <div id="proposalStatusNo" style="display: none">
+            <p>The proposal has received enough NO votes to be rejected. You may click the button below to reject the proposal.</p>
+            <button class="voteButton" onclick="decide()">
+                    <div class="voteButtonTitle">REJECT PROPOSAL</div>
+            </button>
+        </div>
+        <div id="proposalStatusExpired" style="display: none">
+                <p>The proposal has expired without receiving enough YES or NO votes to be decisive. The proposal will not be accepted. You may click the button below to reject the proposal.</p>
+                <button class="voteButton" onclick="decide()">
+                        <div class="voteButtonTitle">REJECT PROPOSAL</div>
+                </button>
+        </div>
+    </div>
+    <div id="status"></div>
+</body>
+</html>
+<script>
+
+    var parseQueryString = function(url) 
+    {
+        var urlParams = {};
+        url.replace(
+            new RegExp("([^?=&]+)(=([^&]*))?", "g"),
+            function($0, $1, $2, $3) {
+            urlParams[$1] = $3;
+            }
+        );
+        
+        return urlParams;
+    }
+
+    function getProposalId()
+    {
+        var url = location.search;  
+        var urlParameters = parseQueryString(url);
+        var proposalId = parseInt(urlParameters.id);
+        if(isNaN(proposalId) || proposalId < 0) throw("Invalid proposal ID");
+
+        return proposalId;
+    }
+
+    async function vote(isYes)
+    {
+        try
+        {
+            var proposalId = getProposalId();
+
+            var villageCoin = await app.contract.deployed();
+            await villageCoin.voteOnProposal(proposalId, isYes, {from: app.account});
+
+            window.location.reload();
+        }
+        catch(error)
+        {
+            app.setStatus(error);
+        } 
+    }
+
+    async function decide()
+    {
+        try 
+        {
+            var proposalId = getProposalId();
+            var villageCoin = await app.contract.deployed();
+            await villageCoin.tryDecideProposal(proposalId, {from: app.account});
+
+            window.location.reload();
+        } 
+        catch(error)
+        {
+            app.setStatus(error);
+        }
+    }
+
+    async function populateProposalDescription(proposalId)
+    {
+        var description = await app.getProposalDescription(proposalId)
+
+        document.getElementById("proposalDescription").innerHTML = description;
+    }
+
+    function getVotePercent(proposalType, voteCount, citizenCount, gatekeeperCount)
+    {
+        var totalVoters = proposalType == app.ProposalType.AddCitizen
+            ? gatekeeperCount
+            : citizenCount;
+
+        return Math.round((voteCount / totalVoters) * 100);
+    }
+    
+    async function populateVoteChart(yesVoteCount, noVoteCount, proposalType, thresholdPercent, citizenCount, gatekeeperCount) 
+    {                 
+        var yesVotePercent = getVotePercent(proposalType, yesVoteCount, citizenCount, gatekeeperCount);
+        document.getElementById("voteChartBarYes").style["grid-column-end"] = yesVotePercent+1;
+
+        var noVotePercent = getVotePercent(proposalType, noVoteCount, citizenCount, gatekeeperCount);
+        document.getElementById("voteChartBarNo").style["grid-column-end"] = noVotePercent+1;
+
+        document.getElementById("labelYesVotes").innerHTML = "YES (" + yesVoteCount + ")";
+        document.getElementById("labelNoVotes").innerHTML = "NO (" + noVoteCount + ")";
+    }
+
+    function populateExpiry(expiryTime)
+    {
+        var date = new Date(expiryTime * 1000);
+        var dateString = date.toUTCString();
+        document.getElementById("proposalExpiry").innerHTML = "Expires on " + dateString;
+    }
+
+    async function populateVoteBox(decision, isCitizen, isGatekeeper, proposalType, hasSenderVoted, proposalId)
+    {
+        switch(decision)
+        {
+            case app.ProposalDecision.Undecided:
+            {
+                if(!isCitizen)
+                {
+                    document.getElementById("msgCannotVoteNonCitizen").style.display = "inline";
+                }
+                else if(proposalType == app.ProposalType.AddCitizen && !isGatekeeper)
+                {
+                    document.getElementById("msgCannotVoteNonGatekeeper").style.display = "inline";         
+                }
+                else if(hasSenderVoted)
+                {
+                    document.getElementById("msgCannotVoteAlreadyVoted").style.display = "inline";
+                    return;
+                }
+                else
+                {
+                    document.getElementById("voteButtonsContainer").style.display = "inline";
+
+                    var yesDescription = await app.getProposalDescription(proposalId);
+                    document.getElementById("yesButtonDescription").innerHTML = yesDescription;
+                    document.getElementById("noButtonDescription").innerHTML = "<strong>do not</strong> " + yesDescription;
+                }
+            }
+            break;
+
+            case app.ProposalDecision.Accepted:
+                document.getElementById("msgCannotVoteDecidedAccepted").style.display = "inline";
+                break;
+            case app.ProposalDecision.Rejected:
+                document.getElementById("msgCannotVoteDecidedRejected").style.display = "inline";
+                break;
+            case app.ProposalDecision.Expired:
+                document.getElementById("msgCannotVoteDecidedExpired").style.display = "inline";
+                break;                                
+        }
+    }
+
+    async function populateProposalStatus(decision, proposalType, yesVoteCount, noVoteCount, thresholdPercent, expiryTime, citizenCount, gatekeeperCount)
+    {
+        if(decision != app.ProposalDecision.Undecided) return;
+
+        var yesVotePercent = getVotePercent(proposalType, yesVoteCount, citizenCount, gatekeeperCount);
+        var noVotePercent = getVotePercent(proposalType, noVoteCount, citizenCount, gatekeeperCount);
+
+        if(yesVotePercent >= thresholdPercent)
+        {
+            document.getElementById("proposalStatusYes").style.display = "inline";
+        }
+        else if(noVotePercent >= thresholdPercent)
+        {
+            document.getElementById("proposalStatusNo").style.display = "inline";
+        }
+        else if(new Date(expiryTime * 1000) < new Date())
+        {
+            document.getElementById("proposalStatusExpired").style.display = "inline";
+        }
+        else
+        {
+            document.getElementById("proposalStatusOpen").style.display = "inline";
+        }
+    }
+
+    async function populatePage() 
+    {
+        try
+        {
+            var proposalId = getProposalId();
+
+            document.getElementById("proposalName").innerHTML = "Proposal #" + proposalId;
+            
+            var villageCoin = await app.contract.deployed();
+
+            var isCitizen = await villageCoin.isCitizen.call(app.account, {from: app.account});      
+            var isGatekeeper = await villageCoin.isGatekeeper.call(app.account, {from: app.account}); 
+
+            var proposalBasicDetails = await villageCoin.getProposalBasicDetails.call(proposalId, {from: app.account});
+            var isExistent = proposalBasicDetails[1];
+            var decision = proposalBasicDetails[2].toNumber();            
+            var hasSenderVoted = proposalBasicDetails[3];
+            var proposalType = proposalBasicDetails[4].toNumber(); 
+            var expiryTime = proposalBasicDetails[5].toNumber(); 
+
+            if(!isExistent) return;     
+            
+            var proposalVotes = await villageCoin.getProposalVotes.call(proposalId, {from: app.account});            
+            var yesVoteCount = proposalVotes[1].toNumber();
+            var noVoteCount = proposalVotes[2].toNumber();
+
+            var thresholdPercent = (await villageCoin.getProposalDecideThresholdPercent.call({from: app.account})).toNumber();
+
+            var citizenCount = (await villageCoin.getCitizenCount.call({from: app.account})).toNumber()
+            var gatekeeperCount = (await villageCoin.getGatekeeperCount.call({from: app.account})).toNumber();    
+            
+            console.log(citizenCount);
+
+            document.getElementById("proposalDetails").style.display = "inline";
+            populateProposalDescription(proposalId);
+            populateVoteChart(yesVoteCount, noVoteCount, proposalType, thresholdPercent, citizenCount, gatekeeperCount);
+            populateExpiry(expiryTime);
+            populateVoteBox(decision, isCitizen, isGatekeeper, proposalType, hasSenderVoted, proposalId);
+            populateProposalStatus(decision, proposalType, yesVoteCount, noVoteCount, thresholdPercent, expiryTime, citizenCount, gatekeeperCount);
+
+        }
+        catch(error)
+        {
+            app.setStatus(error);
+        }        
+    }
+  
+    window.addEventListener('load', async function()
+    { 
+        await init();
+        await populatePage(); 
+    });
+</script>

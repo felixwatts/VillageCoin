@@ -13,4 +13,4 @@ VillageCoin is a toy currency and monetary system built on Ethereum. Unlike most
 
 Anyone can create their own _village_, which is an instance of the currency with its own gatekeepers, citizens and policies.
 
-I made VillageCoin in my spare time as a way to learn DApp development. Please don't take it too seriously or actually use it for anything serious!
+I made VillageCoin in my spare time as a way to learn DApp development. Please don't take it too seriously!

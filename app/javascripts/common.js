@@ -31,133 +31,140 @@ function setupWeb3Provider() {
 }
 
 function setupContract() {
-    // Bootstrap the VillageCoin abstraction for Use.
-    VillageCoin.setProvider(web3.currentProvider);
 
-    window.app.contract = VillageCoin;
+    var promise = new Promise(function(resolve, reject) 
+    {
+        try 
+        {
+            // Bootstrap the VillageCoin abstraction for Use.
+            VillageCoin.setProvider(web3.currentProvider);
+        
+            window.app.contract = VillageCoin;
+        
+            // Get the initial account balance so it can be displayed.
+            web3.eth.getAccounts(function(err, accs) 
+            {
+                if (err != null) {
+                    throw("There was an error fetching your accounts.");
+                }
+        
+                if (accs.length == 0) 
+                {
+                    throw("Couldn't get any accounts! Make sure your Ethereum client is configured correctly.")
+                }
+        
+                window.app.accounts = accs;
+                window.app.account = window.app.accounts[0];
 
-    // Get the initial account balance so it can be displayed.
-    web3.eth.getAccounts(function(err, accs) {
-        if (err != null) {
-        alert("There was an error fetching your accounts.");
-        return;
+                resolve();
+            });
+        } 
+        catch(error)
+        {
+            reject(error);
         }
-
-        if (accs.length == 0) {
-        alert("Couldn't get any accounts! Make sure your Ethereum client is configured correctly.");
-        return;
-        }
-
-        window.app.accounts = accs;
-        window.app.account = window.app.accounts[0];
     });
+
+    return promise;
 }
 
-async function redirectNonUser()
+async function redirectNonCitizen()
 {
     var villageCoin = await app.contract.deployed();
-    var hasAccount = await villageCoin.hasAccount(window.app.account);
+    var isCitizen = await villageCoin.isCitizen.call(window.app.account);
 
-    if(!hasAccount) window.location.replace("welcome.html");
+    if(!isCitizen) window.location.replace("welcome.html");
 }
 
-async function redirectUser()
+async function redirectCitizen()
 {
     var villageCoin = await app.contract.deployed();
-    var hasAccount = await villageCoin.hasAccount(window.app.account);
+    var isCitizen = await villageCoin.isCitizen.call(window.app.account);
 
-    if(hasAccount) window.location.replace("index.html");
+    if(isCitizen) window.location.replace("index.html");
 }
 
-async function redirectNonManager()
+async function redirectNonGatekeeper()
 {
     var villageCoin = await app.contract.deployed();
-    var hasAccount = await villageCoin.isManager(window.app.account);
+    var isGatekeeper = await villageCoin.isGatekeeper(window.app.account);
 
-    if(!hasAccount) window.location.replace("index.html");
+    if(!isGatekeeper) window.location.replace("index.html");
 }
 
-async function populateProposalsTable(tableElementId, filter, getProposalDetails, headerRow, proposalDetailsToRow) 
+async function getProposalDescription(proposalId)
 {
-    try 
+    var villageCoin = await app.contract.deployed();
+
+    var proposalBasicDetails = await villageCoin.getProposalBasicDetails.call(proposalId, {from: app.account});
+    var isExistent = proposalBasicDetails[1];
+    var decision = proposalBasicDetails[2].toNumber();            
+    var hasSenderVoted = proposalBasicDetails[3];
+    var proposalType = proposalBasicDetails[4].toNumber(); 
+    var expiryTime = proposalBasicDetails[5].toNumber(); 
+
+    var description = "";
+
+    switch(proposalType)
     {
-        var villageCoin = await app.contract.deployed();
-        var maxProposalId = await villageCoin.getMaxProposalId.call({from: app.account});
-        var allProposalIds = [...Array(maxProposalId.toNumber()).keys()];
-        var allProposalsBasicDetails = await Promise.all(allProposalIds.map(function(id){ return villageCoin.getProposalBasicDetails.call(id, {from: app.account}) }));
-
-        console.log(allProposalsBasicDetails);
-
-        var activeUnvotedTypedProposalsBasicDetails = allProposalsBasicDetails
-            .filter(filter);
-        var activeUnvotedTypedProposals = await Promise.all(activeUnvotedTypedProposalsBasicDetails
-            .map(function(proposal) { return getProposalDetails(villageCoin).call(proposal[0], {from: app.account}) }));
-
-        var proposalsTableHtml = activeUnvotedTypedProposals.length == 0 
-            ? "There are no outstanding proposals" 
-            : activeUnvotedTypedProposals
-                .map(proposalDetailsToRow)
-                .reduce(function(accumulator, currentValue) { return accumulator + currentValue; }, headerRow);
-
-        document.getElementById(tableElementId).innerHTML = proposalsTableHtml;
-    } 
-    catch(error)
-    {
-        console.log(error);
-        app.setStatus(error);
+        case app.ProposalType.AppointGatekeeper:
+        {
+            var details = await villageCoin.getAppointGatekeeperProposal.call(proposalId, {from: app.account});
+            var gatekeeperAddress = details[1];
+            description = "appoint <strong>" + gatekeeperAddress + "</strong> as a <strong>gatekeeper</strong>";
+        }
+        break;
+        case app.ProposalType.AddCitizen:
+        {
+            var details = await villageCoin.getAddCitizenProposal.call(proposalId, {from: app.account});
+            var citizenAddress = details[1];
+            description = "allow the owner of address <strong>" + citizenAddress + "</strong> to become a <strong>citizen</strong>";
+        }
+        break;
     }
+
+    return description
 }
 
-function filterProposalByExistentUnvotedAndType(proposal, requiredType) 
+function setupCommonFunctions() 
 {
-    var isExistent = proposal[1];
-    var hasSenderVoted = proposal[2];
-    var proposalType = proposal[3].toNumber();  
-
-    return isExistent && !hasSenderVoted && proposalType == requiredType;
-}
-
-function filterProposalByDecided(proposal) 
-{
-    var isExistent = proposal[1]; 
-    var proposalState = proposal[4].toNumber(); 
-
-    return isExistent && (proposalState == app.ProposalState.Accepted || proposalState == app.ProposalState.Rejected);
-}
-
-function setupCommonFunctions() {
     window.app.setStatus = setStatus;
-    window.app.redirectUser = redirectUser;
-    window.app.redirectNonUser = redirectNonUser;
-    window.app.redirectNonManager = redirectNonManager;
-    window.app.populateProposalsTable = populateProposalsTable;
-    window.app.filterProposalByExistentUnvotedAndType = filterProposalByExistentUnvotedAndType;
-    window.app.filterProposalByDecided = filterProposalByDecided;
+    window.app.redirectCitizen = redirectCitizen;
+    window.app.redirectNonCitizen = redirectNonCitizen;
+    window.app.redirectNonGatekeeper = redirectNonGatekeeper;
+    window.app.getProposalDescription = getProposalDescription;
 
     var ProposalType = {};
-    ProposalType.CreateManager = 0; 
-    ProposalType.DeleteManager = 1; 
-    ProposalType.CreateAccount = 2; 
-    ProposalType.DeleteAccount = 3; 
+    ProposalType.AppointGatekeeper = 0; 
+    ProposalType.DismissGatekeeper = 1; 
+    ProposalType.AddCitizen = 2; 
+    ProposalType.RemoveCitizen = 3; 
     ProposalType.SetContractParameters = 4; 
     ProposalType.CreateMoney = 5;
     ProposalType.TaxWealth = 6; 
     ProposalType.SpendPublicMoney = 7;
     window.app.ProposalType = ProposalType;
 
-    var ProposalState = {};
-    ProposalState.NonExistent = 0;
-    ProposalState.Undecided = 1;
-    ProposalState.Accepted = 2;
-    ProposalState.Rejected = 3;
-    window.app.ProposalState = ProposalState;
+    var ProposalDecision = {};
+    ProposalDecision.Undecided = 0;
+    ProposalDecision.Accepted = 1;
+    ProposalDecision.Rejected = 2;
+    ProposalDecision.Expired = 3;
+    window.app.ProposalDecision = ProposalDecision;
 }
 
-window.addEventListener('load', async function() {
-
+window.init = async function()
+{
     window.app = {};
 
     setupWeb3Provider();
-    setupContract(); 
-    setupCommonFunctions();     
-});
+    await setupContract(); 
+    setupCommonFunctions(); 
+
+    var villageCoin = await app.contract.deployed();
+    var events = villageCoin.allEvents(function(error, log){
+        if (!error)
+          console.log(log);
+        else console.log(error);
+      });
+};

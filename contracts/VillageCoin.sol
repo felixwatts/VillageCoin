@@ -1,37 +1,12 @@
 pragma solidity ^0.4.9;
 
+import "./SafeMath.sol";
 import "./Receiver_Interface.sol";
 import "./ERC223_Interface.sol";
 
- /* https://github.com/LykkeCity/EthereumApiDotNetCore/blob/master/src/ContractBuilder/contracts/token/SafeMath.sol */
-contract SafeMath {
-    uint256 constant public MAX_UINT256 =
-    0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF;
-
-    function safeAdd(uint256 x, uint256 y) constant internal returns (uint256 z) {
-        require(x < MAX_UINT256 - y);
-        return x + y;
-    }
-
-    function safeSub(uint256 x, uint256 y) constant internal returns (uint256 z) {
-        require(x >= y);
-        return x - y;
-    }
-
-    function safeMul(uint256 x, uint256 y) constant internal returns (uint256 z) {
-        if (y == 0) {
-            return 0;
-        }
-        require(x <= MAX_UINT256 / y);
-        return x * y;
-    }
-
-    function SafeMath() public payable {
-
-    }
-}
-
 contract VillageCoin is ERC223, SafeMath {
+
+    event Debug(string message);
 
     address PUBLIC_ACCOUNT = 0; 
 
@@ -41,51 +16,48 @@ contract VillageCoin is ERC223, SafeMath {
         uint proposalTimeLimit;
     }
     
-    struct Account {        
+    struct Citizen {        
         address owner;
         uint balance;
+        bool isGatekeeper;
         bool isExistent;
     }  
 
-    struct Manager {
-        address id;
-        bool isExistent;
-    }
-
     enum ProposalType { 
-        CreateManager, 
-        DeleteManager, 
-        CreateAccount, 
-        DeleteAccount, 
+        AppointGatekeeper, 
+        DismissGatekeeper, 
+        AddCitizen, 
+        RemoveCitizen, 
         SetContractParameters, 
         CreateMoney, 
         TaxWealth, 
         SpendPublicMoney 
         }
 
-    enum ProposalState {
-        NonExistent,
+    enum ProposalDecision {
         Undecided,
         Accepted,
-        Rejected
+        Rejected,
+        Expired
     }
 
     struct Proposal {
-        uint id;
+        uint id;        
         ProposalType typ;
         uint voteCountYes;
         uint voteCountNo;
         mapping(address=>bool) hasVoted;
         bool isExistent;
+        ProposalDecision decision;
         uint expiryTime;
 
-        address createManagerId;
+        address appointGatekeeperId;
 
-        address deleteManagerId;
+        address dismissGatekeeperId;
 
-        address createAccountOwner;        
+        address addCitizenId;        
 
-        address deleteAccountOwner;
+        address removeCitizenId;
 
         ContractParameters setContractParametersParameters;
 
@@ -105,19 +77,17 @@ contract VillageCoin is ERC223, SafeMath {
     string public _name;
     string public _symbol;
     uint8 public _decimals;
+    uint256 public _totalSupply;
+
     ContractParameters _parameters;
 
-    mapping(address=>Manager) _managers;
-    uint _managerCount;
-
-    mapping(address=>Account) _accounts;
-    uint _accountCount;
-    address[] _allAcountOwnersEver;
+    mapping(address=>Citizen) _citizens;
+    uint _citizenCount;
+    uint _gatekeeperCount;
+    address[] _allCitizenOwnersEver;
 
     uint _nextProposalId;
-    mapping(uint=>Proposal) _proposals;
-
-    uint256 _totalSupply;
+    mapping(uint=>Proposal) _proposals;    
 
     function VillageCoin(string name, string symbol, uint8 decimals) payable {
         _name = name;
@@ -126,69 +96,70 @@ contract VillageCoin is ERC223, SafeMath {
         _parameters.initialAccountBalance = 1000;
         _parameters.proposalDecideThresholdPercent = 60;
         _parameters.proposalTimeLimit = 30 days;
-
-        createManager(msg.sender);
-        createAccount(PUBLIC_ACCOUNT);
-        createAccount(msg.sender);
+        
+        addCitizen(PUBLIC_ACCOUNT);
+        _citizenCount = 0; // public account doesnt count towards the citizen count because it does not vote
+        addCitizen(msg.sender);
+        appointGatekeeper(msg.sender);
     }
 
     //
     // Management Methods
     //
 
-    function proposeCreateManager(address id) public onlyManager {
-        require(!_managers[id].isExistent);
+    function proposeAppointGatekeeper(address id) public onlyCitizen {
+        require(!isGatekeeper(id));
 
         var proposalId = _nextProposalId++;
         assert(!_proposals[proposalId].isExistent);
 
         _proposals[proposalId].isExistent = true;
         _proposals[proposalId].expiryTime = now + _parameters.proposalTimeLimit;
-        _proposals[proposalId].typ = ProposalType.CreateManager;
-        _proposals[proposalId].createManagerId = id;
+        _proposals[proposalId].typ = ProposalType.AppointGatekeeper;
+        _proposals[proposalId].appointGatekeeperId = id;
 
         OnProposalCreated(proposalId);
     }
 
-    function proposeDeleteManager(address id) public onlyManager {
-        require(_managers[id].isExistent);
+    function proposeDismissGatekeeper(address id) public onlyCitizen {
+        require(isGatekeeper(id));
 
         var proposalId = _nextProposalId++;
         assert(!_proposals[proposalId].isExistent);
 
         _proposals[proposalId].isExistent = true;
         _proposals[proposalId].expiryTime = now + _parameters.proposalTimeLimit;
-        _proposals[proposalId].typ = ProposalType.DeleteManager;
-        _proposals[proposalId].deleteManagerId = id;
+        _proposals[proposalId].typ = ProposalType.DismissGatekeeper;
+        _proposals[proposalId].dismissGatekeeperId = id;
 
         OnProposalCreated(proposalId);
     }
 
-    function proposeCreateAccount(address owner, string supportingEvidenceSwarmAddress) public {
-        require(!_accounts[owner].isExistent);
+    function proposeAddCitizen(address id, string supportingEvidenceSwarmAddress) public {
+        require(!isCitizen(id));
 
         var proposalId = _nextProposalId++;
         assert(!_proposals[proposalId].isExistent);
 
         _proposals[proposalId].isExistent = true;
         _proposals[proposalId].expiryTime = now + _parameters.proposalTimeLimit;
-        _proposals[proposalId].typ = ProposalType.CreateAccount;
-        _proposals[proposalId].createAccountOwner = owner;
+        _proposals[proposalId].typ = ProposalType.AddCitizen;
+        _proposals[proposalId].addCitizenId = id;
         _proposals[proposalId].supportingEvidenceSwarmAddress = supportingEvidenceSwarmAddress;
 
         OnProposalCreated(proposalId);
     }
 
-    function proposeDeleteAccount(address owner) public onlyManager {
-        require(_accounts[owner].isExistent);
+    function proposeRemoveCitizen(address id) public onlyCitizen {
+        require(isCitizen(id));
 
         var proposalId = _nextProposalId++;
         assert(!_proposals[proposalId].isExistent);
 
         _proposals[proposalId].isExistent = true;
         _proposals[proposalId].expiryTime = now + _parameters.proposalTimeLimit;
-        _proposals[proposalId].typ = ProposalType.DeleteAccount;
-        _proposals[proposalId].deleteAccountOwner = owner;
+        _proposals[proposalId].typ = ProposalType.RemoveCitizen;
+        _proposals[proposalId].removeCitizenId = id;
 
         OnProposalCreated(proposalId);
     }
@@ -196,7 +167,7 @@ contract VillageCoin is ERC223, SafeMath {
     function proposeSetContractParameters (
         uint initialAccountBalance,
         uint proposalDecideThresholdPercent,
-        uint proposalTimeLimitDays) public onlyManager 
+        uint proposalTimeLimitDays) public onlyCitizen 
     {
         var proposalId = _nextProposalId++;
         assert(!_proposals[proposalId].isExistent);
@@ -211,7 +182,7 @@ contract VillageCoin is ERC223, SafeMath {
         OnProposalCreated(proposalId);
     }
 
-    function proposeCreateMoney(uint amountPerAccount) public onlyManager {
+    function proposeCreateMoney(uint amountPerAccount) public onlyCitizen {
         var proposalId = _nextProposalId++;
         assert(!_proposals[proposalId].isExistent);
 
@@ -223,7 +194,7 @@ contract VillageCoin is ERC223, SafeMath {
         OnProposalCreated(proposalId);
     }
 
-    function proposeTaxWealth(uint percent) public onlyManager {
+    function proposeTaxWealth(uint percent) public onlyCitizen {
         var proposalId = _nextProposalId++;
         assert(!_proposals[proposalId].isExistent);
 
@@ -235,7 +206,7 @@ contract VillageCoin is ERC223, SafeMath {
         OnProposalCreated(proposalId);
     }
 
-    function proposeSpendPublicMoney(address to, uint amount) public onlyManager {
+    function proposeSpendPublicMoney(address to, uint amount) public onlyCitizen {
         var proposalId = _nextProposalId++;
         assert(!_proposals[proposalId].isExistent);
 
@@ -248,14 +219,13 @@ contract VillageCoin is ERC223, SafeMath {
         OnProposalCreated(proposalId);
     }
 
-    function voteOnProposal(uint proposalId, bool isYes) public {
+    function voteOnProposal(uint proposalId, bool isYes) public onlyCitizen {
         require(_proposals[proposalId].isExistent);
+        require(_proposals[proposalId].decision == ProposalDecision.Undecided);
         require(!_proposals[proposalId].hasVoted[msg.sender]);
         
-        if (_proposals[proposalId].typ == ProposalType.CreateAccount) {
-            require(isManager(msg.sender));
-        } else {
-            require(hasAccount(msg.sender));
+        if (_proposals[proposalId].typ == ProposalType.AddCitizen) {
+            require(isGatekeeper(msg.sender));
         }
 
         _proposals[proposalId].hasVoted[msg.sender] = true;        
@@ -268,125 +238,83 @@ contract VillageCoin is ERC223, SafeMath {
 
     function tryDecideProposal(uint proposalId) public {
 
-        var state = getProposalState(proposalId);
+        assert(_proposals[proposalId].isExistent);
+        assert(_proposals[proposalId].decision == ProposalDecision.Undecided);
 
-        assert(state != ProposalState.NonExistent);
-
-        if (state == ProposalState.Accepted) {
-            decideProposal(proposalId, true);
-        } else if (state == ProposalState.Rejected) {
-            decideProposal(proposalId, false);
-        }
-    }
-
-    function getProposalState(uint proposalId) private constant returns (ProposalState) {
         var proposal = _proposals[proposalId];
 
-        if (!proposal.isExistent) {
-            return ProposalState.NonExistent;
-        }
-
-        var totalVoters = proposal.typ == ProposalType.CreateAccount ? _managerCount : _accountCount;
+        var totalVoters = (proposal.typ == ProposalType.AddCitizen) ? _gatekeeperCount : _citizenCount;
 
         var percentYes = ((proposal.voteCountYes * 100) / totalVoters);
         var percentNo = ((proposal.voteCountNo * 100) / totalVoters);
 
         if (percentYes >= _parameters.proposalDecideThresholdPercent) {
-            return ProposalState.Accepted;
+            decideProposal(proposalId, ProposalDecision.Accepted);
         } else if (percentNo >= _parameters.proposalDecideThresholdPercent) {
-            return ProposalState.Rejected;
+            decideProposal(proposalId, ProposalDecision.Rejected);
         } else if (now > proposal.expiryTime) {
-            return ProposalState.Rejected;
+            decideProposal(proposalId, ProposalDecision.Expired);
         }
-
-        return ProposalState.Undecided;
     }
 
     //
     // Views
     //
 
-    function isManager(address addr) constant returns (bool) {
-        return _managers[addr].isExistent;
+    function getCitizenCount() public constant returns(uint) {
+        return _citizenCount;
     }
 
-    function hasAccount(address addr) constant returns (bool) {
-        return _accounts[addr].isExistent;
+    function getGatekeeperCount() public constant returns(uint) {
+        return _gatekeeperCount;
+    }
+
+    function getProposalDecideThresholdPercent() public constant returns(uint) {
+        return _parameters.proposalDecideThresholdPercent;
+    }
+
+    function isGatekeeper(address addr) constant returns (bool) {
+        return isCitizen(addr) && _citizens[addr].isGatekeeper;
+    }
+
+    function isCitizen(address addr) constant returns (bool) {
+        return _citizens[addr].isExistent;
     }
 
     function getMaxProposalId() constant returns (uint) {
         return _nextProposalId;
     }
 
-    function getProposalBasicDetails(uint proposalId) constant onlyManager returns (uint id, bool isExistent, bool hasSenderVoted, ProposalType typ, ProposalState state) {
-        return (proposalId, _proposals[proposalId].isExistent, _proposals[proposalId].hasVoted[msg.sender], _proposals[proposalId].typ, getProposalState(proposalId));
+    function getProposalBasicDetails(uint proposalId) public constant returns (uint id, bool isExistent, ProposalDecision decision, bool hasSenderVoted, ProposalType typ, uint expiryTime) {
+        return (proposalId, _proposals[proposalId].isExistent, _proposals[proposalId].decision, _proposals[proposalId].hasVoted[msg.sender], _proposals[proposalId].typ, _proposals[proposalId].expiryTime);
     }
 
-    function getCreateManagerProposal(uint proposalId) constant onlyManager returns ( // apparently you cannot have more than 8 return values!!
-        uint id, 
-        address createManagerId)
-        {
-            id = proposalId;
-            createManagerId = _proposals[id].createManagerId;
+    function getProposalVotes(uint proposalId) public constant returns (uint id, uint voteCountYes, uint voteCountNo) {
+        return (proposalId, _proposals[proposalId].voteCountYes, _proposals[proposalId].voteCountNo);
+    }
 
-            return;
-        }
-
-    function getCreateAccountProposal(uint proposalId) constant onlyManager returns ( // apparently you cannot have more than 8 return values!!
+    function getAppointGatekeeperProposal(uint proposalId) public constant returns ( // apparently you cannot have more than 8 return values!!
         uint id, 
-        address createAccountOwner,
+        address appointGatekeeperId)
+    {
+        id = proposalId;
+        appointGatekeeperId = _proposals[id].appointGatekeeperId;
+
+        return;
+    }
+
+    function getAddCitizenProposal(uint proposalId) public constant returns ( // apparently you cannot have more than 8 return values!!
+        uint id, 
+        address addCitizenId,
         string supportingEvidenceSwarmAddress)
-        {
-            id = proposalId;
-            createAccountOwner = _proposals[id].createAccountOwner;
-            supportingEvidenceSwarmAddress = _proposals[id].supportingEvidenceSwarmAddress;
+    {
+        id = proposalId;
+        addCitizenId = _proposals[id].addCitizenId;
+        supportingEvidenceSwarmAddress = _proposals[id].supportingEvidenceSwarmAddress;
 
-            return;
-        }
-
-    //         function getProposal(uint proposalId) constant onlyManager returns ( // apparently you cannot have more than 8 return values!!
-    //     uint id, 
-    //     ProposalType typ, 
-    //     uint voteCountYes, 
-    //     uint voteCountNo, 
-    //     bool hasSenderVoted,
-    //     bool isExistent,
-    //     uint expiryTime,
-    //     address createManagerId,
-    //     address deleteManagerId,
-    //     address createAccountOwner,
-    //     address deleteAccountOwner,
-    //     uint contractParametersInitialAccountBalance,
-    //     uint contractParametersProposalDecideThresholdPercent,
-    //     uint contractParametersProposalTimeLimit,
-    //     uint createMoneyAmountPerAccount,
-    //     uint taxWealthPercent,
-    //     address spendPublicMoneyTo,
-    //     uint spendPublicMoneyAmount
-    //  )
-    //     {
-    //         id = proposalId;
-    //         typ = _proposals[id].typ; 
-    //       //  voteCountYes = _proposals[id].voteCountYes;
-    //       //  voteCountNo = _proposals[id].voteCountNo; 
-    //         hasSenderVoted = _proposals[id].hasVoted[msg.sender];
-    //         isExistent = _proposals[id].isExistent;
-    //         expiryTime = _proposals[id].expiryTime;
-    //         createManagerId = _proposals[id].createManagerId;
-    //       //  deleteManagerId = _proposals[id].deleteManagerId;
-    //       //  createAccountOwner = _proposals[id].createAccountOwner;
-    //       //  deleteAccountOwner = _proposals[id].deleteAccountOwner;
-    //       //  contractParametersInitialAccountBalance = _proposals[id].setContractParametersParameters.initialAccountBalance;
-    //       //  contractParametersProposalDecideThresholdPercent = _proposals[id].setContractParametersParameters.proposalDecideThresholdPercent;
-    //       //  contractParametersProposalTimeLimit = _proposals[id].setContractParametersParameters.proposalTimeLimit;
-    //       //  createMoneyAmountPerAccount = _proposals[id].createMoneyAmountPerAccount;
-    //        // taxWealthPercent = _proposals[id].taxWealthPercent;
-    //       //  spendPublicMoneyTo = _proposals[id].spendPublicMoneyTo;
-    //       //  spendPublicMoneyAmount = _proposals[id].spendPublicMoneyAmount;
-
-    //         return;
-    //     }
-
+        return;
+    }
+   
     //
     // ERC223
     //
@@ -407,9 +335,8 @@ contract VillageCoin is ERC223, SafeMath {
         return _totalSupply;
     }
   
-  
     // Function that is called when a user or another contract wants to transfer funds .
-    function transfer(address to, uint value, bytes data, string customFallback) public onlyUser returns (bool success) {
+    function transfer(address to, uint value, bytes data, string customFallback) public onlyCitizen returns (bool success) {
         
         if (isContract(to)) {
             transferInternal(msg.sender, to, value, data);
@@ -424,7 +351,7 @@ contract VillageCoin is ERC223, SafeMath {
     }
   
     // Function that is called when a user or another contract wants to transfer funds .
-    function transfer(address to, uint value, bytes data) public onlyUser returns (bool success) {
+    function transfer(address to, uint value, bytes data) public onlyCitizen returns (bool success) {
         
         if (isContract(to)) {
             return transferToContract(to, value, data);
@@ -435,7 +362,7 @@ contract VillageCoin is ERC223, SafeMath {
   
     // Standard function transfer similar to ERC20 transfer with no _data .
     // Added due to backwards compatibility reasons .
-    function transfer(address to, uint value) public onlyUser returns (bool success) {
+    function transfer(address to, uint value) public onlyCitizen returns (bool success) {
         
         //standard function transfer similar to ERC20 transfer with no _data
         //added due to backwards compatibility reasons
@@ -458,45 +385,48 @@ contract VillageCoin is ERC223, SafeMath {
     }
 
     //function that is called when transaction target is an address
-    function transferToAddress(address to, uint value, bytes data) private onlyUser returns (bool success) {
+    function transferToAddress(address to, uint value, bytes data) private onlyCitizen returns (bool success) {
         transferInternal(msg.sender, to, value, data);
         return true;
     }
   
     //function that is called when transaction target is a contract
-    function transferToContract(address to, uint value, bytes data) private onlyUser returns (bool success) {
+    function transferToContract(address to, uint value, bytes data) private onlyCitizen returns (bool success) {
         transferInternal(msg.sender, to, value, data);
         ContractReceiver receiver = ContractReceiver(to);
         receiver.tokenFallback(msg.sender, value, data);
         return true;
     }
 
-    function balanceOf(address owner) public constant returns (uint balance) {
-        require(_accounts[owner].isExistent);
-        return _accounts[owner].balance;
+    function balanceOf(address addr) public constant returns (uint balance) {
+        require(isCitizen(addr));
+        return _citizens[addr].balance;
     }
 
     //
     // Internal Stuff
     //
 
-    function decideProposal(uint proposalId, bool isYes) private onlyUser {        
+    function decideProposal(uint proposalId, ProposalDecision decision) private {        
         
-        var proposal = _proposals[proposalId];
-        
-        require(proposal.isExistent);
-        
-        proposal.isExistent = false;
+        assert(decision != ProposalDecision.Undecided);
 
-        if (isYes) {
-            if (proposal.typ == ProposalType.CreateManager) {
-                createManager(proposal.createManagerId);
-            } else if (proposal.typ == ProposalType.DeleteManager) {
-                deleteManager(proposal.deleteManagerId);
-            } else if (proposal.typ == ProposalType.CreateAccount) {
-                createAccount(proposal.createAccountOwner);
-            } else if (proposal.typ == ProposalType.DeleteAccount) {
-                deleteAccount(proposal.deleteAccountOwner);
+        var proposal = _proposals[proposalId];
+                
+        assert(proposal.isExistent);
+        assert(proposal.decision == ProposalDecision.Undecided);
+        
+        proposal.decision = decision;
+
+        if (decision == ProposalDecision.Accepted) {
+            if (proposal.typ == ProposalType.AppointGatekeeper) {
+                appointGatekeeper(proposal.appointGatekeeperId);
+            } else if (proposal.typ == ProposalType.DismissGatekeeper) {
+                dismissGatekeeper(proposal.dismissGatekeeperId);
+            } else if (proposal.typ == ProposalType.AddCitizen) {
+                addCitizen(proposal.addCitizenId);
+            } else if (proposal.typ == ProposalType.RemoveCitizen) {
+                removeCitizen(proposal.removeCitizenId);
             } else if (proposal.typ == ProposalType.SetContractParameters) {
                 setContractParameters(proposal.setContractParametersParameters);
             } else if (proposal.typ == ProposalType.CreateMoney) {
@@ -513,51 +443,45 @@ contract VillageCoin is ERC223, SafeMath {
         OnProposalDecided(proposalId);
     }
 
-    // function createProposal(Proposal proposal) private onlyManager {
-    //     proposal.id = _nextProposalId++;
-    //     proposal.isExistent = true;
-    //     _proposals[proposal.id] = proposal;
+    function appointGatekeeper(address id) private {
+        assert(isCitizen(id));
+        assert(!isGatekeeper(id));
 
-    //     OnProposalCreated(proposal.id);
-    // }    
-
-    function createManager(address id) private {
-        require(!_managers[id].isExistent);
-
-        _managers[id].id = id;
-        _managers[id].isExistent = true;
-        _managerCount++;
+        _citizens[id].isGatekeeper = true;
+        _gatekeeperCount++;
     }
 
-    function deleteManager(address id) private {
-        require(_managers[id].isExistent);
+    function dismissGatekeeper(address id) private {
+        assert(isCitizen(id));
+        assert(isGatekeeper(id));
 
-        _managers[id].isExistent = false;
-        _managerCount--;
+        _citizens[id].isGatekeeper = false;
+        _gatekeeperCount--;
     }
 
-    function createAccount(address owner) private {
-        require(!_accounts[owner].isExistent);
+    function addCitizen(address id) private {
+        assert(!isCitizen(id));
         
-        _accounts[owner].owner = owner;
-        _accounts[owner].isExistent = true;
-        _accounts[owner].balance = _parameters.initialAccountBalance;
+        _citizens[id].owner = id;
+        _citizens[id].isExistent = true;
+        _citizens[id].isGatekeeper = false;
+        _citizens[id].balance = _parameters.initialAccountBalance;
 
-        _totalSupply += _parameters.initialAccountBalance;
-        _accountCount++;
-        _allAcountOwnersEver.push(owner);
+        _totalSupply += _parameters.initialAccountBalance;        
+        _citizenCount++;
+        _allCitizenOwnersEver.push(id); // todo what if citizen is removed and re-added?
     }
 
-    function deleteAccount(address owner) private {
-        require(_accounts[owner].isExistent);
-        assert(_totalSupply >= _accounts[owner].balance);
+    function removeCitizen(address id) private {
+        assert(isCitizen(id));
+        assert(_totalSupply >= _citizens[id].balance);
 
-        _totalSupply -= _accounts[owner].balance;
-        _accountCount--;
-        _accounts[owner].isExistent = false;
+        _totalSupply -= _citizens[id].balance;
+        _citizenCount--;
+        _citizens[id].isExistent = false;
     }
 
-    function setContractParameters(ContractParameters newContractParameters) private onlyManager {
+    function setContractParameters(ContractParameters newContractParameters) private {
         _parameters.initialAccountBalance = newContractParameters.initialAccountBalance;
         _parameters.proposalDecideThresholdPercent = newContractParameters.proposalDecideThresholdPercent;
         _parameters.proposalTimeLimit = newContractParameters.proposalTimeLimit;
@@ -567,12 +491,12 @@ contract VillageCoin is ERC223, SafeMath {
 
         bytes memory empty;
 
-        for (uint i = 0; i < _allAcountOwnersEver.length; i++) {
-            var accountOwner = _allAcountOwnersEver[i];
+        for (uint i = 0; i < _allCitizenOwnersEver.length; i++) {
+            var accountOwner = _allCitizenOwnersEver[i];
 
-            if (_accounts[accountOwner].isExistent) {
-                if (_accounts[accountOwner].balance + amountPerAccount > _accounts[accountOwner].balance) {
-                    _accounts[accountOwner].balance += amountPerAccount;
+            if (_citizens[accountOwner].isExistent) {
+                if (_citizens[accountOwner].balance + amountPerAccount > _citizens[accountOwner].balance) {
+                    _citizens[accountOwner].balance += amountPerAccount;
                     _totalSupply += amountPerAccount;
                     Transfer(PUBLIC_ACCOUNT, accountOwner, amountPerAccount, empty);
                 }
@@ -581,11 +505,11 @@ contract VillageCoin is ERC223, SafeMath {
     }
 
     function taxWealth(uint percent) private {
-        for (uint i = 0; i < _allAcountOwnersEver.length; i++) {
-            var accountOwner = _allAcountOwnersEver[i];
+        for (uint i = 0; i < _allCitizenOwnersEver.length; i++) {
+            var accountOwner = _allCitizenOwnersEver[i];
 
-            if (_accounts[accountOwner].isExistent) {
-                var amountToTax = (percent * _accounts[accountOwner].balance) / 100;
+            if (_citizens[accountOwner].isExistent) {
+                var amountToTax = (percent * _citizens[accountOwner].balance) / 100;
                 transferInternal(accountOwner, PUBLIC_ACCOUNT, amountToTax);
             }
         }
@@ -601,24 +525,24 @@ contract VillageCoin is ERC223, SafeMath {
     }
 
     function transferInternal(address from, address to, uint amount, bytes data) private {
-        require(_accounts[from].isExistent);        
-        require(_accounts[to].isExistent);
-        require(_accounts[from].balance >= amount);
-        require(_accounts[to].balance + amount > _accounts[to].balance);
+        assert(isCitizen(from));        
+        assert(isCitizen(to));
+        assert(_citizens[from].balance >= amount);
+        assert(_citizens[to].balance + amount > _citizens[to].balance);
 
-        _accounts[from].balance -= amount;
-        _accounts[to].balance += amount;
+        _citizens[from].balance -= amount;
+        _citizens[to].balance += amount;
 
         Transfer(from, to, amount, data);
     }
 
-    modifier onlyManager {
-        require(_managerCount == 0 || _managers[msg.sender].isExistent);
+    modifier onlyGatekeeper {
+        require(_gatekeeperCount == 0 || isGatekeeper(msg.sender));
         _;
     }
 
-    modifier onlyUser {
-        require(_accounts[msg.sender].isExistent);
+    modifier onlyCitizen {
+        require(isCitizen(msg.sender));
         _;
     }
 }
