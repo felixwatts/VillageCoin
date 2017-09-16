@@ -6,17 +6,7 @@ import { default as Web3} from 'web3';
 import { default as contract } from 'truffle-contract'
 
 // Import our contract artifacts and turn them into usable abstractions.
-import villagecoin_artifacts from '../../build/contracts/VillageCoin.json'
-
-var ProposalType = {};
-ProposalType.CreateManager = 0; 
-ProposalType.DeleteManager = 1; 
-ProposalType.CreateAccount = 2; 
-ProposalType.DeleteAccount = 3; 
-ProposalType.SetContractParameters = 4; 
-ProposalType.CreateMoney = 5;
-ProposalType.TaxWealth = 6; 
-ProposalType.SpendPublicMoney = 7;
+import villagecoin_artifacts from '../../build/contracts/VillageCoin.json';
 
 // VillageCoin is our usable abstraction, which we'll use through the code below.
 var VillageCoin = contract(villagecoin_artifacts);

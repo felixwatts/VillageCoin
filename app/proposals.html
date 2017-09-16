@@ -1,19 +1,18 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>VillageCoin - Vote</title>
+  <title>VillageCoin - Open Proposals</title>
   <link href='https://fonts.googleapis.com/css?family=Open+Sans:400,700' rel='stylesheet' type='text/css'>
   <script src="./common.js"></script>
 </head>
 <body>
-    <h1>VillageCoin</h1>
-    <ul class="menu">
-        <li><a href="index.html">Home</a></li>
-        <li><a href="proposals.html">Vote</a></li>
-        <li><a href="createProposal.html">Make a Proposal</a></li>
-    </ul>
-
+    <h1><span class="villageName"></span></h1>
     <h2>Open Proposals</h2>  
+    <ul class="menu">
+        <li class="menu"><a class="menu" id="menuHome">Home</a></li>
+        <li class="menu"><a class="menu" id="menuProposals">Vote</a></li>
+        <li class="menu"><a class="menu" id="menuCreateProposal">Make a Proposal</a></li>
+    </ul>      
     <p class="hint">This is a list of proposals that are awaiting your vote. Although you never <em>have</em> to vote, it's important if you want to influence the future of the currency</p>    
     <table id="tableProposals"></table>
 
@@ -25,14 +24,15 @@
 function filterProposalByVotable(proposal) 
 {
     var isExistent = proposal[1];
-    return isExistent;
+    var isUndecided = proposal[2].toNumber() == app.ProposalDecision.Undecided;
+    return isExistent && isUndecided;
 }
 
 async function buildProposalRow(proposal)
 {
     var proposalId = proposal[0].toNumber();
     var description = await app.getProposalDescription(proposalId);
-    return "<tr><td><a href='proposal.html?id=" + proposalId + "'>proposal #" + proposalId + "</a></td><td>" + description + "</a>";
+    return "<tr><td><a href='proposal.html?contractAddress="+ app.contract.address +"&id=" + proposalId + "'>proposal #" + proposalId + "</a></td><td>" + description + "</a>";
 }
 
 async function populateProposalsTable() 
@@ -67,7 +67,7 @@ window.addEventListener('load', async function()
 {
     await init();
     await app.initVillage();
-    app.redirectNonUser();
+    app.redirectNonCitizen();
     await populateProposalsTable();
 });
 </script>

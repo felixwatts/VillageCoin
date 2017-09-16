@@ -13,6 +13,7 @@ label {
 input {
   width: 500px;
   padding: 5px;
+  margin:8px;
   font-size: 16px;
 }
 
@@ -83,4 +84,28 @@ h3 {
 .voteButtonDescription {
   color: white;
   text-align: center;
+}
+
+ul.menu {
+  list-style-type: none;
+  margin: 0;
+  padding: 0;
+  font-size: 14pt;
+}
+
+li.menu {
+  display: inline;
+  margin-right:4px;
+}
+
+.boxHeader {
+  background: #dcdcdc;
+  font-size: 14pt;
+  margin-top:16px;
+  padding: 8px;
+}
+
+.boxContent {
+  background: #f3f3f3;
+  padding: 16px;
 }

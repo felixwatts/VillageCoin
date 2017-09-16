@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>VillageCoin - Claim Your Account</title>
+    <title><span class="villageName"></span> - Claim Your Account</title>
     <link href='https://fonts.googleapis.com/css?family=Open+Sans:400,700' rel='stylesheet' type='text/css'>
     <script src="./common.js"></script>
 </head>
@@ -9,10 +9,10 @@
     <h1 class="villageName"></h1>
     <h2>Claim Your Account</h2>    
 
-    <p>The <span class="villageName" ></span> economy has some requirements for entry. In order to prove that you meet those requirements you need to provide some evidence.</p>
+    <p>The <span class="villageName"></span> economy has some requirements for entry. In order to prove that you meet those requirements you need to provide some evidence.</p>
     <p>The items you provide here will only be visible to members of the <span class="villageName" ></span> GateKeeper Committee, and are only used to verify that you are eligible for an account. </p>
     <p>Once your account is created it is not traceable to your identity.</p>
-    <p>After you submit your application it will be assessed by the <span class="villageName" ></span> GateKeeper Committee, which can take several days, after which your account will be available.</p>
+    <p>After you submit your application it will be assessed by the <span class="villageName" ></span> GateKeeper Committee, which may take some time, after which your account will be available.</p>
     <p>For a detailed description of how the gatekeeping process works <a href="accountVerificationProcess.html">see here</a> or take a look at the <a href="https://github.com/felixwatts/VillageCoin">source code</a></p>
 
     <h3>1. Ethereum Address</h3>
@@ -122,7 +122,6 @@ window.addEventListener('load', async function() {
     await init();
     await app.initVillage();
     app.redirectCitizen();
-    await app.populateVillageName();
     populateAccountsDropDown();    
 });
 

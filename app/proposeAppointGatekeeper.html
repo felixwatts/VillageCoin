@@ -6,19 +6,21 @@
   <script src="./common.js"></script>
 </head>
 <body>
-    <h1>VillageCoin</h1>
+    <h1><span class="villageName"></span></h1>
     <h2>Propose Appointment of a New Gatekeeper</h2>
     <ul class="menu">
-        <li><a href="index.html">Home</a></li>
-        <li><a href="proposals.html">Vote</a></li>
-        <li><a href="createProposal.html">Make a Proposal</a></li>
-    </ul>
-    <br>
-        <br><label for="gatekeeperAddress">New Gatekeeper's Address:</label>
+        <li class="menu"><a class="menu" id="menuHome">Home</a></li>
+        <li class="menu"><a class="menu" id="menuProposals">Vote</a></li>
+        <li class="menu"><a class="menu" id="menuCreateProposal">Make a Proposal</a></li>
+    </ul> 
+    
+    <div class="boxHeader">Propose Appointment of a New Gatekeeper</div>
+    <div class="boxContent">
+        <br><label for="gatekeeperAddress">Address:</label>
         <input type="text" id="gatekeeperAddress" placeholder="e.g., 0x93e66d9baea28c17d9fc393b53e3fbdd76899dae" onchange="validateForm()"></input>    
         <br><br><button id="btnSend" onclick="submit()" disabled>Create Proposal</button><span id="formInvalidMessage"></span>
-        <br><br>    
-    <br>
+    </div>
+
     <div id="status"></div>
 </body>
 </html>
@@ -83,18 +85,18 @@ async function submit()
 {
     try 
     {
-        app.setStatus("Initiating transaction... (please wait)");
-
         var gatekeeperAddress = document.getElementById("gatekeeperAddress").value;
         
         var villageCoin = app.contract;
         var receipt = await villageCoin.proposeAppointGatekeeper(gatekeeperAddress, {from: app.account});
 
         var proposalId = receipt.logs[0].args.proposalId.toNumber();
-        window.location.replace("proposal.html?id=" + proposalId);
+
+        window.location.replace("proposal.html?contractAddress=" + app.contract.address + "&id=" + proposalId);
     } 
     catch(error) 
     {
+        console.log(error);
         app.setStatus(error);
     }
 }

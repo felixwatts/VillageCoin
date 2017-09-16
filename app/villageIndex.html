@@ -6,21 +6,31 @@
   <script src="./common.js"></script>
 </head>
 <body>
-    <h1>VillageCoin</h1>
-    <h2>Home</h2>
+    <h1><span class="villageName"></span></h1>   
+    <h2>Home</h2> 
     <ul class="menu">
-        <li><a href="index.html">Home</a></li>
-        <li><a href="proposals.html">Vote</a></li>
-        <li><a href="createProposal.html">Make a Proposal</a></li>
-    </ul>
+        <li class="menu"><a class="menu" id="menuHome">Home</a></li>
+        <li class="menu"><a class="menu" id="menuProposals">Vote</a></li>
+        <li class="menu"><a class="menu" id="menuCreateProposal">Make a Proposal</a></li>
+    </ul>    
 
-    <h3>VillageCoin Balance: <strong id="balance"></strong></h3>
+    <div class="boxHeader">
+        <span class="villageSymbol"></span> Balance        
+    </div>
+    <div class="boxContent">
+        <div style="font-size:24pt;" id="balance"></div>
+    </div>
 
-    <h3>Send VillageCoin</h3>    
-    <br><label for="amount">Amount:</label><input type="text" id="amount" placeholder="e.g., 5" onchange="validateSendForm()"></input>  
-    <br><label for="toAddress">To Account:</label><input type="text" id="toAddress" placeholder="e.g., 0x93e66d9baea28c17d9fc393b53e3fbdd76899dae" onchange="validateSendForm()"></input>    
-    <br><br><button id="btnSend" onclick="send()" disabled>Send</button><span id="formInvalidMessage"></span>
-    <br>
+    <div class="boxHeader">
+        Send <span class="villageSymbol"></span>
+    </div>
+    <div class="boxContent">
+        <br><label for="amount">Amount:</label><input type="text" id="amount" placeholder="e.g., 5" onchange="validateSendForm()"></input>  
+        <br><label for="toAddress">To Account:</label><input type="text" id="toAddress" placeholder="e.g., 0x93e66d9baea28c17d9fc393b53e3fbdd76899dae" onchange="validateSendForm()"></input>    
+        <br><br><button id="btnSend" onclick="send()" disabled>SEND</button>
+        <div id="formInvalidMessage"></span>
+    </div>
+
     <span id="status"></span>    
 </body>
 </html>
@@ -50,7 +60,7 @@
                     if(!isCitizen)
                     {
                         isValid = false;
-                        invalidReason = "The 'To Account' is not a VillageCoin citizen";
+                        invalidReason = "The 'To Account' is not a " + (await app.getVillageName()) + " citizen";
                     }
                 }
                 else
@@ -93,8 +103,6 @@
     {
         try
         {
-            app.setStatus("Sending VillageCoin...");
-
             var villageCoin = app.contract;
             var amount = parseInt(document.getElementById("amount").value);
             var toAddress = document.getElementById("toAddress").value;
@@ -102,7 +110,6 @@
             await villageCoin.transfer(toAddress, amount, {from: app.account});
 
             populateBalance();
-            app.setStatus("Sending succeeded");
         }
         catch(error)
         {
@@ -115,7 +122,7 @@
     { 
         await init();
         await app.initVillage();
-        app.redirectNonCitizen(); 
+        app.redirectNonCitizen();
         await populateBalance();
     });
 </script>

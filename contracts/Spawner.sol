@@ -21,7 +21,7 @@ contract Spawner {
     }
 
     function spawnVillage(string name, string symbol, uint8 decimals) public {
-        var village = new VillageCoin(name, symbol, decimals);
+        var village = new VillageCoin(name, symbol, decimals, msg.sender);
         _villages[_villageCount++] = village;        
         OnVillageCreated(village);
     }

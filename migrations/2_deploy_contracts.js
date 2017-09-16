@@ -12,5 +12,5 @@ module.exports = function(deployer) {
   deployer.link(ContractReceiver, VillageCoin);
   deployer.deploy(Spawner);
   deployer.link(Spawner, VillageCoin);
-  deployer.deploy(VillageCoin, "RedditCoin", "RC", 0);
+  //deployer.deploy(VillageCoin, "RedditCoin", "RC", 0);
 };

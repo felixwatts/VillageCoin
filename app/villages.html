@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>VillageCoin - Home</title>
+  <link href='https://fonts.googleapis.com/css?family=Open+Sans:400,700' rel='stylesheet' type='text/css'>
+  <script src="./common.js"></script>
+</head>
+<body>
+    <h1>VillageCoin</h1>
+    <h2>Villages</h2>
+    <ul class="menu">
+        <li class="menu"><a class="menu" href="index.html">Home</a></li>
+        <li class="menu"><a class="menu" href="villages.html">Villages</a></li>
+        <li class="menu"><a class="menu" href="createVillage.html">Create a Village</a></li>
+    </ul> 
+
+    <p>Checkout this list of villages. </p>
+    <table id="tableVillages"></table>
+</body>
+</html>
+<script>  
+
+async function populateVillagesTable()
+{
+    var villageCount = await app.spawner.getVillageCount.call({from: app.account});
+    var allVillageIds = [...Array(villageCount.toNumber()).keys()];
+
+    var villageAddresses = await Promise.all(allVillageIds.map(function(id){ return app.spawner.getVillageAddress.call(id, {from:app.account}); }));    
+
+    var villageContracts = await Promise.all(villageAddresses.map(function(addr){ return app.VillageCoin.at(addr); }));
+
+    console.log(villageContracts);
+
+    var x = await villageContracts[0].getVillageDetails.call({from:app.account});
+
+    //var villagesDetails = await Promise.all(villageContracts.map(function(village){ return village.getVillageDetails.call({from:app.account}); }));
+
+    // var html = villagesDetails.reduce(function(village, i){ return "<tr><td>" + village[0] + "</td><td>" + village[1] + "</td><td>" + village[2].toNumber() + "</td><td><a href='villageIndex?contractAddress=" + villageAddresses[i] + "'>request to join</a></td></tr>"; }, "<tr><td>Name</td><td>Access Policy</td><td>Population</td><td></td></tr>");
+
+    // document.getElementById("tableVillages").innerHTML = html;
+}
+
+window.addEventListener('load', async function()
+{ 
+    await init();
+    await populateVillagesTable();
+});
+</script>

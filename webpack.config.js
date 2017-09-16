@@ -11,15 +11,15 @@ module.exports = {
     // Copy our app's index.html to the build folder.
     new CopyWebpackPlugin([
       { from: './app/index.html', to: "index.html" },
-      { from: './app/createManager.html', to: "createManager.html" },
-      { from: './app/createAccount.html', to: "createAccount.html" },
+      { from: './app/proposeAppointGatekeeper.html', to: "proposeAppointGatekeeper.html" },
       { from: './app/proposals.html', to: "proposals.html" },
       { from: './app/proposal.html', to: "proposal.html" },
       { from: './app/welcome.html', to: "welcome.html" },
-      { from: './app/gatekeeper.html', to: "gatekeeper.html" },
       { from: './app/createProposal.html', to: "createProposal.html" },
       { from: './app/requestCitizenship.html', to: "requestCitizenship.html" },
-      { from: './app/villageIndex.html', to: "villageIndex.html" }
+      { from: './app/villageIndex.html', to: "villageIndex.html" },
+      { from: './app/createVillage.html', to: "createVillage.html" },
+      { from: './app/villages.html', to: "villages.html" }
     ])
   ],
   module: {

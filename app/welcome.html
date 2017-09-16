@@ -6,12 +6,12 @@
   <script src="./common.js"></script>
 </head>
 <body>
-  <h1>VillageCoin</h1>
+  <h1><span class="villageName"></span></h1>
   <h2>Welcome</h2>
 
-  <p>VillageCoin is a proof-of-concept <em>democratic monetary system</em>. It is a currency in which monetary policy is decided democratically by the users on a one person; one vote basis</p>
+  <p><span class="villageName"></span> is a proof-of-concept <em>democratic monetary system</em>. It is a currency in which monetary policy is decided democratically by the users on a one person; one vote basis</p>
 
-  <p>Unlike most currencies, VillageCoin implements a one person; one account policy, which means that each citizen can have at most one VillageCoin bank account. This allows some interesting features of VillageCoin including:</p>
+  <p>Unlike most currencies, <span class="villageName"></span> implements a one person; one account policy, which means that each citizen can have at most one VillageCoin bank account. This allows some interesting features of VillageCoin including:</p>
 
   <ul>
       <li>Democracy</li>
@@ -19,9 +19,9 @@
       <li>Automatic taxation</li>
   </ul>
 
-  <p>Access to the VillageCoin economy is controlled by the VillageCoin GateKeeper Committee. It is their job to enforce the one person; one account policy</p>
+  <p>Access to the <span class="villageName"></span> economy is controlled by the <span class="villageName"></span> GateKeeper Committee. It is their job to enforce the one person; one account policy</p>
 
-  <p>Account holders in VillageCoin are called citizens. Citizens control and manage VillageCoin through a democratic system of proposals and referendums, doing things like:</p>
+  <p>Account holders in <span class="villageName"></span> are called citizens. Citizens control and manage <span class="villageName"></span> through a democratic system of proposals and referendums, doing things like:</p>
 
   <ul>
       <li>Creating money</li>
@@ -30,7 +30,7 @@
       <li>Electing and dismissing gatekeepers</li>
   </ul>
 
-  <p>If you would like to join the VillageCoin economy why not <a href="#" id="linkClaimAccount">claim your account</a></p>
+  <p>If you would like to join the <span class="villageName"></span> economy why not <a href="#" id="linkClaimAccount">claim your account</a></p>
 
 </body>
 </html>
@@ -38,14 +38,8 @@
 <script>
     window.addEventListener('load', async function()
     { 
-      console.log("1");
         await init();
-        console.log("2");
         await app.initVillage();
-        console.log("3");
-
         document.getElementById("linkClaimAccount").href = "requestCitizenship.html?contractAddress=" + app.contract.address;
-
-        console.log("4");
     });
 </script>

@@ -173,7 +173,7 @@
           "type": "uint256"
         },
         {
-          "indexed": true,
+          "indexed": false,
           "name": "data",
           "type": "bytes"
         }
@@ -909,8 +909,107 @@
         }
       },
       "updated_at": 1505495571034
+    },
+    "1505544902347": {
+      "links": {},
+      "events": {
+        "0xe19260aff97b920c7df27010903aeb9c8d2be5d310a2c67824cf3f15396e4c16": {
+          "anonymous": false,
+          "inputs": [
+            {
+              "indexed": true,
+              "name": "from",
+              "type": "address"
+            },
+            {
+              "indexed": true,
+              "name": "to",
+              "type": "address"
+            },
+            {
+              "indexed": false,
+              "name": "value",
+              "type": "uint256"
+            },
+            {
+              "indexed": true,
+              "name": "data",
+              "type": "bytes"
+            }
+          ],
+          "name": "Transfer",
+          "type": "event"
+        }
+      },
+      "updated_at": 1505544924374
+    },
+    "1505546125701": {
+      "links": {},
+      "events": {
+        "0xe19260aff97b920c7df27010903aeb9c8d2be5d310a2c67824cf3f15396e4c16": {
+          "anonymous": false,
+          "inputs": [
+            {
+              "indexed": true,
+              "name": "from",
+              "type": "address"
+            },
+            {
+              "indexed": true,
+              "name": "to",
+              "type": "address"
+            },
+            {
+              "indexed": false,
+              "name": "value",
+              "type": "uint256"
+            },
+            {
+              "indexed": false,
+              "name": "data",
+              "type": "bytes"
+            }
+          ],
+          "name": "Transfer",
+          "type": "event"
+        }
+      },
+      "updated_at": 1505554161600
+    },
+    "1505554328661": {
+      "links": {},
+      "events": {
+        "0xe19260aff97b920c7df27010903aeb9c8d2be5d310a2c67824cf3f15396e4c16": {
+          "anonymous": false,
+          "inputs": [
+            {
+              "indexed": true,
+              "name": "from",
+              "type": "address"
+            },
+            {
+              "indexed": true,
+              "name": "to",
+              "type": "address"
+            },
+            {
+              "indexed": false,
+              "name": "value",
+              "type": "uint256"
+            },
+            {
+              "indexed": false,
+              "name": "data",
+              "type": "bytes"
+            }
+          ],
+          "name": "Transfer",
+          "type": "event"
+        }
+      },
+      "updated_at": 1505559845046
     }
   },
   "schema_version": "0.0.5",
-  "updated_at": 1505495571034
+  "updated_at": 1505559845046
 }

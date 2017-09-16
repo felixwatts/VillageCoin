@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>VillageCoin - Create a Village</title>
+  <link href='https://fonts.googleapis.com/css?family=Open+Sans:400,700' rel='stylesheet' type='text/css'>
+  <script src="./common.js"></script>
+</head>
+<body>
+    <h1>VillageCoin</h1>
+    <h2>Create a Village</h2>
+    <ul class="menu">
+        <li class="menu"><a class="menu" href="index.html">Home</a></li>
+        <li class="menu"><a class="menu" href="villages.html">Villages</a></li>
+        <li class="menu"><a class="menu" href="createVillage.html">Create a Village</a></li>
+    </ul> 
+
+    <p>Use the form below to create your very own VillageCoin village.</p>
+    <p>You will become the first citizen and the only gatekeeper of your new empire. As gatekeeper it is your job to assess applications to join the village from potential citizens, but be careful - citizens have many powers, including the power to dismiss gatekeepers!</p>
+
+    <br><label for="newVillageName">Name:</label><input type="text" id="newVillageName" placeholder="The name of your currency, e.g., MyCoin" onchange="validateNewVillageForm()"></input>  
+    <br><label for="newVillageSymbol">Symbol:</label><input type="text" id="newVillageSymbol" placeholder="The ticker symbol for your currency e.g., MC" onchange="validateNewVillageForm()"></input>    
+    <br><label for="newVillageDecimals">Decimals:</label><input type="text" id="newVillageDecimals" placeholder="How many decimal places when printing amounts in your currency" onchange="validateNewVillageForm()"></input>    
+    <br><br><button id="btnSpawn" onclick="spawnVillage()" disabled>Send</button><span id="formInvalidMessage"></span>
+    <br>
+
+    <table id="tableVillages"></table>
+
+    <span id="status"></span>    
+</body>
+</html>
+<script>
+
+    async function validateNewVillageForm() 
+    {
+        try
+        {
+            var isValid = true;
+            var invalidReason = "";
+
+            var name = document.getElementById("newVillageName").value;
+            var symbol = document.getElementById("newVillageSymbol").value;
+            var decimals = parseInt(document.getElementById("newVillageDecimals").value);
+
+            if(name == undefined || name == "")
+            {
+                isValid = false;
+                invalidReason = "You must specify a name for the village";
+            }
+            else if(symbol == undefined || symbol == "")
+            {
+                isValid = false;
+                invalidReason = "You must specify a name for the currency";
+            }
+            else if(isNaN(decimals) || decimals < 0)
+            {
+                isValid = false;
+                invalidReason = "The decimals must be a positive integer";
+            }            
+
+            var spawnButton = document.getElementById("btnSpawn");
+            spawnButton.disabled = !isValid;
+            var formInvalidMessage = document.getElementById("formInvalidMessage");
+            formInvalidMessage.innerHTML = invalidReason;
+        }
+        catch(error)
+        {
+            console.log(error);
+            app.setStatus(error);
+        }
+    }   
+
+    async function spawnVillage()
+    {
+        try
+        {
+            var name = document.getElementById("newVillageName").value;
+            var symbol = document.getElementById("newVillageSymbol").value;
+            var decimals = parseInt(document.getElementById("newVillageDecimals").value);
+
+            var spawner = app.spawner;
+
+            var receipt = await spawner.spawnVillage(name, symbol, decimals, {from: app.account});
+
+            var villageAddress = receipt.logs[0].args.addr;
+            window.location.replace("villageIndex.html?contractAddress=" + villageAddress);
+        }
+        catch(error)
+        {
+            console.log(error);
+            app.setStatus(error);
+        }
+    }
+
+    window.addEventListener('load', async function()
+    { 
+        await init();
+    });
+</script>

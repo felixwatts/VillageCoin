@@ -32,6 +32,9 @@ function setupWeb3Provider()
         // fallback - use your fallback strategy (local node / hosted node + in-dapp id mgmt / fail)
         window.web3 = new Web3(new Web3.providers.HttpProvider("http://localhost:8545"));
     }
+
+    Spawner.setProvider(web3.currentProvider);
+    VillageCoin.setProvider(web3.currentProvider); 
 }
 
 function parseQueryString(url) 
@@ -117,8 +120,7 @@ async function redirectNonGatekeeper()
 
 async function populateVillageName()
 {
-    var villageCoin = app.contract;
-    var villageName = await villageCoin.name.call({from: app.account});
+    var villageName = await getVillageName();
 
     var villageNameElements = document.getElementsByClassName("villageName");
 
@@ -126,6 +128,32 @@ async function populateVillageName()
     {
         villageNameElements[i].innerHTML = villageName;
     }    
+}
+
+async function populateVillageSymbol()
+{
+    var villageSymbol= await getVillageSymbol();
+
+    var villageSymbolElements = document.getElementsByClassName("villageSymbol");
+
+    for (var i = 0; i < villageSymbolElements.length; i++) 
+    {
+        villageSymbolElements[i].innerHTML = villageSymbol;
+    }    
+}
+
+async function getVillageName() 
+{
+    var villageCoin = app.contract;
+    var villageName = await villageCoin.name.call({from: app.account});
+    return villageName;
+}
+
+async function getVillageSymbol() 
+{
+    var villageCoin = app.contract;
+    var symbol = await villageCoin.symbol.call({from: app.account});
+    return symbol;
 }
 
 async function getProposalDescription(proposalId)
@@ -162,10 +190,19 @@ async function getProposalDescription(proposalId)
     return description
 }
 
+async function populateVillageMenu()
+{
+    document.getElementById("menuHome").href = "villageIndex.html?contractAddress=" + app.contract.address;
+    document.getElementById("menuProposals").href = "proposals.html?contractAddress=" + app.contract.address;
+    document.getElementById("menuCreateProposal").href = "createProposal.html?contractAddress=" + app.contract.address;
+}
+
 function setupCommonFunctions() 
 {
     window.app.VillageCoin = VillageCoin;
 
+    window.app.getVillageName = getVillageName;
+    window.app.getVillageSymbol = getVillageSymbol;
     window.app.parseQueryString = parseQueryString;
     window.app.initVillage = initVillage;
     window.app.setStatus = setStatus;
@@ -174,6 +211,7 @@ function setupCommonFunctions()
     window.app.redirectNonGatekeeper = redirectNonGatekeeper;
     window.app.getProposalDescription = getProposalDescription;
     window.app.populateVillageName = populateVillageName;
+    window.app.populateVillageSymbol = populateVillageSymbol;
 
     var ProposalType = {};
     ProposalType.AppointGatekeeper = 0; 
@@ -197,18 +235,13 @@ function setupCommonFunctions()
 async function initVillage()
 {
     try
-    {
-
-        console.log("a");
+    {        
         var contractAddress = getContractAddress();
-        console.log("b");
-
-        VillageCoin.setProvider(web3.currentProvider);
-        console.log("c");
-        var contractAddress = getContractAddress();
-        console.log("d");
         window.app.contract = await app.VillageCoin.at(contractAddress);  
-        console.log("e");
+
+        populateVillageName();
+        populateVillageSymbol();
+        populateVillageMenu();
     }
     catch(error)
     {
@@ -223,7 +256,6 @@ window.init = async function()
     setupWeb3Provider();
     await setupAccounts();
     setupCommonFunctions();
-
-    Spawner.setProvider(web3.currentProvider);
+    
     window.app.spawner = await Spawner.deployed();
 };

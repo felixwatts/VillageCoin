@@ -14,6 +14,8 @@ contract VillageCoin is ERC223, SafeMath {
         uint initialAccountBalance;
         uint proposalDecideThresholdPercent;
         uint proposalTimeLimit;
+        string accessPolicyDescription;
+        string accessEvidenceRequirementsDescription;
     }
     
     struct Citizen {        
@@ -89,18 +91,20 @@ contract VillageCoin is ERC223, SafeMath {
     uint _nextProposalId;
     mapping(uint=>Proposal) _proposals;    
 
-    function VillageCoin(string name, string symbol, uint8 decimals) payable {
+    function VillageCoin(string name, string symbol, uint8 decimals, address firstCitizen) payable {
         _name = name;
         _symbol = symbol;
         _decimals = decimals;
         _parameters.initialAccountBalance = 1000;
         _parameters.proposalDecideThresholdPercent = 60;
         _parameters.proposalTimeLimit = 30 days;
+        _parameters.accessPolicyDescription = "open to anyone";
+        _parameters.accessEvidenceRequirementsDescription = "";
         
         addCitizen(PUBLIC_ACCOUNT);
         _citizenCount = 0; // public account doesnt count towards the citizen count because it does not vote
-        addCitizen(tx.origin);
-        appointGatekeeper(tx.origin);
+        addCitizen(firstCitizen);
+        appointGatekeeper(firstCitizen);
     }
 
     //
@@ -260,6 +264,10 @@ contract VillageCoin is ERC223, SafeMath {
     //
     // Views
     //
+
+    function getVillageDetails() public constant returns (string, string, uint) {
+        return ("A", "B", 1);
+    }
 
     function getCitizenCount() public constant returns(uint) {
         return _citizenCount;
