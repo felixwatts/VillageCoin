@@ -154,6 +154,7 @@ async function getProposalDescription(proposalId)
             return "set parameter <strong>" + parameterName + "</strong> to <strong>" + parameterValue + "</strong>";
         }
         break;
+
         case app.ProposalType.CreateMoney:
         {
             var details = await villageCoin.getCreateMoneyProposal(proposalId);
@@ -164,6 +165,37 @@ async function getProposalDescription(proposalId)
         }
         break;
 
+        case app.ProposalType.DestroyMoney:
+        {
+            var details = await villageCoin.getDestroyMoneyProposal(proposalId);
+            var amount = details[1].toNumber();
+            var symbol = await getVillageSymbol();
+
+            return "take <strong>" + amount + " " + symbol + "</strong> from the public account balance and <strong>destroy</strong> it";
+        }
+        break;
+
+        case app.ProposalType.PayCitizen:
+        {
+            var details = await villageCoin.getPayCitizenProposal(proposalId);
+            var citizen = details[1];
+            var amount = details[2].toNumber();
+            var symbol = await getVillageSymbol();
+
+            return "transfer <strong>" + amount + " " + symbol + "</strong> from the public account to citizen <strong>" + citizen + "</strong>";
+        }
+        break;
+
+        case app.ProposalType.FineCitizen:
+        {
+            var details = await villageCoin.getFineCitizenProposal(proposalId);
+            var citizen = details[1];
+            var amount = details[2].toNumber();
+            var symbol = await getVillageSymbol();
+
+            return "transfer <strong>" + amount + " " + symbol + "</strong> from citizen <strong>" + citizen + "</strong> to the public account";
+        }
+        break;
     }
 
     return description
@@ -207,8 +239,9 @@ function setupCommonFunctions()
     var ProposalType = {};
     ProposalType.SetParameter = 0; 
     ProposalType.CreateMoney = 1;
-    ProposalType.RewardCitizen = 2; 
-    ProposalType.FineCitizen = 3;
+    ProposalType.DestroyMoney = 2;
+    ProposalType.PayCitizen = 3; 
+    ProposalType.FineCitizen = 4;
     window.app.ProposalType = ProposalType;
 
     var ProposalDecision = {};

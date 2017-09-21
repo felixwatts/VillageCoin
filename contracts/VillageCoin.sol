@@ -31,7 +31,8 @@ contract VillageCoin is ERC223, SafeMath {
     enum ProposalType { 
         SetParameter, 
         CreateMoney, 
-        RewardCitizen, 
+        DestroyMoney,
+        PayCitizen, 
         FineCitizen 
         }
 
@@ -42,13 +43,14 @@ contract VillageCoin is ERC223, SafeMath {
         Expired
     }
 
+    mapping(uint=>mapping(address=>bool)) _votes;
+
     struct Proposal {
         uint id;        
         ProposalType typ;
         uint voteCountYes;
         uint voteCountNo;
-        address proposer;
-        mapping(address=>bool) hasVoted;
+        address proposer;        
         bool isExistent;
         ProposalDecision decision;
         uint expiryTime;
@@ -59,8 +61,10 @@ contract VillageCoin is ERC223, SafeMath {
 
         uint createMoneyAmount;
 
-        address rewardCitizenCitizen;
-        uint rewardCitizenAmount;
+        uint destroyMoneyAmount;
+
+        address payCitizenCitizen;
+        uint payCitizenAmount;
 
         address fineCitizenCitizen;
         uint fineCitizenAmount;
@@ -172,6 +176,25 @@ contract VillageCoin is ERC223, SafeMath {
         OnProposalCreated(proposalId);
     }
 
+    function proposeDestroyMoney(uint amount, string supportingEvidence) public onlyCitizen {
+
+        var proposalId = createProposal(ProposalType.DestroyMoney, supportingEvidence);
+
+        _proposals[proposalId].destroyMoneyAmount = amount;
+
+        OnProposalCreated(proposalId);
+    }
+
+    function proposePayCitizen(address citizen, uint amount, string supportingEvidence) public onlyCitizen {
+        require(isCitizen(citizen));
+
+        var proposalId = createProposal(ProposalType.PayCitizen, supportingEvidence);
+        _proposals[proposalId].payCitizenCitizen = citizen;
+        _proposals[proposalId].payCitizenAmount = amount;
+
+        OnProposalCreated(proposalId);
+    }
+
     // function proposeTaxWealth(uint percent) public onlyCitizen {
     //     var proposalId = _nextProposalId++;
     //     assert(!_proposals[proposalId].isExistent);
@@ -214,9 +237,9 @@ contract VillageCoin is ERC223, SafeMath {
     function voteOnProposal(uint proposalId, bool isYes) public onlyCitizen {
         require(_proposals[proposalId].isExistent);
         require(_proposals[proposalId].decision == ProposalDecision.Undecided);
-        require(!_proposals[proposalId].hasVoted[msg.sender]);
+        require(!_votes[proposalId][msg.sender]);
 
-        _proposals[proposalId].hasVoted[msg.sender] = true;        
+        _votes[proposalId][msg.sender] = true;          
         if (isYes) {
             _proposals[proposalId].voteCountYes++;
         } else {
@@ -287,16 +310,16 @@ contract VillageCoin is ERC223, SafeMath {
         return getNumberParameter("proposalDecideThresholdPercent");
     }
 
-    function isCitizen(address addr) constant returns (bool) {
+    function isCitizen(address addr) public constant returns (bool) {
         return _citizens[addr].isExistent;
     }
 
-    function getMaxProposalId() constant returns (uint) {
+    function getMaxProposalId() public constant returns (uint) {
         return _nextProposalId;
     }
 
     function getProposalBasicDetails(uint proposalId) public constant returns (uint id, bool isExistent, ProposalDecision decision, bool hasSenderVoted, ProposalType typ, uint expiryTime, string supportingEvidence) {
-        return (proposalId, _proposals[proposalId].isExistent, _proposals[proposalId].decision, _proposals[proposalId].hasVoted[msg.sender], _proposals[proposalId].typ, _proposals[proposalId].expiryTime, _proposals[proposalId].supportingEvidence);
+        return (proposalId, _proposals[proposalId].isExistent, _proposals[proposalId].decision, _votes[proposalId][msg.sender], _proposals[proposalId].typ, _proposals[proposalId].expiryTime, _proposals[proposalId].supportingEvidence);
     }
 
     function getProposalVotes(uint proposalId) public constant returns (uint id, uint voteCountYes, uint voteCountNo) {
@@ -311,6 +334,21 @@ contract VillageCoin is ERC223, SafeMath {
     function getCreateMoneyProposal(uint proposalId) public constant returns(uint id, uint amount) {
         var proposal = _proposals[proposalId];
         return (proposalId, proposal.createMoneyAmount);
+    }
+
+    function getDestroyMoneyProposal(uint proposalId) public constant returns(uint id, uint amount) {
+        var proposal = _proposals[proposalId];
+        return (proposalId, proposal.destroyMoneyAmount);
+    }
+
+    function getPayCitizenProposal(uint proposalId) public constant returns(uint id, address citizen, uint amount) {
+        var proposal = _proposals[proposalId];
+        return (proposalId, proposal.payCitizenCitizen, proposal.payCitizenAmount);
+    }
+
+    function getFineCitizenProposal(uint proposalId) public constant returns(uint id, address citizen, uint amount) {
+        var proposal = _proposals[proposalId];
+        return (proposalId, proposal.fineCitizenCitizen, proposal.fineCitizenAmount);
     }
    
     //
@@ -433,6 +471,10 @@ contract VillageCoin is ERC223, SafeMath {
                 setParameter(proposal.setParameterParameterName, proposal.setParameterParameterStringValue, proposal.setParameterParameterNumberValue);
             } else if (proposal.typ == ProposalType.CreateMoney) {
                 createMoney(proposal.createMoneyAmount);
+            } else if (proposal.typ == ProposalType.DestroyMoney) {
+                destroyMoney(proposal.destroyMoneyAmount);        
+            } else if (proposal.typ == ProposalType.PayCitizen) {
+                payCitizen(proposal.payCitizenCitizen, proposal.payCitizenAmount);
             // } else if (proposal.typ == ProposalType.TaxWealth) {
             //     taxWealth(proposal.taxWealthPercent);
             // } else if (proposal.typ == ProposalType.SpendPublicMoney) {
@@ -531,9 +573,38 @@ contract VillageCoin is ERC223, SafeMath {
         Transfer(PUBLIC_ACCOUNT, PUBLIC_ACCOUNT, amount, empty);
     }
 
-    // function spendPublicMoney(address to, uint amount) private {
-    //     transferInternal(PUBLIC_ACCOUNT, to, amount);
-    // }
+    function destroyMoney(uint amount) private {
+
+        if (amount > _citizens[PUBLIC_ACCOUNT].balance) {
+            amount = _citizens[PUBLIC_ACCOUNT].balance;
+        }
+
+        _citizens[PUBLIC_ACCOUNT].balance -= amount;
+        _totalSupply -= amount;
+        
+        bytes memory empty;
+        Transfer(PUBLIC_ACCOUNT, PUBLIC_ACCOUNT, amount, empty);
+    }
+
+    function payCitizen(address citizen, uint amount) private {
+        assert(isCitizen(citizen));
+
+        if(amount > _citizens[PUBLIC_ACCOUNT].balance) {
+            amount = _citizens[PUBLIC_ACCOUNT].balance;
+        }
+
+        transferInternal(PUBLIC_ACCOUNT, citizen, amount);
+    }
+
+    function fineCitizen(address citizen, uint amount) private {
+        assert(isCitizen(citizen));
+
+        if(amount > _citizens[citizen].balance) {
+            amount = _citizens[citizen].balance;
+        }
+
+        transferInternal(citizen, PUBLIC_ACCOUNT, amount);
+    }
 
     function transferInternal(address from, address to, uint amount) private {
         bytes memory empty;

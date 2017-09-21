@@ -17,7 +17,7 @@
     <div id="proposalDetails" style="display: none">
 
         <p id="proposalDescription" class="bigQuote"></p>
-        <p id="supportingEvidenceMessage" style="display:none">The proposer has provided some <a id="supportingEvidenceLink">supporting evidence</a></p>
+        <p id="supportingEvidenceMessage" style="display:none">The proposer has provided some <a id="supportingEvidenceLink" target="_blank">supporting evidence</a></p>
         <div style="margin-top:16px;display:grid;grid-template-rows:1fr;grid-template-columns:1fr 7fr;height:60px;padding:16px;background-color:#fff8de;border-radius:8px">
             <div style="grid-row:1;grid-column:1;display:grid;grid-template-rows:repeat(2, 1fr);grid-row-gap:8px;">
                 <div id="labelYesVotes" style="grid-row:1;grid-column:1;line-height:26px">YES</div>
@@ -226,7 +226,7 @@
         }
     }
 
-    async function populateSupportingEvidenceLink(supportingEvidenceLink) 
+    async function populateSupportingEvidence(supportingEvidenceLink) 
     {
         if(supportingEvidenceLink === undefined || supportingEvidenceLink == "") return;
 

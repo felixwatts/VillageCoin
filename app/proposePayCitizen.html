@@ -7,20 +7,20 @@
 </head>
 <body>
     <h1><span class="villageName"></span></h1>
-    <h2>Propose Creating Money</h2>
+    <h2>Propose Paying a Citizen</h2>
     <ul class="menu">
         <li class="menu"><a class="menu" href="index.html">Home</a></li>
         <li class="menu"><a class="menu" href="proposals.html">Vote</a></li>
         <li class="menu"><a class="menu" href="createProposal.html">Make a Proposal</a></li>
     </ul>  
     
-    <p>Even in the best run empires, public funds sometimes run low. Why not top them up from the magic money tree?</p>
-    <p>If the proposal is enacted the specified amount of newly minted <span class="villageSymbol"></span> will be added to the public account balance.</p>
+    <p>Time to put those public funds to good use! Or steal them; I'm not here to judge</p>
+    <p>If the proposal is enacted the specified amount of <span class="villageSymbol"></span> will be transferred from the public account to the specified citizen</p>
 
-    <p>Use the form below to propose money creation</p>
+    <p>Use the form below to propose paying a citizen</p>
 
-    <p>I propose to create
-        <input type="text" id="amount" placeholder="e.g., 5" onchange="validateForm()"></input><span class="villageSymbol"></span>
+    <p>I propose to pay
+        <input type="text" id="amount" placeholder="e.g., 5" onchange="validateForm()"></input><span class="villageSymbol"></span> from the public account to <input type="text" id="citizen" placeholder="e.g., 0x93e66d9baea28c17d9fc393b53e3fbdd76899dae" onchange="validateForm()"></input>
     </p>
     <p>You may optionally provide the URL of some <em>supporting evidence</em> to help convince other citizens of the value of your proposal.
         <input type="text" id="supportingEvidence" placeholder="e.g. https://i.imgur.com/J5MKGp2.gifv" onchange="validateForm()"></input>
@@ -39,9 +39,10 @@ async function submit()
     {
         var amountStr = document.getElementById("amount").value;
         var amount = parseInt(amountStr);
+        var citizen = document.getElementById("citizen").value;
         var supportingEvidence = document.getElementById("supportingEvidence").value;
 
-        receipt = await app.contract.proposeCreateMoney(amount, supportingEvidence, {from: app.account});
+        receipt = await app.contract.proposePayCitizen(citizen, amount, supportingEvidence, {from: app.account});
 
         var proposalId = receipt.logs[0].args.proposalId.toNumber();
 
@@ -64,11 +65,33 @@ async function validateForm()
 
         var amountStr = document.getElementById("amount").value;
         var amount = parseInt(amountStr);
+
+        console.log(amount);
         
         if(isNaN(amount) || amount < 0)
         {
             isValid = false;
             invalidReason = "The amount must be a positive integer";
+        } 
+        else
+        {
+            var toAddress = document.getElementById("citizen").value;
+            var isValidAddress = web3.isAddress(toAddress);
+            if(isValidAddress)
+            {
+                var villageCoin = app.contract;                
+                var isCitizen = await villageCoin.isCitizen.call(toAddress, amount, {from: app.account});
+                if(!isCitizen)
+                {
+                    isValid = false;
+                    invalidReason = "The 'To Account' is not a " + (await app.getVillageName()) + " citizen";
+                }
+            }
+            else
+            {
+                isValid = false;
+                invalidReason = "The 'To Account' is not a valid Ethereum address";
+            }
         }
        
         var sendButton = document.getElementById("btnSend");
