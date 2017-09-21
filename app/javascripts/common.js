@@ -1,16 +1,11 @@
-// Import the page's CSS. Webpack will know what to do with it.
 import "../stylesheets/app.css";
 
-// Import libraries we need.
 import { default as Web3 } from 'web3';
 import { default as contract } from 'truffle-contract';
+import { default as Swarm } from 'swarm-js';
 
-// Import our contract artifacts and turn them into usable abstractions.
-import spawner_artifacts from '../../build/contracts/Spawner.json';
 import villagecoin_artifacts from '../../build/contracts/VillageCoin.json';
 
-// VillageCoin is our usable abstraction, which we'll use through the code below.
-var Spawner = contract(spawner_artifacts);
 var VillageCoin = contract(villagecoin_artifacts);
 
 function setStatus (message) 
@@ -33,7 +28,6 @@ function setupWeb3Provider()
         window.web3 = new Web3(new Web3.providers.HttpProvider("http://localhost:8545"));
     }
 
-    Spawner.setProvider(web3.currentProvider);
     VillageCoin.setProvider(web3.currentProvider); 
 }
 
@@ -50,24 +44,12 @@ function parseQueryString(url)
     return urlParams;
 }
 
-function getContractAddress() 
-{
-    var url = location.search;  
-    var urlParameters = parseQueryString(url);
-    var contractAddress = urlParameters.contractAddress;
-    var isValidAddress = web3.isAddress(contractAddress);
-    if(!isValidAddress) throw("invalid contract address");
-
-    return contractAddress;
-}
-
 function setupAccounts()
 {
     var promise = new Promise(function(resolve, reject) 
     {
         try 
         {        
-            // Get the initial account balance so it can be displayed.
             web3.eth.getAccounts(function(err, accs) 
             {
                 if (err != null) {
@@ -99,7 +81,7 @@ async function redirectNonCitizen()
     var villageCoin = app.contract;
     var isCitizen = await villageCoin.isCitizen.call(window.app.account);
 
-    if(!isCitizen) window.location.replace("welcome.html?contractAddress=" + villageCoin.address);
+    if(!isCitizen) window.location.replace("welcome.html");
 }
 
 async function redirectCitizen()
@@ -107,15 +89,7 @@ async function redirectCitizen()
     var villageCoin = app.contract;
     var isCitizen = await villageCoin.isCitizen.call(window.app.account);
 
-    if(isCitizen) window.location.replace("villageIndex.html?contractAddress=" + villageCoin.address);
-}
-
-async function redirectNonGatekeeper()
-{
-    var villageCoin = app.contract;
-    var isGatekeeper = await villageCoin.isGatekeeper(window.app.account);
-
-    if(!isGatekeeper) window.location.replace("villageIndex.html?contractAddress=" + villageCoin.address);
+    if(isCitizen) window.location.replace("index.html");
 }
 
 async function populateVillageName()
@@ -132,7 +106,7 @@ async function populateVillageName()
 
 async function populateVillageSymbol()
 {
-    var villageSymbol= await getVillageSymbol();
+    var villageSymbol = await getVillageSymbol();
 
     var villageSymbolElements = document.getElementsByClassName("villageSymbol");
 
@@ -170,31 +144,49 @@ async function getProposalDescription(proposalId)
     var description = "";
 
     switch(proposalType)
-    {
-        case app.ProposalType.AppointGatekeeper:
+    { 
+        case app.ProposalType.SetParameter:
         {
-            var details = await villageCoin.getAppointGatekeeperProposal.call(proposalId, {from: app.account});
-            var gatekeeperAddress = details[1];
-            description = "appoint <strong>" + gatekeeperAddress + "</strong> as a <strong>gatekeeper</strong>";
+            var details = await villageCoin.getSetParameterProposal(proposalId);
+            var parameterName = details[1];
+            var isNumberParameter = await villageCoin.isNumberParameter(parameterName);
+            var parameterValue = isNumberParameter ? details[3] : details[2];
+            return "set parameter <strong>" + parameterName + "</strong> to <strong>" + parameterValue + "</strong>";
         }
         break;
-        case app.ProposalType.AddCitizen:
+        case app.ProposalType.CreateMoney:
         {
-            var details = await villageCoin.getAddCitizenProposal.call(proposalId, {from: app.account});
-            var citizenAddress = details[1];
-            description = "allow the owner of address <strong>" + citizenAddress + "</strong> to become a <strong>citizen</strong>";
+            var details = await villageCoin.getCreateMoneyProposal(proposalId);
+            var amount = details[1].toNumber();
+            var symbol = await getVillageSymbol();
+
+            return "create <strong>" + amount + " " + symbol + "</strong> and add it to the public account";
         }
         break;
+
     }
 
     return description
 }
 
-async function populateVillageMenu()
+function filterProposalByUndecided(proposal) 
 {
-    document.getElementById("menuHome").href = "villageIndex.html?contractAddress=" + app.contract.address;
-    document.getElementById("menuProposals").href = "proposals.html?contractAddress=" + app.contract.address;
-    document.getElementById("menuCreateProposal").href = "createProposal.html?contractAddress=" + app.contract.address;
+    var isExistent = proposal[1];
+    var isUndecided = proposal[2].toNumber() == app.ProposalDecision.Undecided;
+    return isExistent && isUndecided;
+}
+
+async function getUndecidedProposals() 
+{
+    var villageCoin = app.contract;
+    var maxProposalId = await villageCoin.getMaxProposalId.call({from: app.account});
+    var allProposalIds = [...Array(maxProposalId.toNumber()).keys()];
+    var allProposalsBasicDetails = await Promise.all(allProposalIds.map(function(id){ return villageCoin.getProposalBasicDetails.call(id, {from: app.account}) }));
+
+    var votableProposalsBasicDetails = allProposalsBasicDetails
+        .filter(filterProposalByUndecided);
+    
+    return votableProposalsBasicDetails;
 }
 
 function setupCommonFunctions() 
@@ -204,24 +196,19 @@ function setupCommonFunctions()
     window.app.getVillageName = getVillageName;
     window.app.getVillageSymbol = getVillageSymbol;
     window.app.parseQueryString = parseQueryString;
-    window.app.initVillage = initVillage;
     window.app.setStatus = setStatus;
     window.app.redirectCitizen = redirectCitizen;
     window.app.redirectNonCitizen = redirectNonCitizen;
-    window.app.redirectNonGatekeeper = redirectNonGatekeeper;
     window.app.getProposalDescription = getProposalDescription;
     window.app.populateVillageName = populateVillageName;
     window.app.populateVillageSymbol = populateVillageSymbol;
+    window.app.getUndecidedProposals = getUndecidedProposals;
 
     var ProposalType = {};
-    ProposalType.AppointGatekeeper = 0; 
-    ProposalType.DismissGatekeeper = 1; 
-    ProposalType.AddCitizen = 2; 
-    ProposalType.RemoveCitizen = 3; 
-    ProposalType.SetContractParameters = 4; 
-    ProposalType.CreateMoney = 5;
-    ProposalType.TaxWealth = 6; 
-    ProposalType.SpendPublicMoney = 7;
+    ProposalType.SetParameter = 0; 
+    ProposalType.CreateMoney = 1;
+    ProposalType.RewardCitizen = 2; 
+    ProposalType.FineCitizen = 3;
     window.app.ProposalType = ProposalType;
 
     var ProposalDecision = {};
@@ -232,23 +219,6 @@ function setupCommonFunctions()
     window.app.ProposalDecision = ProposalDecision;
 }
 
-async function initVillage()
-{
-    try
-    {        
-        var contractAddress = getContractAddress();
-        window.app.contract = await app.VillageCoin.at(contractAddress);  
-
-        populateVillageName();
-        populateVillageSymbol();
-        populateVillageMenu();
-    }
-    catch(error)
-    {
-        window.location.replace("index.html");
-    }
-} 
-
 window.init = async function()
 {
     window.app = {};
@@ -257,5 +227,8 @@ window.init = async function()
     await setupAccounts();
     setupCommonFunctions();
     
-    window.app.spawner = await Spawner.deployed();
+    window.app.contract = await VillageCoin.deployed();
+
+    populateVillageName();
+    populateVillageSymbol();
 };

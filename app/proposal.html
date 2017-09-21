@@ -9,15 +9,16 @@
     <h1><span class="villageName"></span></h1>
     <h2 id="proposalName"></h2>
     <ul class="menu">
-        <li class="menu"><a class="menu" id="menuHome">Home</a></li>
-        <li class="menu"><a class="menu" id="menuProposals">Vote</a></li>
-        <li class="menu"><a class="menu" id="menuCreateProposal">Make a Proposal</a></li>
-    </ul>  
+        <li class="menu"><a class="menu" href="index.html">Home</a></li>
+        <li class="menu"><a class="menu" href="proposals.html">Vote</a></li>
+        <li class="menu"><a class="menu" href="createProposal.html">Make a Proposal</a></li>
+    </ul>    
       
     <div id="proposalDetails" style="display: none">
 
-        <p id="proposalDescription" style="font-size:16pt;padding:8px;border-left-style: solid; border-left-width: 3px;border-left-color:black"></p>
-        <div style="display:grid;grid-template-rows:1fr;grid-template-columns:1fr 7fr;height:60px;padding:16px;background-color:#fff8de;border-radius:8px">
+        <p id="proposalDescription" class="bigQuote"></p>
+        <p id="supportingEvidenceMessage" style="display:none">The proposer has provided some <a id="supportingEvidenceLink">supporting evidence</a></p>
+        <div style="margin-top:16px;display:grid;grid-template-rows:1fr;grid-template-columns:1fr 7fr;height:60px;padding:16px;background-color:#fff8de;border-radius:8px">
             <div style="grid-row:1;grid-column:1;display:grid;grid-template-rows:repeat(2, 1fr);grid-row-gap:8px;">
                 <div id="labelYesVotes" style="grid-row:1;grid-column:1;line-height:26px">YES</div>
                 <div id="labelNoVotes" style="grid-row:2;grid-column:1;line-height:26px">NO</div>
@@ -26,7 +27,7 @@
                     <div id="voteChartBarYes" style="grid-column-start:1;grid-column-end: 101;grid-row-start:1;grid-row-end:2;border-radius: 0 5px 5px 0;background:#34A853"></div>
                     <div id="voteChartBarNo" style="grid-column-start:1;grid-column-end: 101;grid-row-start:2;grid-row-end:3;border-radius: 0 5px 5px 0;background:#EA4335"></div>
                     <div style="grid-column-start:1;grid-column-end: 1;grid-row-start:1;grid-row-end:3;border-left-style: solid;border-left-width: 2px;border-left-color: black"></div>
-                    <div style="grid-column-start:60;grid-column-end: 61;grid-row-start:1;grid-row-end:3;border-left-style: dashed;border-left-width: 2px;border-left-color: black"></div>
+                    <div id="voteChartThreshold" style="grid-column-start:60;grid-column-end: 61;grid-row-start:1;grid-row-end:3;border-left-style: dashed;border-left-width: 2px;border-left-color: black"></div>
                     <div style="grid-column-start:100;grid-column-end: 101;grid-row-start:1;grid-row-end:3;border-left-style: solid;border-left-width: 2px;border-left-color: black"></div>
             </div>
         </div>
@@ -36,8 +37,7 @@
         <div id="msgCannotVoteDecidedRejected" style="display: none">Voting has finished for this proposal. The proposal was REJECTED</div>
         <div id="msgCannotVoteDecidedExpired" style="display: none">Voting has finished for this proposal. The proposal expired with insufficient votes and so was REJECTED</div>
 
-        <div id="msgCannotVoteNonCitizen" style="display: none">You cannot vote on this proposal because you are not a citizen</div>
-        <div id="msgCannotVoteNonGatekeeper" style="display: none">You cannot vote on this proposal because you are not a gatekeeper</div>
+        <div id="msgCannotVoteNonCitizen" style="display: none">You cannot vote on this proposal because you are not a citizen</div>        
         <div id="msgCannotVoteAlreadyVoted" style="display: none">You have already voted on this proposal</div>
         
 
@@ -63,7 +63,7 @@
         <div id="proposalStatusYes" style="display: none">
             <p>The proposal has received enough YES votes to be accepted. You may click the button below to accept and enact the proposal. Be aware this may incur significant gas costs</p>
             <button class="voteButton" onclick="decide()">
-                    <div class="voteButtonTitle">ACCEPT PROPOSAL</div>
+                    <div class="voteButtonTitle">ENACT PROPOSAL</div>
                     <div class="voteButtonDescription" id="enactButtonDescription"></div>
             </button>
         </div>
@@ -135,22 +135,22 @@
         document.getElementById("proposalDescription").innerHTML = description;
     }
 
-    function getVotePercent(proposalType, voteCount, citizenCount, gatekeeperCount)
+    function getVotePercent(voteCount, citizenCount)
     {
-        var totalVoters = proposalType == app.ProposalType.AddCitizen
-            ? gatekeeperCount
-            : citizenCount;
-
-        return Math.round((voteCount / totalVoters) * 100);
+        return Math.round((voteCount / citizenCount) * 100);
     }
     
-    async function populateVoteChart(yesVoteCount, noVoteCount, proposalType, thresholdPercent, citizenCount, gatekeeperCount) 
+    async function populateVoteChart(yesVoteCount, noVoteCount, thresholdPercent, citizenCount) 
     {                 
-        var yesVotePercent = getVotePercent(proposalType, yesVoteCount, citizenCount, gatekeeperCount);
+        var yesVotePercent = getVotePercent(yesVoteCount, citizenCount);
         document.getElementById("voteChartBarYes").style["grid-column-end"] = yesVotePercent+1;
 
-        var noVotePercent = getVotePercent(proposalType, noVoteCount, citizenCount, gatekeeperCount);
+        var noVotePercent = getVotePercent(noVoteCount, citizenCount);
         document.getElementById("voteChartBarNo").style["grid-column-end"] = noVotePercent+1;
+
+        var thresholdMarker = document.getElementById("voteChartThreshold");
+        thresholdMarker.style["grid-column-start"] = thresholdPercent;
+        thresholdMarker.style["grid-column-end"] = thresholdPercent+1;
 
         document.getElementById("labelYesVotes").innerHTML = "YES (" + yesVoteCount + ")";
         document.getElementById("labelNoVotes").innerHTML = "NO (" + noVoteCount + ")";
@@ -163,7 +163,7 @@
         document.getElementById("proposalExpiry").innerHTML = "Expires on " + dateString;
     }
 
-    async function populateVoteBox(decision, isCitizen, isGatekeeper, proposalType, hasSenderVoted, proposalId)
+    async function populateVoteBox(decision, isCitizen, proposalType, hasSenderVoted, proposalId)
     {
         switch(decision)
         {
@@ -172,10 +172,6 @@
                 if(!isCitizen)
                 {
                     document.getElementById("msgCannotVoteNonCitizen").style.display = "inline";
-                }
-                else if(proposalType == app.ProposalType.AddCitizen && !isGatekeeper)
-                {
-                    document.getElementById("msgCannotVoteNonGatekeeper").style.display = "inline";         
                 }
                 else if(hasSenderVoted)
                 {
@@ -205,12 +201,12 @@
         }
     }
 
-    async function populateProposalStatus(decision, proposalType, yesVoteCount, noVoteCount, thresholdPercent, expiryTime, citizenCount, gatekeeperCount)
+    async function populateProposalStatus(decision, yesVoteCount, noVoteCount, thresholdPercent, expiryTime, citizenCount)
     {
         if(decision != app.ProposalDecision.Undecided) return;
 
-        var yesVotePercent = getVotePercent(proposalType, yesVoteCount, citizenCount, gatekeeperCount);
-        var noVotePercent = getVotePercent(proposalType, noVoteCount, citizenCount, gatekeeperCount);
+        var yesVotePercent = getVotePercent(yesVoteCount, citizenCount);
+        var noVotePercent = getVotePercent(noVoteCount, citizenCount);
 
         if(yesVotePercent >= thresholdPercent)
         {
@@ -230,6 +226,14 @@
         }
     }
 
+    async function populateSupportingEvidenceLink(supportingEvidenceLink) 
+    {
+        if(supportingEvidenceLink === undefined || supportingEvidenceLink == "") return;
+
+        document.getElementById("supportingEvidenceLink").href = supportingEvidenceLink;
+        document.getElementById("supportingEvidenceMessage").style.display = "inline";
+    }
+
     async function populatePage() 
     {
         try
@@ -242,8 +246,7 @@
             
             var villageCoin = app.contract;
 
-            var isCitizen = await villageCoin.isCitizen.call(app.account, {from: app.account});      
-            var isGatekeeper = await villageCoin.isGatekeeper.call(app.account, {from: app.account}); 
+            var isCitizen = await villageCoin.isCitizen.call(app.account, {from: app.account});                  
 
             var proposalBasicDetails = await villageCoin.getProposalBasicDetails.call(proposalId, {from: app.account});
             var isExistent = proposalBasicDetails[1];
@@ -251,6 +254,7 @@
             var hasSenderVoted = proposalBasicDetails[3];
             var proposalType = proposalBasicDetails[4].toNumber(); 
             var expiryTime = proposalBasicDetails[5].toNumber(); 
+            var supportingEvidence = proposalBasicDetails[6]; 
 
             if(!isExistent) return;     
             
@@ -260,17 +264,17 @@
 
             var thresholdPercent = (await villageCoin.getProposalDecideThresholdPercent.call({from: app.account})).toNumber();
 
-            var citizenCount = (await villageCoin.getCitizenCount.call({from: app.account})).toNumber()
-            var gatekeeperCount = (await villageCoin.getGatekeeperCount.call({from: app.account})).toNumber();    
-            
-            console.log(citizenCount);
+            console.log(thresholdPercent);
 
+            var citizenCount = (await villageCoin.getCitizenCount.call({from: app.account})).toNumber();    
+            
             document.getElementById("proposalDetails").style.display = "inline";
             populateProposalDescription(proposalId);
-            populateVoteChart(yesVoteCount, noVoteCount, proposalType, thresholdPercent, citizenCount, gatekeeperCount);
+            populateVoteChart(yesVoteCount, noVoteCount, thresholdPercent, citizenCount);
             populateExpiry(expiryTime);
-            populateVoteBox(decision, isCitizen, isGatekeeper, proposalType, hasSenderVoted, proposalId);
-            populateProposalStatus(decision, proposalType, yesVoteCount, noVoteCount, thresholdPercent, expiryTime, citizenCount, gatekeeperCount);
+            populateVoteBox(decision, isCitizen, proposalType, hasSenderVoted, proposalId);
+            populateProposalStatus(decision, yesVoteCount, noVoteCount, thresholdPercent, expiryTime, citizenCount);
+            populateSupportingEvidence(supportingEvidence);
 
         }
         catch(error)
@@ -282,7 +286,6 @@
     window.addEventListener('load', async function()
     { 
         await init();
-        await app.initVillage();
         await populatePage(); 
     });
 </script>

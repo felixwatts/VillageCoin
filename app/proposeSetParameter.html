@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>VillageCoin - Make a Proposal</title>
+  <link href='https://fonts.googleapis.com/css?family=Open+Sans:400,700' rel='stylesheet' type='text/css'>
+  <script src="./common.js"></script>
+</head>
+<body>
+    <h1><span class="villageName"></span></h1>
+    <h2>Propose Setting a Parameter</h2>
+    <ul class="menu">
+        <li class="menu"><a class="menu" href="index.html">Home</a></li>
+        <li class="menu"><a class="menu" href="proposals.html">Vote</a></li>
+        <li class="menu"><a class="menu" href="createProposal.html">Make a Proposal</a></li>
+    </ul>  
+    
+    <p>Parameters control many important (and some not so important) aspects of the <span class="villageName"></span> system. The table below details all the parameters and what they mean</p>
+
+    <table>
+        <tr>
+            <td><strong>Parameter Name</strong></td><td><strong>Meaning</strong></td><td><strong>Current Value</strong></td>
+        </tr>
+        <tr>
+            <td>name</td><td>The name of the currency. (RedditVillage initially)</td><td id="nameValue"></td>
+        </tr>
+        <tr>
+            <td>symbol</td><td>The ticker symbol of the currency</td><td id="symbolValue"></td>
+        </tr>
+        <tr>
+            <td>decimals</td><td>How many decimal places to print when displaying amounts of the currency</td><td id="decimalsValue"></td>
+        </tr>
+
+        <tr>
+            <td>citizenRequirementMinCommentKarma</td><td>Reddit users with less comment karma than this cannot join</td><td id="citizenRequirementMinCommentKarmaValue"></td>
+        </tr>  
+
+        <tr>
+            <td>citizenRequirementMinPostKarma</td><td>Reddit users with less post karma than this cannot join</td><td id="citizenRequirementMinPostKarmaValue"></td>
+        </tr>  
+
+        <tr>
+            <td>initialAccountBalance</td><td>How much of the currency is given to new users when they join</td><td id="initialAccountBalanceValue"></td>
+        </tr>
+        <tr>
+            <td>proposalDecideThresholdPercent</td><td>The minimum percentage of the population that need to vote YES or NO on a proposal for it to be decided</td><td id="proposalDecideThresholdPercentValue"></td>
+        </tr>
+        <tr>
+            <td>proposalTimeLimitDays</td><td>The number of days a proposal can remain undecided before it expires</td><td id="proposalTimeLimitDaysValue"></td>
+        </tr>  
+
+        <tr>
+            <td>taxPeriodDays</td><td>How frequently taxes are applied, in days</td><td id="taxPeriodDaysValue"></td>
+        </tr>  
+
+        <tr>
+            <td>taxPollTax</td><td>A constant amount transferred from each citizen account to the public account every time taxes are applied</td><td id="taxPollTaxValue"></td>
+        </tr>  
+
+        <tr>
+            <td>taxWealthTaxPercent</td><td>A percentage of each citizen's balance that is transferred to the public account each time taxes are applied</td><td id="taxWealthTaxPercentValue"></td>
+        </tr>  
+
+        <tr>
+            <td>taxBasicIncome</td><td>A constant amount that is transferred from the public account to each citizen account each time taxes are applied</td><td id="taxBasicIncomeValue"></td>
+        </tr>  
+    </table>
+
+    <p>Use the form below to propose a change to a parameter</p>
+
+    <p>I propose to change the value of 
+        <input type="text" id="parameterName" placeholder="parameter name" onchange="validateForm()"></input> to 
+        <input type="text" id="parameterValue" placeholder="parameter value" onchange="validateForm()"></input>
+    </p>
+    <p>You may optionally provide the URL of some <em>supporting evidence</em> to help convince other citizens of the value of your proposal.
+        <input type="text" id="supportingEvidence" placeholder="a short text or URL" onchange="validateForm()"></input></p>
+    
+    <button class="voteButton" id="btnSend" onclick="submit()" disabled>Create Proposal</button></p>
+    <div id="formInvalidMessage"></div>
+    <span id="status"></span>   
+</body>
+</html>
+<script>
+
+async function populateParameterValues()
+{
+    var numberParameters = 
+    [
+        "decimals",
+        "citizenRequirementMinCommentKarma",
+        "citizenRequirementMinPostKarma",
+        "initialAccountBalance",
+        "proposalDecideThresholdPercent",
+        "proposalTimeLimitDays",
+        "taxPeriodDays",
+        "taxPollTax",
+        "taxWealthTaxPercent",
+        "taxBasicIncome"  
+    ];
+
+    for(var i = 0; i < numberParameters.length; i++)
+    {
+        var parameterName = numberParameters[i];
+        var current = (await app.contract.getNumberParameter.call(parameterName)).toNumber();
+
+        document.getElementById(parameterName + "Value").innerHTML = current;
+    }
+
+    var stringParameters =
+    [
+        "name",
+        "symbol",
+    ];  
+
+    for(var i = 0; i < stringParameters.length; i++)
+    {
+        var parameterName = stringParameters[i];
+        var current = (await app.contract.getStringParameter.call(parameterName));
+
+        document.getElementById(parameterName + "Value").innerHTML = current;
+    }
+}
+
+async function submit() 
+{
+    try
+    {
+        var parameterName = document.getElementById("parameterName").value;
+        var parameterValueStr = document.getElementById("parameterValue").value;
+        var isNumberParameter = await app.contract.isNumberParameter.call(parameterName, {from: app.account});
+
+        var receipt;
+
+        if(isNumberParameter)
+        {
+            var parameterValueNum = parseInt(parameterValueStr);
+            receipt = await app.contract.proposeSetParameter(parameterName, "", parameterValueNum, {from: app.account});
+        }
+        else
+        {
+            receipt = await app.contract.proposeSetParameter(parameterName, parameterValueStr, 0, {from: app.account});
+        }
+
+        var proposalId = receipt.logs[0].args.proposalId.toNumber();
+
+        window.location.replace("proposal.html?id=" + proposalId);
+    }
+    catch(error)
+    {
+        console.log(error);
+        app.setStatus(error);
+    }
+
+}
+
+async function validateForm() 
+{
+    try
+    {
+        var isValid = true;
+        var invalidReason = "";
+
+        var parameterName = document.getElementById("parameterName").value;
+        var parameterValueStr = document.getElementById("parameterValue").value;
+        
+        if(parameterName == undefined)
+        {
+            isValid = false;
+            invalidReason = "You must enter a parameter name";
+        }
+        else
+        {
+
+            if(parameterValueStr == undefined || parameterValueStr == "")
+            {
+                isValid = false;
+                invalidReason = "You must enter a parameter value";
+            }
+            else
+            {
+                var isNumberParameter = await app.contract.isNumberParameter.call(parameterName, {from: app.account});
+                var isStringParameter = await app.contract.isStringParameter.call(parameterName, {from: app.account});
+
+                if(isNumberParameter)
+                {
+                    var parameterValueNum = parseInt(parameterValueStr);
+                    if(isNaN(parameterValueNum) || parameterValueNum < 0)
+                    {
+                        isValid = false;
+                        invalidReason = "The parameter value must be a positive integer";
+                    }
+                }
+                else if(!isStringParameter)
+                {
+                    isValid = false;
+                    invalidReason = "Unknown parameter: " + parameterName;
+                }                    
+            }
+        }
+
+        var sendButton = document.getElementById("btnSend");
+        sendButton.disabled = !isValid;
+        var sendInvalidMessage = document.getElementById("formInvalidMessage");
+        sendInvalidMessage.innerHTML = invalidReason;
+    }
+    catch(error)
+    {
+        console.log(error);
+        app.setStatus(error);
+    }
+}
+
+    window.addEventListener('load', async function()
+    { 
+        await init();      
+        app.redirectNonCitizen();
+        await populateParameterValues();
+    });
+</script>

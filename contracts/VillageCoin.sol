@@ -6,34 +6,33 @@ import "./ERC223_Interface.sol";
 
 contract VillageCoin is ERC223, SafeMath {
 
-    event Debug(string message);
+    address public _gatekeeper;
 
     address PUBLIC_ACCOUNT = 0; 
 
-    struct ContractParameters {
-        uint initialAccountBalance;
-        uint proposalDecideThresholdPercent;
-        uint proposalTimeLimit;
-        string accessPolicyDescription;
-        string accessEvidenceRequirementsDescription;
+    struct Parameter {
+        uint numberValue;
+        string stringValue;
+        bool isNumber;
+        bool isExistent;
+        uint minNumberValue;
+        uint maxNumberValue; // 0 = no max
     }
+
+    mapping(string=>Parameter) _parameters;
     
     struct Citizen {        
         address owner;
         uint balance;
-        bool isGatekeeper;
         bool isExistent;
+        string redditUsername;
     }  
 
     enum ProposalType { 
-        AppointGatekeeper, 
-        DismissGatekeeper, 
-        AddCitizen, 
-        RemoveCitizen, 
-        SetContractParameters, 
+        SetParameter, 
         CreateMoney, 
-        TaxWealth, 
-        SpendPublicMoney 
+        RewardCitizen, 
+        FineCitizen 
         }
 
     enum ProposalDecision {
@@ -48,189 +47,174 @@ contract VillageCoin is ERC223, SafeMath {
         ProposalType typ;
         uint voteCountYes;
         uint voteCountNo;
+        address proposer;
         mapping(address=>bool) hasVoted;
         bool isExistent;
         ProposalDecision decision;
         uint expiryTime;
 
-        address appointGatekeeperId;
+        string setParameterParameterName;
+        string setParameterParameterStringValue;
+        uint setParameterParameterNumberValue;
 
-        address dismissGatekeeperId;
+        uint createMoneyAmount;
 
-        address addCitizenId;        
+        address rewardCitizenCitizen;
+        uint rewardCitizenAmount;
 
-        address removeCitizenId;
+        address fineCitizenCitizen;
+        uint fineCitizenAmount;
 
-        ContractParameters setContractParametersParameters;
-
-        uint createMoneyAmountPerAccount;
-
-        uint taxWealthPercent;
-
-        address spendPublicMoneyTo;
-        uint spendPublicMoneyAmount;
-
-        string supportingEvidenceSwarmAddress;
+        string supportingEvidence;
     }  
 
     event OnProposalCreated(uint proposalId);
     event OnProposalDecided(uint proposalId);
 
-    string public _name;
-    string public _symbol;
-    uint8 public _decimals;
     uint256 public _totalSupply;
 
-    ContractParameters _parameters;
+    mapping(address=>Citizen) public _citizens;
+    uint public _citizenCount;
+    address[] public _allCitizenOwnersEver;
 
-    mapping(address=>Citizen) _citizens;
-    uint _citizenCount;
-    uint _gatekeeperCount;
-    address[] _allCitizenOwnersEver;
+    uint public _nextProposalId;
+    mapping(uint=>Proposal) _proposals;   
 
-    uint _nextProposalId;
-    mapping(uint=>Proposal) _proposals;    
+    uint _nextTaxTime; 
 
-    function VillageCoin(string name, string symbol, uint8 decimals, address firstCitizen) payable {
-        _name = name;
-        _symbol = symbol;
-        _decimals = decimals;
-        _parameters.initialAccountBalance = 1000;
-        _parameters.proposalDecideThresholdPercent = 60;
-        _parameters.proposalTimeLimit = 30 days;
-        _parameters.accessPolicyDescription = "open to anyone";
-        _parameters.accessEvidenceRequirementsDescription = "";
+    function VillageCoin() payable {        
+        _gatekeeper = msg.sender;
         
-        addCitizen(PUBLIC_ACCOUNT);
+        _parameters["name"] = Parameter({stringValue:"RedditVillage", numberValue:0, isNumber:false, isExistent:true, minNumberValue:0, maxNumberValue:0});
+        _parameters["symbol"] = Parameter({stringValue:"RVX", numberValue:0, isNumber:false, isExistent:true, minNumberValue:0, maxNumberValue:0});
+        _parameters["decimals"] = Parameter({stringValue:"", numberValue:0, isNumber:true, isExistent:true, minNumberValue:0, maxNumberValue:8});
+
+        _parameters["initialAccountBalance"] = Parameter({stringValue:"", numberValue:1000, isNumber:true, isExistent:true, minNumberValue:0, maxNumberValue:0});
+        _parameters["proposalDecideThresholdPercent"] = Parameter({stringValue:"", numberValue:1, isNumber:true, isExistent:true, minNumberValue:0, maxNumberValue:100});
+        _parameters["proposalTimeLimitDays"] = Parameter({stringValue:"", numberValue:30, isNumber:true, isExistent:true, minNumberValue:0, maxNumberValue:365});
+
+        _parameters["citizenRequirementMinCommentKarma"] = Parameter({stringValue:"", numberValue:500, isNumber:true, isExistent:true, minNumberValue:100, maxNumberValue:0});
+        _parameters["citizenRequirementMinPostKarma"] = Parameter({stringValue:"", numberValue:0, isNumber:true, isExistent:true, minNumberValue:0, maxNumberValue:0});
+
+        _parameters["taxPeriodDays"] = Parameter({stringValue:"", numberValue:7, isNumber:true, isExistent:true, minNumberValue:1, maxNumberValue:0});
+        _parameters["taxPollTax"] = Parameter({stringValue:"", numberValue:1, isNumber:true, isExistent:true, minNumberValue:0, maxNumberValue:0});
+        _parameters["taxWealthTaxPercent"] = Parameter({stringValue:"", numberValue:0, isNumber:true, isExistent:true, minNumberValue:0, maxNumberValue:100});
+        _parameters["taxBasicIncome"] = Parameter({stringValue:"", numberValue:0, isNumber:true, isExistent:true, minNumberValue:0, maxNumberValue:0});        
+        
+        addCitizen(PUBLIC_ACCOUNT, "RedditVillage_PublicAccount");
         _citizenCount = 0; // public account doesnt count towards the citizen count because it does not vote
-        addCitizen(firstCitizen);
-        appointGatekeeper(firstCitizen);
+
+        _nextTaxTime = now + getNumberParameter("taxPeriodDays") * 1 days; 
     }
 
     //
     // Management Methods
     //
 
-    function proposeAppointGatekeeper(address id) public onlyCitizen {
-        require(!isGatekeeper(id));
+    function addCitizen(address addr, string redditUsername) onlyGatekeeper public {
+        require(!isRedditUserACitizen(redditUsername));
 
-        var proposalId = _nextProposalId++;
-        assert(!_proposals[proposalId].isExistent);
+        _citizens[addr].owner = addr;
+        _citizens[addr].isExistent = true;
+        _citizens[addr].balance = getNumberParameter("initialAccountBalance");
+        _citizens[addr].redditUsername = redditUsername;
 
-        _proposals[proposalId].isExistent = true;
-        _proposals[proposalId].expiryTime = now + _parameters.proposalTimeLimit;
-        _proposals[proposalId].typ = ProposalType.AppointGatekeeper;
-        _proposals[proposalId].appointGatekeeperId = id;
-
-        OnProposalCreated(proposalId);
+        _totalSupply = safeAdd(_totalSupply, _citizens[addr].balance);   
+        _citizenCount++;
+        _allCitizenOwnersEver.push(addr); // todo what if citizen is removed and re-added?
     }
 
-    function proposeDismissGatekeeper(address id) public onlyCitizen {
-        require(isGatekeeper(id));
+    function applyTaxesIfDue() public {
+        // var isDue = now > _nextTaxTime;
+        // if(!isDue) {
+        //     return;
+        // }
 
-        var proposalId = _nextProposalId++;
-        assert(!_proposals[proposalId].isExistent);
+        _nextTaxTime += getNumberParameter("taxPeriodDays") * 1 days; 
 
-        _proposals[proposalId].isExistent = true;
-        _proposals[proposalId].expiryTime = now + _parameters.proposalTimeLimit;
-        _proposals[proposalId].typ = ProposalType.DismissGatekeeper;
-        _proposals[proposalId].dismissGatekeeperId = id;
+        applyPollTax();
+        applyWealthTax();
 
-        OnProposalCreated(proposalId);
+        applyBasicIncome();
     }
 
-    function proposeAddCitizen(address id, string supportingEvidenceSwarmAddress) public {
-        require(!isCitizen(id));
-
-        var proposalId = _nextProposalId++;
-        assert(!_proposals[proposalId].isExistent);
-
-        _proposals[proposalId].isExistent = true;
-        _proposals[proposalId].expiryTime = now + _parameters.proposalTimeLimit;
-        _proposals[proposalId].typ = ProposalType.AddCitizen;
-        _proposals[proposalId].addCitizenId = id;
-        _proposals[proposalId].supportingEvidenceSwarmAddress = supportingEvidenceSwarmAddress;
-
-        OnProposalCreated(proposalId);
-    }
-
-    function proposeRemoveCitizen(address id) public onlyCitizen {
-        require(isCitizen(id));
-
-        var proposalId = _nextProposalId++;
-        assert(!_proposals[proposalId].isExistent);
-
-        _proposals[proposalId].isExistent = true;
-        _proposals[proposalId].expiryTime = now + _parameters.proposalTimeLimit;
-        _proposals[proposalId].typ = ProposalType.RemoveCitizen;
-        _proposals[proposalId].removeCitizenId = id;
-
-        OnProposalCreated(proposalId);
-    }
-
-    function proposeSetContractParameters (
-        uint initialAccountBalance,
-        uint proposalDecideThresholdPercent,
-        uint proposalTimeLimitDays) public onlyCitizen 
+    function proposeSetParameter (
+        string parameterName,
+        string stringValue,
+        uint numberValue,
+        string supportingEvidence
+    ) public onlyCitizen 
     {
-        var proposalId = _nextProposalId++;
-        assert(!_proposals[proposalId].isExistent);
+        require(_parameters[parameterName].isExistent);
 
-        _proposals[proposalId].isExistent = true;
-        _proposals[proposalId].expiryTime = now + _parameters.proposalTimeLimit;
-        _proposals[proposalId].typ = ProposalType.SetContractParameters;
-        _proposals[proposalId].setContractParametersParameters.initialAccountBalance = initialAccountBalance;
-        _proposals[proposalId].setContractParametersParameters.proposalDecideThresholdPercent = proposalDecideThresholdPercent;
-        _proposals[proposalId].setContractParametersParameters.proposalTimeLimit = proposalTimeLimitDays * 1 days;
+        var proposalId = createProposal(ProposalType.SetParameter, supportingEvidence);
 
-        OnProposalCreated(proposalId);
-    }
+        _proposals[proposalId].setParameterParameterName = parameterName;
 
-    function proposeCreateMoney(uint amountPerAccount) public onlyCitizen {
-        var proposalId = _nextProposalId++;
-        assert(!_proposals[proposalId].isExistent);
-
-        _proposals[proposalId].isExistent = true;
-        _proposals[proposalId].expiryTime = now + _parameters.proposalTimeLimit;
-        _proposals[proposalId].typ = ProposalType.CreateMoney;
-        _proposals[proposalId].createMoneyAmountPerAccount = amountPerAccount;
+        if (isNumberParameter(parameterName)) {
+            _proposals[proposalId].setParameterParameterNumberValue = numberValue;
+        } else if (isStringParameter(parameterName)) {
+            require(numberValue == 0);
+            _proposals[proposalId].setParameterParameterStringValue = stringValue;
+        } else {
+            assert(false);
+        }
 
         OnProposalCreated(proposalId);
     }
 
-    function proposeTaxWealth(uint percent) public onlyCitizen {
-        var proposalId = _nextProposalId++;
-        assert(!_proposals[proposalId].isExistent);
+    function proposeCreateMoney(uint amount, string supportingEvidence) public onlyCitizen {
 
-        _proposals[proposalId].isExistent = true;
-        _proposals[proposalId].expiryTime = now + _parameters.proposalTimeLimit;
-        _proposals[proposalId].typ = ProposalType.TaxWealth;
-        _proposals[proposalId].taxWealthPercent = percent;
+        var proposalId = createProposal(ProposalType.CreateMoney, supportingEvidence);
+
+        _proposals[proposalId].createMoneyAmount = amount;
 
         OnProposalCreated(proposalId);
     }
 
-    function proposeSpendPublicMoney(address to, uint amount) public onlyCitizen {
-        var proposalId = _nextProposalId++;
-        assert(!_proposals[proposalId].isExistent);
+    // function proposeTaxWealth(uint percent) public onlyCitizen {
+    //     var proposalId = _nextProposalId++;
+    //     assert(!_proposals[proposalId].isExistent);
 
-        _proposals[proposalId].isExistent = true;
-        _proposals[proposalId].expiryTime = now + _parameters.proposalTimeLimit;
-        _proposals[proposalId].typ = ProposalType.SpendPublicMoney;
-        _proposals[proposalId].spendPublicMoneyTo = to;
-        _proposals[proposalId].spendPublicMoneyAmount = amount;
+    //     _proposals[proposalId].isExistent = true;
+    //     _proposals[proposalId].expiryTime = now + _parameters.proposalTimeLimit;
+    //     _proposals[proposalId].typ = ProposalType.TaxWealth;
+    //     _proposals[proposalId].taxWealthPercent = percent;
 
-        OnProposalCreated(proposalId);
+    //     OnProposalCreated(proposalId);
+    // }
+
+    // function proposeSpendPublicMoney(address to, uint amount) public onlyCitizen {
+    //     var proposalId = _nextProposalId++;
+    //     assert(!_proposals[proposalId].isExistent);
+
+    //     _proposals[proposalId].isExistent = true;
+    //     _proposals[proposalId].expiryTime = now + _parameters.proposalTimeLimit;
+    //     _proposals[proposalId].typ = ProposalType.SpendPublicMoney;
+    //     _proposals[proposalId].spendPublicMoneyTo = to;
+    //     _proposals[proposalId].spendPublicMoneyAmount = amount;
+
+    //     OnProposalCreated(proposalId);
+    // }
+
+    function isRedditUserACitizen(string redditUsername) public constant returns (bool) {
+
+        for (uint i = 0; i < _allCitizenOwnersEver.length; i++) {
+            var accountOwner = _allCitizenOwnersEver[i];
+            var citizen = _citizens[accountOwner];
+
+            if (citizen.isExistent && (sha3(citizen.redditUsername) == sha3(redditUsername))) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     function voteOnProposal(uint proposalId, bool isYes) public onlyCitizen {
         require(_proposals[proposalId].isExistent);
         require(_proposals[proposalId].decision == ProposalDecision.Undecided);
         require(!_proposals[proposalId].hasVoted[msg.sender]);
-        
-        if (_proposals[proposalId].typ == ProposalType.AddCitizen) {
-            require(isGatekeeper(msg.sender));
-        }
 
         _proposals[proposalId].hasVoted[msg.sender] = true;        
         if (isYes) {
@@ -247,14 +231,14 @@ contract VillageCoin is ERC223, SafeMath {
 
         var proposal = _proposals[proposalId];
 
-        var totalVoters = (proposal.typ == ProposalType.AddCitizen) ? _gatekeeperCount : _citizenCount;
+        var percentYes = ((proposal.voteCountYes * 100) / _citizenCount);
+        var percentNo = ((proposal.voteCountNo * 100) / _citizenCount);
 
-        var percentYes = ((proposal.voteCountYes * 100) / totalVoters);
-        var percentNo = ((proposal.voteCountNo * 100) / totalVoters);
+        var threshold = getNumberParameter("proposalDecideThresholdPercent");
 
-        if (percentYes >= _parameters.proposalDecideThresholdPercent) {
+        if (percentYes >= threshold) {
             decideProposal(proposalId, ProposalDecision.Accepted);
-        } else if (percentNo >= _parameters.proposalDecideThresholdPercent) {
+        } else if (percentNo >= threshold) {
             decideProposal(proposalId, ProposalDecision.Rejected);
         } else if (now > proposal.expiryTime) {
             decideProposal(proposalId, ProposalDecision.Expired);
@@ -265,24 +249,42 @@ contract VillageCoin is ERC223, SafeMath {
     // Views
     //
 
-    function getVillageDetails() public constant returns (string, string, uint) {
-        return ("A", "B", 1);
+    function isNumberParameter(string name) public constant returns(bool) {
+        return _parameters[name].isExistent && _parameters[name].isNumber;
+    }
+
+    function isStringParameter(string name) public constant returns(bool) {
+        return _parameters[name].isExistent && !_parameters[name].isNumber;
+    }
+
+    function getNumberParameter(string name) public constant returns(uint current) {
+        require(_parameters[name].isExistent);
+        require(_parameters[name].isNumber);
+        return _parameters[name].numberValue;
+    }
+    
+    function getNumberParameterRange(string name) public constant returns(uint min, uint max) {
+        require(_parameters[name].isExistent);
+        require(_parameters[name].isNumber);
+        return (_parameters[name].minNumberValue, _parameters[name].maxNumberValue);
+    }
+
+    function getStringParameter(string name) public constant returns(string) {
+        require(_parameters[name].isExistent);
+        require(!_parameters[name].isNumber);
+        return _parameters[name].stringValue;
+    }
+
+    function getVillageDetails() public constant returns(string, uint) {
+        return (getStringParameter("name"), _citizenCount);
     }
 
     function getCitizenCount() public constant returns(uint) {
         return _citizenCount;
     }
 
-    function getGatekeeperCount() public constant returns(uint) {
-        return _gatekeeperCount;
-    }
-
     function getProposalDecideThresholdPercent() public constant returns(uint) {
-        return _parameters.proposalDecideThresholdPercent;
-    }
-
-    function isGatekeeper(address addr) constant returns (bool) {
-        return isCitizen(addr) && _citizens[addr].isGatekeeper;
+        return getNumberParameter("proposalDecideThresholdPercent");
     }
 
     function isCitizen(address addr) constant returns (bool) {
@@ -293,34 +295,22 @@ contract VillageCoin is ERC223, SafeMath {
         return _nextProposalId;
     }
 
-    function getProposalBasicDetails(uint proposalId) public constant returns (uint id, bool isExistent, ProposalDecision decision, bool hasSenderVoted, ProposalType typ, uint expiryTime) {
-        return (proposalId, _proposals[proposalId].isExistent, _proposals[proposalId].decision, _proposals[proposalId].hasVoted[msg.sender], _proposals[proposalId].typ, _proposals[proposalId].expiryTime);
+    function getProposalBasicDetails(uint proposalId) public constant returns (uint id, bool isExistent, ProposalDecision decision, bool hasSenderVoted, ProposalType typ, uint expiryTime, string supportingEvidence) {
+        return (proposalId, _proposals[proposalId].isExistent, _proposals[proposalId].decision, _proposals[proposalId].hasVoted[msg.sender], _proposals[proposalId].typ, _proposals[proposalId].expiryTime, _proposals[proposalId].supportingEvidence);
     }
 
     function getProposalVotes(uint proposalId) public constant returns (uint id, uint voteCountYes, uint voteCountNo) {
         return (proposalId, _proposals[proposalId].voteCountYes, _proposals[proposalId].voteCountNo);
     }
 
-    function getAppointGatekeeperProposal(uint proposalId) public constant returns ( // apparently you cannot have more than 8 return values!!
-        uint id, 
-        address appointGatekeeperId)
-    {
-        id = proposalId;
-        appointGatekeeperId = _proposals[id].appointGatekeeperId;
-
-        return;
+    function getSetParameterProposal(uint proposalId) public constant returns(uint id, string name, string stringValue, uint numberValue) {
+        var proposal = _proposals[proposalId];
+        return (proposalId, proposal.setParameterParameterName, proposal.setParameterParameterStringValue, proposal.setParameterParameterNumberValue);
     }
 
-    function getAddCitizenProposal(uint proposalId) public constant returns ( // apparently you cannot have more than 8 return values!!
-        uint id, 
-        address addCitizenId,
-        string supportingEvidenceSwarmAddress)
-    {
-        id = proposalId;
-        addCitizenId = _proposals[id].addCitizenId;
-        supportingEvidenceSwarmAddress = _proposals[id].supportingEvidenceSwarmAddress;
-
-        return;
+    function getCreateMoneyProposal(uint proposalId) public constant returns(uint id, uint amount) {
+        var proposal = _proposals[proposalId];
+        return (proposalId, proposal.createMoneyAmount);
     }
    
     //
@@ -328,15 +318,15 @@ contract VillageCoin is ERC223, SafeMath {
     //
 
     function name() constant returns (string) {
-        return _name;
+        return getStringParameter("name");
     }
 
     function symbol() constant returns (string) {
-        return _symbol;
+        return getStringParameter("symbol");
     }
 
     function decimals() constant returns (uint8) {
-        return _decimals;
+        return uint8(getNumberParameter("decimals"));
     }
 
     function totalSupply() constant returns (uint256) {
@@ -415,6 +405,18 @@ contract VillageCoin is ERC223, SafeMath {
     // Internal Stuff
     //
 
+    function createProposal(ProposalType typ, string supportingEvidence) private returns(uint) {
+        var proposalId = _nextProposalId++;
+        assert(!_proposals[proposalId].isExistent);
+
+        _proposals[proposalId].isExistent = true;
+        _proposals[proposalId].typ = typ;
+        _proposals[proposalId].expiryTime = now + getNumberParameter("proposalTimeLimitDays") * 1 days;
+        _proposals[proposalId].supportingEvidence = supportingEvidence;
+
+        return proposalId;
+    }
+
     function decideProposal(uint proposalId, ProposalDecision decision) private {        
         
         assert(decision != ProposalDecision.Undecided);
@@ -427,22 +429,14 @@ contract VillageCoin is ERC223, SafeMath {
         proposal.decision = decision;
 
         if (decision == ProposalDecision.Accepted) {
-            if (proposal.typ == ProposalType.AppointGatekeeper) {
-                appointGatekeeper(proposal.appointGatekeeperId);
-            } else if (proposal.typ == ProposalType.DismissGatekeeper) {
-                dismissGatekeeper(proposal.dismissGatekeeperId);
-            } else if (proposal.typ == ProposalType.AddCitizen) {
-                addCitizen(proposal.addCitizenId);
-            } else if (proposal.typ == ProposalType.RemoveCitizen) {
-                removeCitizen(proposal.removeCitizenId);
-            } else if (proposal.typ == ProposalType.SetContractParameters) {
-                setContractParameters(proposal.setContractParametersParameters);
+            if (proposal.typ == ProposalType.SetParameter) {
+                setParameter(proposal.setParameterParameterName, proposal.setParameterParameterStringValue, proposal.setParameterParameterNumberValue);
             } else if (proposal.typ == ProposalType.CreateMoney) {
-                createMoney(proposal.createMoneyAmountPerAccount);
-            } else if (proposal.typ == ProposalType.TaxWealth) {
-                taxWealth(proposal.taxWealthPercent);
-            } else if (proposal.typ == ProposalType.SpendPublicMoney) {
-                spendPublicMoney(proposal.spendPublicMoneyTo, proposal.spendPublicMoneyAmount);
+                createMoney(proposal.createMoneyAmount);
+            // } else if (proposal.typ == ProposalType.TaxWealth) {
+            //     taxWealth(proposal.taxWealthPercent);
+            // } else if (proposal.typ == ProposalType.SpendPublicMoney) {
+            //     spendPublicMoney(proposal.spendPublicMoneyTo, proposal.spendPublicMoneyAmount);
             } else {
                 revert();
             }
@@ -451,81 +445,95 @@ contract VillageCoin is ERC223, SafeMath {
         OnProposalDecided(proposalId);
     }
 
-    function appointGatekeeper(address id) private {
-        assert(isCitizen(id));
-        assert(!isGatekeeper(id));
+    function setParameter(string parameterName, string stringValue, uint numberValue) private {
+        assert(_parameters[parameterName].isExistent);
 
-        _citizens[id].isGatekeeper = true;
-        _gatekeeperCount++;
+        if (isNumberParameter(parameterName)) {
+
+            require(numberValue >= _parameters[parameterName].minNumberValue);
+            if (_parameters[parameterName].maxNumberValue != 0) {
+                require(numberValue <= _parameters[parameterName].maxNumberValue);
+            }
+
+            _parameters[parameterName].numberValue = numberValue;
+        } else if (isStringParameter(parameterName)) {
+            assert(numberValue == 0);
+            _parameters[parameterName].stringValue = stringValue;
+        } else {
+            revert();
+        }
     }
 
-    function dismissGatekeeper(address id) private {
-        assert(isCitizen(id));
-        assert(isGatekeeper(id));
+    function applyPollTax() private {
+        var pollTaxAmount = getNumberParameter("taxPollTax");
+        if (pollTaxAmount == 0) {
+            return;
+        }
 
-        _citizens[id].isGatekeeper = false;
-        _gatekeeperCount--;
-    }
-
-    function addCitizen(address id) private {
-        assert(!isCitizen(id));
-        
-        _citizens[id].owner = id;
-        _citizens[id].isExistent = true;
-        _citizens[id].isGatekeeper = false;
-        _citizens[id].balance = _parameters.initialAccountBalance;
-
-        _totalSupply += _parameters.initialAccountBalance;        
-        _citizenCount++;
-        _allCitizenOwnersEver.push(id); // todo what if citizen is removed and re-added?
-    }
-
-    function removeCitizen(address id) private {
-        assert(isCitizen(id));
-        assert(_totalSupply >= _citizens[id].balance);
-
-        _totalSupply -= _citizens[id].balance;
-        _citizenCount--;
-        _citizens[id].isExistent = false;
-    }
-
-    function setContractParameters(ContractParameters newContractParameters) private {
-        _parameters.initialAccountBalance = newContractParameters.initialAccountBalance;
-        _parameters.proposalDecideThresholdPercent = newContractParameters.proposalDecideThresholdPercent;
-        _parameters.proposalTimeLimit = newContractParameters.proposalTimeLimit;
-    }
-
-    function createMoney(uint amountPerAccount) private {
-
-        bytes memory empty;
-
-        for (uint i = 0; i < _allCitizenOwnersEver.length; i++) {
+        for (uint i = 0; i < _allCitizenOwnersEver.length; i++) { // starts at 1 to skip public account
             var accountOwner = _allCitizenOwnersEver[i];
 
             if (_citizens[accountOwner].isExistent) {
-                if (_citizens[accountOwner].balance + amountPerAccount > _citizens[accountOwner].balance) {
-                    _citizens[accountOwner].balance += amountPerAccount;
-                    _totalSupply += amountPerAccount;
-                    Transfer(PUBLIC_ACCOUNT, accountOwner, amountPerAccount, empty);
-                }
+
+                var amountToTransfer = _citizens[accountOwner].balance >= pollTaxAmount
+                    ? pollTaxAmount
+                    : _citizens[accountOwner].balance;
+
+                transferInternal(accountOwner, PUBLIC_ACCOUNT, amountToTransfer);                        
             }
         }
     }
 
-    function taxWealth(uint percent) private {
-        for (uint i = 0; i < _allCitizenOwnersEver.length; i++) {
+    function applyWealthTax() private {
+
+        var wealthTaxPercent = getNumberParameter("taxWealthTaxPercent");
+        if (wealthTaxPercent == 0) {
+            return;
+        }
+
+        for (uint i = 0; i < _allCitizenOwnersEver.length; i++) { // starts at 1 to skip public account
             var accountOwner = _allCitizenOwnersEver[i];
 
             if (_citizens[accountOwner].isExistent) {
-                var amountToTax = (percent * _citizens[accountOwner].balance) / 100;
+                var amountToTax = (wealthTaxPercent * _citizens[accountOwner].balance) / 100;
                 transferInternal(accountOwner, PUBLIC_ACCOUNT, amountToTax);
             }
         }
     }
 
-    function spendPublicMoney(address to, uint amount) private {
-        transferInternal(PUBLIC_ACCOUNT, to, amount);
+    function applyBasicIncome() private {
+        var basicIncomeAmount = getNumberParameter("taxBasicIncome");
+        if (basicIncomeAmount == 0) {
+            return;
+        }
+
+        var totalValue = safeMul(basicIncomeAmount, _citizenCount);
+        var publicFunds = balanceOf(PUBLIC_ACCOUNT);
+        if (totalValue > publicFunds) {
+            basicIncomeAmount = publicFunds / _citizenCount;
+        }
+
+        for (uint i = 1; i < _allCitizenOwnersEver.length; i++) { // starts at 1 to skip public account
+            var accountOwner = _allCitizenOwnersEver[i];
+
+            if (_citizens[accountOwner].isExistent) {                
+                transferInternal(PUBLIC_ACCOUNT, accountOwner, basicIncomeAmount);
+            }
+        }
     }
+
+    function createMoney(uint amount) private {
+
+        _citizens[PUBLIC_ACCOUNT].balance = safeAdd(_citizens[PUBLIC_ACCOUNT].balance, amount);
+        _totalSupply = safeAdd(_totalSupply, amount);
+        
+        bytes memory empty;
+        Transfer(PUBLIC_ACCOUNT, PUBLIC_ACCOUNT, amount, empty);
+    }
+
+    // function spendPublicMoney(address to, uint amount) private {
+    //     transferInternal(PUBLIC_ACCOUNT, to, amount);
+    // }
 
     function transferInternal(address from, address to, uint amount) private {
         bytes memory empty;
@@ -536,21 +544,20 @@ contract VillageCoin is ERC223, SafeMath {
         assert(isCitizen(from));        
         assert(isCitizen(to));
         assert(_citizens[from].balance >= amount);
-        assert(_citizens[to].balance + amount > _citizens[to].balance);
 
         _citizens[from].balance -= amount;
-        _citizens[to].balance += amount;
+        _citizens[to].balance = safeAdd(_citizens[to].balance, amount);
 
         Transfer(from, to, amount, data);
     }
 
-    modifier onlyGatekeeper {
-        require(_gatekeeperCount == 0 || isGatekeeper(msg.sender));
+    modifier onlyCitizen {
+        require(isCitizen(msg.sender));
         _;
     }
 
-    modifier onlyCitizen {
-        require(isCitizen(msg.sender));
+    modifier onlyGatekeeper {
+        require(msg.sender == _gatekeeper);
         _;
     }
 }

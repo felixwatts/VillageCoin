@@ -6,38 +6,141 @@
   <script src="./common.js"></script>
 </head>
 <body>
-    <h1>VillageCoin</h1>
-    <h2>Welcome</h2>
+    <h1><span class="villageName"></span></h1>   
+    <h2>Home</h2> 
     <ul class="menu">
         <li class="menu"><a class="menu" href="index.html">Home</a></li>
-        <li class="menu"><a class="menu" href="villages.html">Villages</a></li>
-        <li class="menu"><a class="menu" href="createVillage.html">Create a Village</a></li>
-    </ul> 
+        <li class="menu"><a class="menu" href="proposals.html">Vote</a></li>
+        <li class="menu"><a class="menu" href="createProposal.html">Make a Proposal</a></li>
+    </ul>    
 
-    <p>VillageCoin is a platform upon which you can create your own <em>Democratic Currency</em>. That's a phrase I made up to denote a currency in which monetary and fiscal policy are set democratically by the users on a one user; one vote basis.</p>
-    <p>Unlike most currencies, VillageCoin currencies (aka <em>villages</em>) can implement arbitrary restrictions on account ownership (aka <em>citizenship</em>). This is primarily used to prevent <a href="https://en.wikipedia.org/wiki/Sybil_attack">sybil attacks</a> by enforcing a one person; one account policy, but can also be used to restrict the currency to any subset of actors, for example:</p>
-    <ul>
-        <li>Humans</li>
-        <li>Reddit users</li>
-        <li>Freemasons</li>
-    </ul> 
+    <p>Welcome to <strong><span class="villageName"></span></strong> citizen! The population is <strong id="population"></strong>. The public account balance is <strong><span id="publicAccountBalance"></span> <span class="villageSymbol"></span></strong>. <span id="openProposals"></span></p>
 
-    <p>Each village has a trusted set of citizens called gatekeepers who are charged with implementing the <em>access policy</em> of the village, as specified by the citizens. The gatekeepers assess applications to join the village from aspiring citizens and may grant or deny access.</p>
-    <p>The citizens of the village control everything else by a democratic system of referendums. They can do things like:</p>
-    <ul>
-        <li>Create money</li>
-        <li>Set tax policy</li>
-        <li>Spend public funds</li>
-        <li>Appoint and dismiss gatekeepers</li>
-    </ul>
-    <p>I'm not sure what any of this is for, it's just something I made in my spare time, but it could be a way to experiment with monetary and fiscal policy in a safe sandbox</p>
-    <p>If all that sounds like fun then why not join one of the <a href="villages.html">existing villages</a> or <a href="createVillage.html">create your own</a></p>
+    <p>Your balance is <span style="font-size:24pt;" id="balance"></span></p>
+
+    <p>Send <input type="text" id="amount" placeholder="e.g., 5" onchange="validateSendForm()"></input> to <input type="text" id="toAddress" placeholder="e.g., 0x93e66d9baea28c17d9fc393b53e3fbdd76899dae" onchange="validateSendForm()"><button id="btnSend" onclick="send()" disabled>SEND <span class="villageSymbol"></span></button></p>
+    <div id="formInvalidMessage"></div>
+
+    <span id="status"></span>   
 </body>
 </html>
-<script>  
+<script>
+
+    async function populateOpenProposals()
+    {
+        var openProposals = await app.getUndecidedProposals();
+
+        console.log(openProposals);
+
+        if(openProposals.length == 0) return;
+
+        var html = "The are <a href='proposals.html'>" + openProposals.length + " ongoing referendums</a>";
+
+        document.getElementById("openProposals").innerHTML = html;
+    }
+
+    async function populatePopulation()
+    {
+        var population = await app.contract.getCitizenCount.call({from: app.account});
+        document.getElementById("population").innerHTML = population;
+    }
+
+    async function populatePublicAccountBalance()
+    {
+        var balance = await app.contract.balanceOf.call("0x0", {from: app.account});
+        document.getElementById("publicAccountBalance").innerHTML = balance.toNumber();
+    }
+
+    async function validateSendForm() 
+    {
+
+        try
+        {
+            var isValid = true;
+            var invalidReason = "";
+
+            var amount = parseInt(document.getElementById("amount").value);
+            if(isNaN(amount) || amount < 0)
+            {
+                isValid = false;
+                invalidReason = "The amount must be a positive integer";
+            }
+            else
+            {
+                var toAddress = document.getElementById("toAddress").value;
+                var isValidAddress = web3.isAddress(toAddress);
+                if(isValidAddress)
+                {
+                    var villageCoin = app.contract;                
+                    var isCitizen = await villageCoin.isCitizen.call(toAddress, amount, {from: app.account});
+                    if(!isCitizen)
+                    {
+                        isValid = false;
+                        invalidReason = "The 'To Account' is not a " + (await app.getVillageName()) + " citizen";
+                    }
+                }
+                else
+                {
+                    isValid = false;
+                    invalidReason = "The 'To Account' is not a valid Ethereum address";
+                }
+            }
+
+            var sendButton = document.getElementById("btnSend");
+            sendButton.disabled = !isValid;
+            var sendInvalidMessage = document.getElementById("formInvalidMessage");
+            sendInvalidMessage.innerHTML = invalidReason;
+        }
+        catch(error)
+        {
+            console.log(error);
+            app.setStatus(error);
+        }
+    }
+
+    async function populateBalance() 
+    {
+        try
+        {
+            var villageCoin = app.contract;
+            var decimals = await villageCoin.decimals.call({from: app.account});
+            var symbol = await villageCoin.symbol.call({from: app.account});
+            var balance = await villageCoin.balanceOf.call(app.account, {from: app.account});
+            document.getElementById("balance").innerHTML = balance.toFormat(decimals.toNumber()) + " " + symbol;
+        }
+        catch(error)
+        {
+            console.log(error);
+            app.setStatus(error);
+        }
+    }
+
+    async function send()
+    {
+        try
+        {
+            var villageCoin = app.contract;
+            var amount = parseInt(document.getElementById("amount").value);
+            var toAddress = document.getElementById("toAddress").value;
+
+            await villageCoin.transfer(toAddress, amount, {from: app.account});
+
+            populateBalance();
+        }
+        catch(error)
+        {
+            console.log(error);
+            app.setStatus(error);
+        }
+    }
 
     window.addEventListener('load', async function()
     { 
         await init();
+        app.redirectNonCitizen();
+        await populateBalance();
+        await populatePopulation();
+        await populatePublicAccountBalance();
+        await populateOpenProposals();
     });
 </script>

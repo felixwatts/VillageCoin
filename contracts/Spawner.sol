@@ -20,9 +20,9 @@ contract Spawner {
         return _villageCount;
     }
 
-    function spawnVillage(string name, string symbol, uint8 decimals) public {
-        var village = new VillageCoin(name, symbol, decimals, msg.sender);
-        _villages[_villageCount++] = village;        
-        OnVillageCreated(village);
-    }
+    // function spawnVillage(string name, string symbol, uint8 decimals, string accessPolicyDescription, string accessEvidenceRequirementsDescription) public {
+    //     var village = new VillageCoin(name, symbol, decimals, msg.sender, accessPolicyDescription, accessEvidenceRequirementsDescription);
+    //     _villages[_villageCount++] = village;        
+    //     OnVillageCreated(village);
+    // }
 }

@@ -9,28 +9,25 @@
     <h1><span class="villageName"></span></h1>
     <h2>Make a Proposal</h2>
     <ul class="menu">
-        <li class="menu"><a class="menu" id="menuHome">Home</a></li>
-        <li class="menu"><a class="menu" id="menuProposals">Vote</a></li>
-        <li class="menu"><a class="menu" id="menuCreateProposal">Make a Proposal</a></li>
-    </ul>    
+        <li class="menu"><a class="menu" href="index.html">Home</a></li>
+        <li class="menu"><a class="menu" href="proposals.html">Vote</a></li>
+        <li class="menu"><a class="menu" href="createProposal.html">Make a Proposal</a></li>
+    </ul>  
+    
+    <p>As a <span class="villageName"></span> citizen you can make a <em>proposal</em>, which is a proposed change or action within the system. Your fellow citizens then get the opportunity to vote on whether or not to enact your proposal. If your proposal gets enough YES votes it will be enacted and you will have made history (in an admittedly very minor way) by changing the course of <span class="villageName"></span> development</p>
+
+    <p>There are several types of proposal you can make, as listed below. Follow the links for more details or to make a proposal</p>
 
     <ul>
-        <li><a id="proposeAppointGatekeeper">Appoint a gatekeeper</a></li>
+        <li><a href="proposeSetParameter.html">Set a parameter</a></li>        
+        <li><a href="proposeCreateMoney.html">Create Money</a></li>        
     </ul>
 </body>
 </html>
 <script>
-
-    function populateLinks()
-    {
-        document.getElementById("proposeAppointGatekeeper").href = "proposeAppointGatekeeper.html?contractAddress=" + app.contract.address;
-    }
-
     window.addEventListener('load', async function()
     { 
-        await init();
-        await app.initVillage();        
+        await init();      
         app.redirectNonCitizen();
-        populateLinks();
     });
 </script>

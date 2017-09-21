@@ -9,24 +9,17 @@
     <h1><span class="villageName"></span></h1>
     <h2>Open Proposals</h2>  
     <ul class="menu">
-        <li class="menu"><a class="menu" id="menuHome">Home</a></li>
-        <li class="menu"><a class="menu" id="menuProposals">Vote</a></li>
-        <li class="menu"><a class="menu" id="menuCreateProposal">Make a Proposal</a></li>
-    </ul>      
-    <p class="hint">This is a list of proposals that are awaiting your vote. Although you never <em>have</em> to vote, it's important if you want to influence the future of the currency</p>    
+        <li class="menu"><a class="menu" href="index.html">Home</a></li>
+        <li class="menu"><a class="menu" href="proposals.html">Vote</a></li>
+        <li class="menu"><a class="menu" href="createProposal.html">Make a Proposal</a></li>
+    </ul>     
+    <p>This is a list of proposals that are currently undecided. Although you never <em>have</em> to vote, it's important if you want to influence the future of the currency</p>    
     <table id="tableProposals"></table>
 
     <div id="status"></div>    
 </body>
 </html>
 <script lang="javascript">
-
-function filterProposalByVotable(proposal) 
-{
-    var isExistent = proposal[1];
-    var isUndecided = proposal[2].toNumber() == app.ProposalDecision.Undecided;
-    return isExistent && isUndecided;
-}
 
 async function buildProposalRow(proposal)
 {
@@ -39,13 +32,7 @@ async function populateProposalsTable()
 {
     try 
     {
-        var villageCoin = app.contract;
-        var maxProposalId = await villageCoin.getMaxProposalId.call({from: app.account});
-        var allProposalIds = [...Array(maxProposalId.toNumber()).keys()];
-        var allProposalsBasicDetails = await Promise.all(allProposalIds.map(function(id){ return villageCoin.getProposalBasicDetails.call(id, {from: app.account}) }));
-
-        var votableProposalsBasicDetails = allProposalsBasicDetails
-            .filter(filterProposalByVotable);
+        var votableProposalsBasicDetails = await app.getUndecidedProposals();
         var votableProposals = await Promise.all(votableProposalsBasicDetails
             .map(buildProposalRow));
 
@@ -66,7 +53,6 @@ async function populateProposalsTable()
 window.addEventListener('load', async function()
 {
     await init();
-    await app.initVillage();
     app.redirectNonCitizen();
     await populateProposalsTable();
 });

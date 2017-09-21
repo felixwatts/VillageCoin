@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>RedditVillage - Welcome</title>
+  <link href='https://fonts.googleapis.com/css?family=Open+Sans:400,700' rel='stylesheet' type='text/css'>
+  <script src="./common.js"></script>
+</head>
+<body>
+  <h1><span class="villageName"></span></h1>
+  <h2>Join <span class="villageName"></span></h2>
+
+  <p>To claim your account and become a citizen of <span class="villageName"></span> all you need is a Reddit account with at least <span id="minCommentKarma"></span> comment karma and <span id="minPostKarma"></span> post karma</p>
+
+  <p>To get your account, login to reddit and send a private message to user <strong>RVGatekeeper</strong> with the following details:</p>
+
+  <table>
+      <tr>
+          <td><strong>subject</strong></td><td>join</td>
+      </tr>
+      <tr>
+        <td><strong>message</strong></td><td>&lt;your ethereum address&gt;</td>
+    </tr>
+  </table>
+
+  <p>The RVGatekeeper robot will create your account and reply to your private message with instructions on how to proceed</p>
+
+</body>
+</html>
+</html>
+<script>
+  
+  async function populateRequirements()
+  {
+      var minCommentKarma = await app.contract.getNumberParameter.call("citizenRequirementMinCommentKarma", {from: app.account});
+      var minPostKarma = await app.contract.getNumberParameter.call("citizenRequirementMinPostKarma", {from: app.account});
+
+      document.getElementById("minCommentKarma").innerHTML = minCommentKarma;
+      document.getElementById("minPostKarma").innerHTML = minPostKarma;
+  }
+
+    window.addEventListener('load', async function()
+    { 
+        await init();   
+        await populateRequirements();   
+    });
+</script>

@@ -11,7 +11,7 @@ label {
 }
 
 input {
-  width: 500px;
+  min-width: 40px;
   padding: 5px;
   margin:8px;
   font-size: 16px;
@@ -71,7 +71,11 @@ h3 {
   min-width: 150px;
   border: 0;
   box-shadow:none;
-  width:100%
+  width:100%;
+  color: white;
+  font-weight: bold;
+  font-size: 16pt;
+  text-align: center;
 }
 
 .voteButtonTitle {
@@ -108,4 +112,40 @@ li.menu {
 .boxContent {
   background: #f3f3f3;
   padding: 16px;
+}
+
+table {
+  width:100%;
+}
+
+td {
+  padding: 8px;
+  margin: 0;
+}
+
+td.header {
+  padding: 8px;
+  margin: 0;
+  border-bottom: 1px solid #dcdcdc;
+  font-weight: bold;
+}
+
+.footer {
+  text-align: center;
+  font-size: 8pt
+}
+
+.bigQuote {
+  font-size:16pt;
+  padding:8px;
+  border-left-style: solid; 
+  border-left-width: 3px;
+  border-left-color:black
+}
+
+.smallQuote {
+  padding:8px;
+  border-left-style: solid; 
+  border-left-width: 3px;
+  border-left-color:black
 }
