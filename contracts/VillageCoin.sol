@@ -66,6 +66,12 @@ contract VillageCoin is ERC223, SafeMath {
         Expired
     }
 
+    enum VoteStatus {
+        HasNotVoted,
+        VotedYes,
+        VotedNo
+    }
+
     //
     // Fields
     //
@@ -84,7 +90,7 @@ contract VillageCoin is ERC223, SafeMath {
 
     uint public _nextProposalId;
     mapping(uint=>Proposal) public _proposals;  
-    mapping(uint=>mapping(address=>bool)) _votes; 
+    mapping(uint=>mapping(address=>VoteStatus)) public _votes; 
 
     //
     // Events
@@ -233,9 +239,9 @@ contract VillageCoin is ERC223, SafeMath {
     function voteOnProposal(uint proposalId, bool isYes) public onlyCitizen {
         require(_proposals[proposalId].isExistent);
         require(_proposals[proposalId].decision == ProposalDecision.Undecided);
-        require(!_votes[proposalId][msg.sender]);
+        require(_votes[proposalId][msg.sender] == VoteStatus.HasNotVoted);
 
-        _votes[proposalId][msg.sender] = true;          
+        _votes[proposalId][msg.sender] = isYes ? VoteStatus.VotedYes : VoteStatus.VotedNo;          
         if (isYes) {
             _proposals[proposalId].voteCountYes++;
         } else {
@@ -291,7 +297,7 @@ contract VillageCoin is ERC223, SafeMath {
     }
 
     function getHasSenderVoted(uint proposalId) returns(bool) {
-        return _votes[proposalId][msg.sender];
+        return _votes[proposalId][msg.sender] != VoteStatus.HasNotVoted;
     }
    
     //

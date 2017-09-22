@@ -4,6 +4,7 @@ import { default as Web3 } from 'web3';
 import { default as contract } from 'truffle-contract';
 
 var BigNumber = require('bignumber.js');
+var validUrl = require('valid-url');
 
 import villagecoin_artifacts from '../../build/contracts/VillageCoin.json';
 
@@ -274,39 +275,6 @@ async function getProposalDescription(proposalId)
     return description
 }
 
-async function getAddressFromInput(inputId)
-{
-    var result = {}
-
-    var addressStr = document.getElementById(inputId).value;
-    var isValidAddress = web3.isAddress(addressStr);
-    if(isValidAddress)
-    {            
-        var isCitizen = await app.contract.isCitizen.call(toAddress, amount, {from: app.account});
-        if(!isCitizen)
-        {
-            return undefined;
-        }
-        else
-        {
-            return addressStr;
-        }
-    }
-    else
-    {
-        var address = await app.contract.getAddressOfRedditUsername(addressStr, {from: app.account});
-        
-        if(address == "0x0000000000000000000000000000000000000000")
-        {
-            return undefined;
-        }
-        else
-        {            
-            return address;
-        }
-    }    
-}
-
 function filterProposalByUndecided(proposal) 
 {
     return proposal.isExistent && proposal.decision == app.ProposalDecision.Undecided;
@@ -324,14 +292,124 @@ async function getUndecidedProposals()
     return votableProposals;
 }
 
+async function validateForm()
+{
+    var validationErrors = [];
+    var results = {};
+
+    var addressInputs = document.getElementsByClassName("inputAddress");
+    for(var i = 0; i < addressInputs.length; i++)
+    {
+        await validateAddressInput(addressInputs[i], validationErrors, results); // todo make parallel
+    }
+
+    var amountInputs = document.getElementsByClassName("inputAmount");
+    for(var i = 0; i < amountInputs.length; i++)
+    {
+        await validateAmountInput(amountInputs[i], validationErrors, results); // todo make parallel
+    }
+
+    var urlInputs = document.getElementsByClassName("inputUrl");
+    for(var i = 0; i < urlInputs.length; i++)
+    {
+        await validateUrlInput(urlInputs[i], validationErrors, results); // todo make parallel
+    }
+
+    if(validationErrors.length != 0)
+    {
+        results.isValid = false;
+        results.errorMessage = validationErrors.reduce(function(head, tail){ return head + "<br>" + tail});
+    }
+    else
+    {
+        results.isValid = true;
+    }
+
+    var submitButton = document.getElementById("inputSubmit");
+    submitButton.disabled = !results.isValid;
+    var inputInvalidMessage = document.getElementById("inputInvalidMessage");
+    inputInvalidMessage.innerHTML = results.isValid ? "" : results.errorMessage;
+
+    return results;
+}
+
+async function validateAmountInput(element, validationErrors, results)
+{
+    var amountStr = element.value;
+
+    var amount = await parseCurrencyAmount(amountStr);
+
+    if(isNaN(amount))
+    {
+        validationErrors.push("Invalid currency amount")
+    }
+    else
+    {
+        results[element.id] = amount;
+    }
+}
+
+async function validateAddressInput(element, validationErrors, results)
+{
+    var addressStr = element.value;
+
+    if(addressStr == undefined || addressStr == "")
+    {
+        validationErrors.push("You must specify a citizen");
+        return;
+    }
+
+    var isValidAddress = web3.isAddress(addressStr);
+    if(isValidAddress)
+    {            
+        var isCitizen = await app.contract.isCitizen.call(toAddress, amount, {from: app.account});
+        if(!isCitizen)
+        {
+            validationErrors.push(addressStr + " is not a citizen");
+        }
+        else
+        {
+            results[element.id] = addressStr;
+        }
+    }
+    else
+    {
+        var address = await app.contract.getAddressOfRedditUsername(addressStr, {from: app.account});
+        
+        if(address == "0x0000000000000000000000000000000000000000")
+        {
+            validationErrors.push(addressStr + " is not a citizen");
+        }
+        else
+        {            
+            results[element.id] = address;
+        }
+    }  
+}
+
+async function validateUrlInput(element, validationErrors, results)
+{
+    var urlStr = element.value;
+    if(urlStr == undefined || urlStr == "") return;
+
+    if(validUrl.isWebUri(urlStr))
+    {
+        results[element.id] = urlStr;
+    }
+    else
+    {
+        validationErrors.push("Invalid URL");
+    }
+}
+
 function setupCommonFunctions() 
 {
     window.app.VillageCoin = VillageCoin;
 
+    window.app.validateForm = validateForm;
     window.app.parseCurrencyAmount = parseCurrencyAmount;
     window.app.formatCurrencyAmount = formatCurrencyAmount;
     window.app.getCitizen = getCitizen;
-    window.app.getAddressFromInput = getAddressFromInput;
     window.app.populateRedditUsername = populateRedditUsername;
     window.app.getProposal = getProposal;
     window.app.getVillageName = getVillageName;

@@ -152,6 +152,7 @@ async function validateForm()
 
         var parameterName = document.getElementById("parameterName").value;
         var parameterValueStr = document.getElementById("parameterValue").value;
+        var supportingEvidenceUrl = document.getElementById("supportingEvidenceUrl").value;
         
         if(parameterName == undefined)
         {
@@ -166,6 +167,11 @@ async function validateForm()
                 isValid = false;
                 invalidReason = "You must enter a parameter value";
             }
+            else if(supportingEvidenceUrl != "" && !app.isWebUri(supportingEvidenceUrl))
+            {
+                isValid = false;
+                invalidReason = "The supporting evidence URL must be a valid web URL";
+            } 
             else
             {
                 var isNumberParameter = await app.contract.isNumberParameter.call(parameterName, {from: app.account});
@@ -184,7 +190,7 @@ async function validateForm()
                 {
                     isValid = false;
                     invalidReason = "Unknown parameter: " + parameterName;
-                }                    
+                }             
             }
         }
 

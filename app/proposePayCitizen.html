@@ -20,14 +20,14 @@
     <p>Use the form below to propose paying a citizen</p>
 
     <p>I propose to pay
-        <input type="text" id="amount" placeholder="e.g., 5" onchange="validateForm()"></input><span class="villageSymbol"></span> from the public account to <input type="text" id="citizen" placeholder="reddit username or ethereum address" onchange="validateForm()"></input>
+        <input type="text" id="amount" class="inputAmount" placeholder="e.g., 5" onchange="validateForm()"></input><span class="villageSymbol"></span> from the public account to <input type="text" id="citizen" class="inputAddress" placeholder="reddit username or ethereum address" onchange="validateForm()"></input>
     </p>
     <p>You may optionally provide the URL of some <em>supporting evidence</em> to help convince other citizens of the value of your proposal.
-        <input type="text" id="supportingEvidence" placeholder="e.g. https://i.imgur.com/J5MKGp2.gifv" onchange="validateForm()"></input>
+        <input type="text" id="supportingEvidenceUrl" class="inputUrl" placeholder="e.g. https://i.imgur.com/J5MKGp2.gifv" onchange="validateForm()"></input>
     </p>
     
-    <button class="voteButton" id="btnSend" onclick="submit()" disabled>Create Proposal</button></p>
-    <div id="formInvalidMessage"></div>
+    <button class="voteButton" id="inputSubmit" onclick="submit()" disabled>Create Proposal</button></p>
+    <div id="inputInvalidMessage"></div>
     <span id="status"></span>   
 </body>
 </html>
@@ -37,12 +37,10 @@ async function submit()
 {
     try
     {
-        var amountStr = document.getElementById("amount").value;
-        var amount = await app.parseCurrencyAmount(amountStr);
-        var citizen = await app.getAddressFromInput("citizen");
-        var supportingEvidence = document.getElementById("supportingEvidence").value;
+        var results = await app.validateForm();
+        if(!results.isValid) return;
 
-        receipt = await app.contract.proposePayCitizen(citizen, amount, supportingEvidence, {from: app.account});
+        receipt = await app.contract.proposePayCitizen(results.citizen, results.amount, results.supportingEvidenceUrl, {from: app.account});
 
         var proposalId = receipt.logs[0].args.proposalId.toNumber();
 
@@ -60,31 +58,7 @@ async function validateForm()
 {
     try
     {
-        var isValid = true;
-        var invalidReason = "";
-
-        var amountStr = document.getElementById("amount").value;
-        var amount = await app.parseCurrencyAmount(amountStr);
-       
-        if(isNaN(amount) || amount < 0)
-        {
-            isValid = false;
-            invalidReason = "The amount must be a positive integer";
-        } 
-        else
-        {
-            var toAddress = await app.getAddressFromInput("citizen");
-            if(toAddress == undefined)
-            {
-                isValid = false;
-                invalidReason = document.getElementById("citizen").value + " is not a " + (await app.getVillageName()) + " citizen";
-            }
-        }
-       
-        var sendButton = document.getElementById("btnSend");
-        sendButton.disabled = !isValid;
-        var sendInvalidMessage = document.getElementById("formInvalidMessage");
-        sendInvalidMessage.innerHTML = invalidReason;
+        await app.validateForm();
     }
     catch(error)
     {

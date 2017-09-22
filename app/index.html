@@ -18,8 +18,8 @@
 
     <p>Your balance is <span style="font-size:24pt;" id="balance"></span></p>
 
-    <p>Send <input type="text" id="amount" placeholder="e.g., 5" onchange="validateSendForm()"></input> to <input type="text" id="toAddress" placeholder="reddit username or ethereum address" onchange="validateSendForm()"><button id="btnSend" onclick="send()" disabled>SEND <span class="villageSymbol"></span></button></p>
-    <div id="formInvalidMessage"></div>
+    <p>Send <input type="text" id="amount" class="inputAmount" placeholder="e.g., 5" onchange="validateSendForm()"></input> to <input type="text" id="toAddress" class="inputAddress" placeholder="reddit username or ethereum address" onchange="validateSendForm()"><button id="inputSubmit" onclick="send()" disabled>SEND <span class="villageSymbol"></span></button></p>
+    <div id="inputInvalidMessage"></div>
 
     <span id="status"></span>   
 </body>
@@ -54,30 +54,7 @@
 
         try
         {
-            var isValid = true;
-            var invalidReason = "";
-
-            var amount = await app.parseCurrencyAmount(document.getElementById("amount").value);
-            if(isNaN(amount) || amount < 0)
-            {
-                isValid = false;
-                invalidReason = "The amount must be a positive integer";
-            }
-            else
-            {
-                var toAddress = await app.getAddressFromInput("toAddress");
-                console.log(toAddress);
-                if(toAddress == undefined)
-                {
-                    isValid = false;
-                    invalidReason = document.getElementById("toAddress").value + " is not a " + (await app.getVillageName()) + " citizen";
-                }
-            }
-
-            var sendButton = document.getElementById("btnSend");
-            sendButton.disabled = !isValid;
-            var sendInvalidMessage = document.getElementById("formInvalidMessage");
-            sendInvalidMessage.innerHTML = invalidReason;
+            await app.validateForm();
         }
         catch(error)
         {
@@ -105,11 +82,10 @@
     {
         try
         {
-            var villageCoin = app.contract;
-            var amount = await app.parseCurrencyAmount(document.getElementById("amount").value);
-            var toAddress = await app.getAddressFromInput("toAddress");
+            var formContents = await app.validateForm();
+            if(!formContents.isValid) return;
 
-            await villageCoin.transfer(toAddress, amount, {from: app.account});            
+            await app.contract.transfer(formContents.toAddress, formContents.amount, {from: app.account});            
 
             populateBalance();
         }
