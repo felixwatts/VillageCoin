@@ -1,7 +1,7 @@
 # Tasks
 
 - show user's recent transactions on index page
-- use reddit username instead of address throughout
+- fix decimals
 - add supporting evidence to all propsoal forms and do a valid url check
 - ? transaction tax
 - ? bond with create proposal

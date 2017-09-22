@@ -6,9 +6,15 @@ import "./ERC223_Interface.sol";
 
 contract VillageCoin is ERC223, SafeMath {
 
-    address public _gatekeeper;
-
+    //
+    // Constants
+    //
+    
     address PUBLIC_ACCOUNT = 0; 
+
+    //
+    // Structs
+    //
 
     struct Parameter {
         uint numberValue;
@@ -26,6 +32,25 @@ contract VillageCoin is ERC223, SafeMath {
         string redditUsername;
     }  
 
+    struct Proposal {
+        ProposalType typ;
+        uint voteCountYes;
+        uint voteCountNo;
+        address proposer;        
+        bool isExistent;
+        ProposalDecision decision;
+        uint expiryTime;
+        string stringParam1;
+        string stringParam2;        
+        uint numberParam1;                
+        address addressParam1;                    
+        string supportingEvidenceUrl;
+    }
+
+    //
+    // Enums
+    //
+
     enum ProposalType { 
         SetParameter, 
         CreateMoney, 
@@ -41,30 +66,11 @@ contract VillageCoin is ERC223, SafeMath {
         Expired
     }
 
-    mapping(uint=>mapping(address=>bool)) _votes; 
+    //
+    // Fields
+    //
 
-    struct Proposal {
-        ProposalType typ;
-        uint voteCountYes;
-        uint voteCountNo;
-        address proposer;        
-        bool isExistent;
-        ProposalDecision decision;
-        uint expiryTime;
-
-        string stringParam1;
-        string stringParam2;
-        
-        uint numberParam1;                
-
-        address addressParam1;                    
-
-        string supportingEvidenceUrl;
-    }
-
-    event OnProposalCreated(uint proposalId);
-    event OnProposalDecided(uint proposalId);
-
+    address public _gatekeeper;
     uint256 public _totalSupply;
     uint public _nextTaxTime;
     string public _announcementMessage; 
@@ -72,11 +78,24 @@ contract VillageCoin is ERC223, SafeMath {
     mapping(string=>Parameter) _parameters;
 
     mapping(address=>Citizen) public _citizens;
+    mapping(string=>address) _citizenByRedditUsername;
     uint public _citizenCount;
     address[] public _allCitizenOwnersEver;
 
     uint public _nextProposalId;
-    mapping(uint=>Proposal) public _proposals;            
+    mapping(uint=>Proposal) public _proposals;  
+    mapping(uint=>mapping(address=>bool)) _votes; 
+
+    //
+    // Events
+    //
+
+    event OnProposalCreated(uint proposalId);
+    event OnProposalDecided(uint proposalId);  
+
+    //
+    // Constructor 
+    //        
 
     function VillageCoin() payable {        
         _gatekeeper = msg.sender;
@@ -126,6 +145,8 @@ contract VillageCoin is ERC223, SafeMath {
         _citizens[addr].isExistent = true;
         _citizens[addr].balance = getNumberParameter("initialAccountBalance");
         _citizens[addr].redditUsername = redditUsername;
+
+        _citizenByRedditUsername[redditUsername] = addr;
 
         _totalSupply = safeAdd(_totalSupply, _citizens[addr].balance);   
         _citizenCount++;
@@ -226,18 +247,13 @@ contract VillageCoin is ERC223, SafeMath {
     // Views
     //
 
+    function getAddressOfRedditUsername(string redditUsername) public constant returns(address) {
+        return _citizenByRedditUsername[redditUsername];
+    }
+
     function isRedditUserACitizen(string redditUsername) public constant returns (bool) {
 
-        for (uint i = 0; i < _allCitizenOwnersEver.length; i++) {
-            var accountOwner = _allCitizenOwnersEver[i];
-            var citizen = _citizens[accountOwner];
-
-            if (citizen.isExistent && (sha3(citizen.redditUsername) == sha3(redditUsername))) {
-                return true;
-            }
-        }
-
-        return false;
+        return _citizenByRedditUsername[redditUsername] != 0;
     }
 
     function isNumberParameter(string name) public constant returns(bool) {

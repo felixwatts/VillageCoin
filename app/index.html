@@ -14,11 +14,11 @@
         <li class="menu"><a class="menu" href="createProposal.html">Make a Proposal</a></li>
     </ul>    
 
-    <p>Welcome to <strong><span class="villageName"></span></strong> citizen! The population is <strong id="population"></strong>. The public account balance is <strong><span id="publicAccountBalance"></span> <span class="villageSymbol"></span></strong>. <span id="openProposals"></span></p>
+    <p>Welcome to <span class="villageName"></span> <strong><span class="redditUsername"></span></strong>! The population is <strong id="population"></strong>. The public account balance is <strong><span id="publicAccountBalance"></span></strong>. <span id="openProposals"></span></p>
 
     <p>Your balance is <span style="font-size:24pt;" id="balance"></span></p>
 
-    <p>Send <input type="text" id="amount" placeholder="e.g., 5" onchange="validateSendForm()"></input> to <input type="text" id="toAddress" placeholder="e.g., 0x93e66d9baea28c17d9fc393b53e3fbdd76899dae" onchange="validateSendForm()"><button id="btnSend" onclick="send()" disabled>SEND <span class="villageSymbol"></span></button></p>
+    <p>Send <input type="text" id="amount" placeholder="e.g., 5" onchange="validateSendForm()"></input> to <input type="text" id="toAddress" placeholder="reddit username or ethereum address" onchange="validateSendForm()"><button id="btnSend" onclick="send()" disabled>SEND <span class="villageSymbol"></span></button></p>
     <div id="formInvalidMessage"></div>
 
     <span id="status"></span>   
@@ -46,7 +46,7 @@
     async function populatePublicAccountBalance()
     {
         var balance = await app.contract.balanceOf.call("0x0", {from: app.account});
-        document.getElementById("publicAccountBalance").innerHTML = balance.toNumber();
+        document.getElementById("publicAccountBalance").innerHTML = await app.formatCurrencyAmount(balance);
     }
 
     async function validateSendForm() 
@@ -65,22 +65,12 @@
             }
             else
             {
-                var toAddress = document.getElementById("toAddress").value;
-                var isValidAddress = web3.isAddress(toAddress);
-                if(isValidAddress)
-                {
-                    var villageCoin = app.contract;                
-                    var isCitizen = await villageCoin.isCitizen.call(toAddress, amount, {from: app.account});
-                    if(!isCitizen)
-                    {
-                        isValid = false;
-                        invalidReason = "The 'To Account' is not a " + (await app.getVillageName()) + " citizen";
-                    }
-                }
-                else
+                var toAddress = await app.getAddressFromInput("toAddress");
+                console.log(toAddress);
+                if(toAddress == undefined)
                 {
                     isValid = false;
-                    invalidReason = "The 'To Account' is not a valid Ethereum address";
+                    invalidReason = document.getElementById("toAddress").value + " is not a " + (await app.getVillageName()) + " citizen";
                 }
             }
 
@@ -101,10 +91,8 @@
         try
         {
             var villageCoin = app.contract;
-            var decimals = await villageCoin.decimals.call({from: app.account});
-            var symbol = await villageCoin.symbol.call({from: app.account});
             var balance = await villageCoin.balanceOf.call(app.account, {from: app.account});
-            document.getElementById("balance").innerHTML = balance.toFormat(decimals.toNumber()) + " " + symbol;
+            document.getElementById("balance").innerHTML = await app.formatCurrencyAmount(balance);
         }
         catch(error)
         {
@@ -119,9 +107,9 @@
         {
             var villageCoin = app.contract;
             var amount = parseInt(document.getElementById("amount").value);
-            var toAddress = document.getElementById("toAddress").value;
+            var toAddress = await app.getAddressFromInput("toAddress");
 
-            await villageCoin.transfer(toAddress, amount, {from: app.account});
+            await villageCoin.transfer(toAddress, amount, {from: app.account});            
 
             populateBalance();
         }
@@ -139,6 +127,7 @@
         await populateBalance();
         await populatePopulation();
         await populatePublicAccountBalance();
-        await populateOpenProposals();        
+        await populateOpenProposals();  
+        await app.populateRedditUsername();      
     });
 </script>

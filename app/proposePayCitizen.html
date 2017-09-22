@@ -20,7 +20,7 @@
     <p>Use the form below to propose paying a citizen</p>
 
     <p>I propose to pay
-        <input type="text" id="amount" placeholder="e.g., 5" onchange="validateForm()"></input><span class="villageSymbol"></span> from the public account to <input type="text" id="citizen" placeholder="e.g., 0x93e66d9baea28c17d9fc393b53e3fbdd76899dae" onchange="validateForm()"></input>
+        <input type="text" id="amount" placeholder="e.g., 5" onchange="validateForm()"></input><span class="villageSymbol"></span> from the public account to <input type="text" id="citizen" placeholder="reddit username or ethereum address" onchange="validateForm()"></input>
     </p>
     <p>You may optionally provide the URL of some <em>supporting evidence</em> to help convince other citizens of the value of your proposal.
         <input type="text" id="supportingEvidence" placeholder="e.g. https://i.imgur.com/J5MKGp2.gifv" onchange="validateForm()"></input>
@@ -39,7 +39,7 @@ async function submit()
     {
         var amountStr = document.getElementById("amount").value;
         var amount = parseInt(amountStr);
-        var citizen = document.getElementById("citizen").value;
+        var citizen = await app.getAddressFromInput("citizen");
         var supportingEvidence = document.getElementById("supportingEvidence").value;
 
         receipt = await app.contract.proposePayCitizen(citizen, amount, supportingEvidence, {from: app.account});
@@ -73,22 +73,11 @@ async function validateForm()
         } 
         else
         {
-            var toAddress = document.getElementById("citizen").value;
-            var isValidAddress = web3.isAddress(toAddress);
-            if(isValidAddress)
-            {
-                var villageCoin = app.contract;                
-                var isCitizen = await villageCoin.isCitizen.call(toAddress, amount, {from: app.account});
-                if(!isCitizen)
-                {
-                    isValid = false;
-                    invalidReason = "The 'To Account' is not a " + (await app.getVillageName()) + " citizen";
-                }
-            }
-            else
+            var toAddress = await app.getAddressFromInput("citizen");
+            if(toAddress == undefined)
             {
                 isValid = false;
-                invalidReason = "The 'To Account' is not a valid Ethereum address";
+                invalidReason = document.getElementById("citizen").value + " is not a " + (await app.getVillageName()) + " citizen";
             }
         }
        

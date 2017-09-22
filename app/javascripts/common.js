@@ -2,7 +2,8 @@ import "../stylesheets/app.css";
 
 import { default as Web3 } from 'web3';
 import { default as contract } from 'truffle-contract';
-import { default as Swarm } from 'swarm-js';
+
+var BigNumber = require('bignumber.js');
 
 import villagecoin_artifacts from '../../build/contracts/VillageCoin.json';
 
@@ -92,6 +93,18 @@ async function redirectCitizen()
     if(isCitizen) window.location.replace("index.html");
 }
 
+async function populateRedditUsername()
+{
+    var redditUsername = (await app.contract._citizens.call(app.account))[3];
+
+    var redditUsernameElements = document.getElementsByClassName("redditUsername");
+
+    for (var i = 0; i < redditUsernameElements.length; i++) 
+    {
+        redditUsernameElements[i].innerHTML = redditUsername;
+    }    
+}
+
 async function populateVillageName()
 {
     var villageName = await getVillageName();
@@ -175,6 +188,29 @@ async function getProposal(proposalId)
     return proposal;
 }
 
+async function getCitizen(addr)
+{
+    var data = await app.contract._citizens.call(addr, {from: app.account});
+
+    var citizen = 
+    {
+        address: data[0],
+        balance: data[1].toNumber(),
+        isExistent: data[2],
+        redditUsername: data[3]
+    };
+
+    return citizen;
+}
+
+async function formatCurrencyAmount(amount)
+{
+    var decimals = await app.contract.decimals.call({from: app.account});
+    var symbol = await app.contract.symbol.call({from: app.account});
+
+    return new BigNumber(10).pow(decimals.negated()).mul(amount).toFormat(decimals) + " " + symbol;
+}
+
 async function getProposalDescription(proposalId)
 {
     var proposal = await getProposal(proposalId);
@@ -210,21 +246,56 @@ async function getProposalDescription(proposalId)
         case app.ProposalType.PayCitizen:
         {
             var symbol = await getVillageSymbol();
+            var citizen = await getCitizen(proposal.citizen);
 
-            return "transfer <strong>" + proposal.amount + " " + symbol + "</strong> from the public account to citizen <strong>" + proposal.citizen + "</strong>";
+            return "transfer <strong>" + proposal.amount + " " + symbol + "</strong> from the public account to citizen <strong>" + citizen.redditUsername + "</strong>";
         }
         break;
 
         case app.ProposalType.FineCitizen:
         {
             var symbol = await getVillageSymbol();
+            var citizen = await getCitizen(proposal.citizen);
 
-            return "transfer <strong>" + proposal.amount + " " + symbol + "</strong> from citizen <strong>" + proposal.citizen + "</strong> to the public account";
+            return "transfer <strong>" + proposal.amount + " " + symbol + "</strong> from citizen <strong>" + citizen.redditUsername + "</strong> to the public account";
         }
         break;
     }
 
     return description
+}
+
+async function getAddressFromInput(inputId)
+{
+    var result = {}
+
+    var addressStr = document.getElementById(inputId).value;
+    var isValidAddress = web3.isAddress(addressStr);
+    if(isValidAddress)
+    {            
+        var isCitizen = await app.contract.isCitizen.call(toAddress, amount, {from: app.account});
+        if(!isCitizen)
+        {
+            return undefined;
+        }
+        else
+        {
+            return addressStr;
+        }
+    }
+    else
+    {
+        var address = await app.contract.getAddressOfRedditUsername(addressStr, {from: app.account});
+        
+        if(address == "0x0000000000000000000000000000000000000000")
+        {
+            return undefined;
+        }
+        else
+        {            
+            return address;
+        }
+    }    
 }
 
 function filterProposalByUndecided(proposal) 
@@ -248,6 +319,10 @@ function setupCommonFunctions()
 {
     window.app.VillageCoin = VillageCoin;
 
+    window.app.formatCurrencyAmount = formatCurrencyAmount;
+    window.app.getCitizen = getCitizen;
+    window.app.getAddressFromInput = getAddressFromInput;
+    window.app.populateRedditUsername = populateRedditUsername;
     window.app.getProposal = getProposal;
     window.app.getVillageName = getVillageName;
     window.app.getVillageSymbol = getVillageSymbol;
@@ -285,7 +360,7 @@ window.init = async function()
     setupCommonFunctions();
     
     window.app.contract = await VillageCoin.deployed();
-
+    
     populateVillageName();
     populateVillageSymbol();
 };

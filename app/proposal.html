@@ -45,14 +45,14 @@
             <p>You may vote using the buttons below</p>
             <div>
                 <button class="voteButton" style="background:#34A853" onclick="vote(true)">
-                    <div class="voteButtonTitle">YES</div>
+                    YES
                     <div class="voteButtonDescription" id="yesButtonDescription"></div>
                 </button>
             </div>
             <br>
             <div>
                 <button class="voteButton" style="background:#EA4335" onclick="vote(false)">
-                        <div class="voteButtonTitle">NO</div>
+                        NO
                         <div class="voteButtonDescription" id="noButtonDescription"></div>
                 </button>
             </div>
@@ -63,20 +63,20 @@
         <div id="proposalStatusYes" style="display: none">
             <p>The proposal has received enough YES votes to be accepted. You may click the button below to accept and enact the proposal. Be aware this may incur significant gas costs</p>
             <button class="voteButton" onclick="decide()">
-                    <div class="voteButtonTitle">ENACT PROPOSAL</div>
+                    Enact Proposal
                     <div class="voteButtonDescription" id="enactButtonDescription"></div>
             </button>
         </div>
         <div id="proposalStatusNo" style="display: none">
             <p>The proposal has received enough NO votes to be rejected. You may click the button below to reject the proposal.</p>
             <button class="voteButton" onclick="decide()">
-                    <div class="voteButtonTitle">REJECT PROPOSAL</div>
+                    Reject Proposal
             </button>
         </div>
         <div id="proposalStatusExpired" style="display: none">
                 <p>The proposal has expired without receiving enough YES or NO votes to be decisive. The proposal will not be accepted. You may click the button below to reject the proposal.</p>
                 <button class="voteButton" onclick="decide()">
-                        <div class="voteButtonTitle">REJECT PROPOSAL</div>
+                        Reject Proposal
                 </button>
         </div>
     </div>
