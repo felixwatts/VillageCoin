@@ -72,7 +72,7 @@
         <input type="text" id="parameterValue" placeholder="parameter value" onchange="validateForm()"></input>
     </p>
     <p>You may optionally provide the URL of some <em>supporting evidence</em> to help convince other citizens of the value of your proposal.
-        <input type="text" id="supportingEvidence" placeholder="a short text or URL" onchange="validateForm()"></input></p>
+        <input type="text" id="supportingEvidenceUrl" placeholder="a short text or URL" onchange="validateForm()"></input></p>
     
     <button class="voteButton" id="btnSend" onclick="submit()" disabled>Create Proposal</button></p>
     <div id="formInvalidMessage"></div>
@@ -97,13 +97,8 @@ async function populateParameterValues()
         "taxBasicIncome"  
     ];
 
-    for(var i = 0; i < numberParameters.length; i++)
-    {
-        var parameterName = numberParameters[i];
-        var current = (await app.contract.getNumberParameter.call(parameterName)).toNumber();
-
-        document.getElementById(parameterName + "Value").innerHTML = current;
-    }
+    var parameterValues = await Promise.all(numberParameters.map(function(parameterName){ return app.contract.getNumberParameter.call(parameterName); }));
+    parameterValues.map(function(v, i){ document.getElementById(numberParameters[i] + "Value").innerHTML = v.toNumber(); return undefined; })
 
     var stringParameters =
     [
@@ -111,13 +106,8 @@ async function populateParameterValues()
         "symbol",
     ];  
 
-    for(var i = 0; i < stringParameters.length; i++)
-    {
-        var parameterName = stringParameters[i];
-        var current = (await app.contract.getStringParameter.call(parameterName));
-
-        document.getElementById(parameterName + "Value").innerHTML = current;
-    }
+    parameterValues = await Promise.all(stringParameters.map(function(parameterName){ return app.contract.getStringParameter.call(parameterName); }));
+    parameterValues.map(function(v, i){ document.getElementById(stringParameters[i] + "Value").innerHTML = v; return undefined; })
 }
 
 async function submit() 
@@ -127,17 +117,18 @@ async function submit()
         var parameterName = document.getElementById("parameterName").value;
         var parameterValueStr = document.getElementById("parameterValue").value;
         var isNumberParameter = await app.contract.isNumberParameter.call(parameterName, {from: app.account});
+        var supportingEvidenceUrl = document.getElementById("supportingEvidenceUrl").value;
 
         var receipt;
 
         if(isNumberParameter)
         {
             var parameterValueNum = parseInt(parameterValueStr);
-            receipt = await app.contract.proposeSetParameter(parameterName, "", parameterValueNum, {from: app.account});
+            receipt = await app.contract.proposeSetParameter(parameterName, "", parameterValueNum, supportingEvidenceUrl, {from: app.account});
         }
         else
         {
-            receipt = await app.contract.proposeSetParameter(parameterName, parameterValueStr, 0, {from: app.account});
+            receipt = await app.contract.proposeSetParameter(parameterName, parameterValueStr, supportingEvidenceUrl, 0, {from: app.account});
         }
 
         var proposalId = receipt.logs[0].args.proposalId.toNumber();

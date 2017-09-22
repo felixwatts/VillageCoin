@@ -118,82 +118,108 @@ async function populateVillageSymbol()
 
 async function getVillageName() 
 {
-    var villageCoin = app.contract;
-    var villageName = await villageCoin.name.call({from: app.account});
+    var villageName = await app.contract.name.call({from: app.account});
     return villageName;
 }
 
 async function getVillageSymbol() 
 {
-    var villageCoin = app.contract;
-    var symbol = await villageCoin.symbol.call({from: app.account});
+    var symbol = await app.contract.symbol.call({from: app.account});
     return symbol;
+}
+
+async function getProposal(proposalId) 
+{
+    var data = await app.contract._proposals.call(proposalId, {from: app.account});
+
+    var proposal = 
+    {
+        id: proposalId,
+        type: data[0].toNumber(),
+        voteCountYes: data[1].toNumber(),
+        voteCountNo: data[2].toNumber(),
+        proposer: data[3],
+        isExistent: data[4],
+        decision: data[5].toNumber(),
+        expiryTime: data[6],
+        supportingEvidenceUrl: data[11]       
+    };
+
+    switch(proposal.type)
+    {
+        case app.ProposalType.SetParameter:
+            proposal.parameterName = data[7];
+            proposal.stringValue = data[8];
+            proposal.numberValue = data[9].toNumber();
+            break;
+
+        case app.ProposalType.CreateMoney:
+            proposal.amount = data[9].toNumber();
+            break;
+
+        case app.ProposalType.DestroyMoney:
+            proposal.amount = data[9].toNumber();
+            break;
+
+        case app.ProposalType.PayCitizen:
+            proposal.citizen = data[10];
+            proposal.amount = data[9].toNumber();
+            break;
+
+        case app.ProposalType.FineCitizen:
+            proposal.citizen = data[10];
+            proposal.amount = data[9].toNumber();
+            break;
+    }
+
+    return proposal;
 }
 
 async function getProposalDescription(proposalId)
 {
-    var villageCoin = app.contract;
-
-    var proposalBasicDetails = await villageCoin.getProposalBasicDetails.call(proposalId, {from: app.account});
-    var isExistent = proposalBasicDetails[1];
-    var decision = proposalBasicDetails[2].toNumber();            
-    var hasSenderVoted = proposalBasicDetails[3];
-    var proposalType = proposalBasicDetails[4].toNumber(); 
-    var expiryTime = proposalBasicDetails[5].toNumber(); 
+    var proposal = await getProposal(proposalId);
 
     var description = "";
 
-    switch(proposalType)
+    switch(proposal.type)
     { 
         case app.ProposalType.SetParameter:
         {
-            var details = await villageCoin.getSetParameterProposal(proposalId);
-            var parameterName = details[1];
-            var isNumberParameter = await villageCoin.isNumberParameter(parameterName);
-            var parameterValue = isNumberParameter ? details[3] : details[2];
-            return "set parameter <strong>" + parameterName + "</strong> to <strong>" + parameterValue + "</strong>";
+            var isNumberParameter = await app.contract.isNumberParameter(proposal.parameterName);
+            var parameterValue = isNumberParameter ? proposal.numberValue : proposal.stringValue;
+            return "set parameter <strong>" + proposal.parameterName + "</strong> to <strong>" + parameterValue + "</strong>";
         }
         break;
 
         case app.ProposalType.CreateMoney:
         {
-            var details = await villageCoin.getCreateMoneyProposal(proposalId);
-            var amount = details[1].toNumber();
             var symbol = await getVillageSymbol();
 
-            return "create <strong>" + amount + " " + symbol + "</strong> and add it to the public account";
+            return "create <strong>" + proposal.amount + " " + symbol + "</strong> and add it to the public account";
         }
         break;
 
         case app.ProposalType.DestroyMoney:
         {
-            var details = await villageCoin.getDestroyMoneyProposal(proposalId);
-            var amount = details[1].toNumber();
             var symbol = await getVillageSymbol();
 
-            return "take <strong>" + amount + " " + symbol + "</strong> from the public account balance and <strong>destroy</strong> it";
+            return "take <strong>" + proposal.amount + " " + symbol + "</strong> from the public account balance and <strong>destroy</strong> it";
         }
         break;
 
         case app.ProposalType.PayCitizen:
         {
-            var details = await villageCoin.getPayCitizenProposal(proposalId);
-            var citizen = details[1];
-            var amount = details[2].toNumber();
             var symbol = await getVillageSymbol();
 
-            return "transfer <strong>" + amount + " " + symbol + "</strong> from the public account to citizen <strong>" + citizen + "</strong>";
+            return "transfer <strong>" + proposal.amount + " " + symbol + "</strong> from the public account to citizen <strong>" + proposal.citizen + "</strong>";
         }
         break;
 
         case app.ProposalType.FineCitizen:
         {
-            var details = await villageCoin.getFineCitizenProposal(proposalId);
-            var citizen = details[1];
-            var amount = details[2].toNumber();
             var symbol = await getVillageSymbol();
 
-            return "transfer <strong>" + amount + " " + symbol + "</strong> from citizen <strong>" + citizen + "</strong> to the public account";
+            return "transfer <strong>" + proposal.amount + " " + symbol + "</strong> from citizen <strong>" + proposal.citizen + "</strong> to the public account";
         }
         break;
     }
@@ -203,28 +229,26 @@ async function getProposalDescription(proposalId)
 
 function filterProposalByUndecided(proposal) 
 {
-    var isExistent = proposal[1];
-    var isUndecided = proposal[2].toNumber() == app.ProposalDecision.Undecided;
-    return isExistent && isUndecided;
+    return proposal.isExistent && proposal.decision == app.ProposalDecision.Undecided;
 }
 
 async function getUndecidedProposals() 
 {
     var villageCoin = app.contract;
-    var maxProposalId = await villageCoin.getMaxProposalId.call({from: app.account});
+    var maxProposalId = await villageCoin._nextProposalId.call({from: app.account});
     var allProposalIds = [...Array(maxProposalId.toNumber()).keys()];
-    var allProposalsBasicDetails = await Promise.all(allProposalIds.map(function(id){ return villageCoin.getProposalBasicDetails.call(id, {from: app.account}) }));
+    var allProposals = await Promise.all(allProposalIds.map(function(id){ return getProposal(id);}));
 
-    var votableProposalsBasicDetails = allProposalsBasicDetails
-        .filter(filterProposalByUndecided);
+    var votableProposals = allProposals.filter(filterProposalByUndecided);
     
-    return votableProposalsBasicDetails;
+    return votableProposals;
 }
 
 function setupCommonFunctions() 
 {
     window.app.VillageCoin = VillageCoin;
 
+    window.app.getProposal = getProposal;
     window.app.getVillageName = getVillageName;
     window.app.getVillageSymbol = getVillageSymbol;
     window.app.parseQueryString = parseQueryString;

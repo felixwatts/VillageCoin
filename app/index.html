@@ -39,7 +39,7 @@
 
     async function populatePopulation()
     {
-        var population = await app.contract.getCitizenCount.call({from: app.account});
+        var population = await app.contract._citizenCount.call({from: app.account});
         document.getElementById("population").innerHTML = population;
     }
 
@@ -139,6 +139,6 @@
         await populateBalance();
         await populatePopulation();
         await populatePublicAccountBalance();
-        await populateOpenProposals();
+        await populateOpenProposals();        
     });
 </script>

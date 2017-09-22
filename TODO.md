@@ -1,6 +1,5 @@
 # Tasks
 
-- fine citizen proposal
 - show user's recent transactions on index page
 - use reddit username instead of address throughout
 - add supporting evidence to all propsoal forms and do a valid url check

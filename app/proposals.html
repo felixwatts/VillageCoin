@@ -23,23 +23,20 @@
 
 async function buildProposalRow(proposal)
 {
-    var proposalId = proposal[0].toNumber();
-    var description = await app.getProposalDescription(proposalId);
-    return "<tr><td><a href='proposal.html?contractAddress="+ app.contract.address +"&id=" + proposalId + "'>proposal #" + proposalId + "</a></td><td>" + description + "</a>";
+    var description = await app.getProposalDescription(proposal.id);
+    return "<tr><td><a href='proposal.html?id=" + proposal.id + "'>proposal #" + proposal.id + "</a></td><td>" + description + "</a>";
 }
 
 async function populateProposalsTable() 
 {
     try 
     {
-        var votableProposalsBasicDetails = await app.getUndecidedProposals();
-        var votableProposals = await Promise.all(votableProposalsBasicDetails
-            .map(buildProposalRow));
+        var votableProposals = await app.getUndecidedProposals();
+        var votableProposals = await Promise.all(votableProposals.map(buildProposalRow));
 
         var proposalsTableHtml = votableProposals.length == 0 
             ? "There are no outstanding proposals" 
-            : votableProposals
-                .reduce(function(accumulator, currentValue) { return accumulator + currentValue; }, "");
+            : votableProposals.reduce(function(accumulator, currentValue) { return accumulator + currentValue; }, "");
 
         document.getElementById("tableProposals").innerHTML = proposalsTableHtml;
     } 

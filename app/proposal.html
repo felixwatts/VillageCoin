@@ -244,39 +244,29 @@
 
             document.getElementById("proposalName").innerHTML = "Proposal #" + proposalId;
             
-            var villageCoin = app.contract;
+            var isCitizen = await app.contract.isCitizen.call(app.account, {from: app.account});                  
 
-            var isCitizen = await villageCoin.isCitizen.call(app.account, {from: app.account});                  
+            var proposal = await app.getProposal(proposalId, {from: app.account});
+            var hasSenderVoted = await app.contract.getHasSenderVoted.call(proposalId, {from: app.account});           
 
-            var proposalBasicDetails = await villageCoin.getProposalBasicDetails.call(proposalId, {from: app.account});
-            var isExistent = proposalBasicDetails[1];
-            var decision = proposalBasicDetails[2].toNumber();            
-            var hasSenderVoted = proposalBasicDetails[3];
-            var proposalType = proposalBasicDetails[4].toNumber(); 
-            var expiryTime = proposalBasicDetails[5].toNumber(); 
-            var supportingEvidence = proposalBasicDetails[6]; 
+            if(!proposal.isExistent) return;             
 
-            if(!isExistent) return;     
-            
-            var proposalVotes = await villageCoin.getProposalVotes.call(proposalId, {from: app.account});            
-            var yesVoteCount = proposalVotes[1].toNumber();
-            var noVoteCount = proposalVotes[2].toNumber();
+            var thresholdPercent = (await app.contract.getProposalDecideThresholdPercent.call({from: app.account})).toNumber();
 
-            var thresholdPercent = (await villageCoin.getProposalDecideThresholdPercent.call({from: app.account})).toNumber();
-
-            var citizenCount = (await villageCoin.getCitizenCount.call({from: app.account})).toNumber();    
+            var citizenCount = (await app.contract._citizenCount.call({from: app.account})).toNumber();    
             
             document.getElementById("proposalDetails").style.display = "inline";
             populateProposalDescription(proposalId);
-            populateVoteChart(yesVoteCount, noVoteCount, thresholdPercent, citizenCount);
-            populateExpiry(expiryTime);
-            populateVoteBox(decision, isCitizen, proposalType, hasSenderVoted, proposalId);
-            populateProposalStatus(decision, yesVoteCount, noVoteCount, thresholdPercent, expiryTime, citizenCount);
-            populateSupportingEvidence(supportingEvidence);
+            populateVoteChart(proposal.voteCountYes, proposal.voteCountNo, thresholdPercent, citizenCount);
+            populateExpiry(proposal.expiryTime);
+            populateVoteBox(proposal.decision, isCitizen, proposal.type, hasSenderVoted, proposalId);
+            populateProposalStatus(proposal.decision, proposal.voteCountYes, proposal.voteCountNo, thresholdPercent, proposal.expiryTime, citizenCount);
+            populateSupportingEvidence(proposal.supportingEvidenceUrl);
 
         }
         catch(error)
         {
+            console.log(error);
             app.setStatus(error);
         }        
     }

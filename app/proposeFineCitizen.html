@@ -65,9 +65,7 @@ async function validateForm()
 
         var amountStr = document.getElementById("amount").value;
         var amount = parseInt(amountStr);
-
-        console.log(amount);
-        
+       
         if(isNaN(amount) || amount < 0)
         {
             isValid = false;
