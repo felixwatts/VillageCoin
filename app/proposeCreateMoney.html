@@ -38,7 +38,7 @@ async function submit()
     try
     {
         var amountStr = document.getElementById("amount").value;
-        var amount = parseInt(amountStr);
+        var amount = await app.parseCurrencyAmount(amountStr);
         var supportingEvidence = document.getElementById("supportingEvidence").value;
 
         receipt = await app.contract.proposeCreateMoney(amount, supportingEvidence, {from: app.account});
@@ -63,7 +63,7 @@ async function validateForm()
         var invalidReason = "";
 
         var amountStr = document.getElementById("amount").value;
-        var amount = parseInt(amountStr);
+        var amount = await app.parseCurrencyAmount(amountStr);
         
         if(isNaN(amount) || amount < 0)
         {

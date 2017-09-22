@@ -211,6 +211,17 @@ async function formatCurrencyAmount(amount)
     return new BigNumber(10).pow(decimals.negated()).mul(amount).toFormat(decimals) + " " + symbol;
 }
 
+async function parseCurrencyAmount(amountStr)
+{
+    var x = parseFloat(amountStr);
+    console.log(x);
+
+    if(isNaN(parseFloat(amountStr))) return NaN;
+
+    var decimals = await app.contract.decimals.call({from: app.account});
+    return new BigNumber(10).pow(decimals).mul(parseFloat(amountStr)).toNumber();
+}
+
 async function getProposalDescription(proposalId)
 {
     var proposal = await getProposal(proposalId);
@@ -229,35 +240,33 @@ async function getProposalDescription(proposalId)
 
         case app.ProposalType.CreateMoney:
         {
-            var symbol = await getVillageSymbol();
-
-            return "create <strong>" + proposal.amount + " " + symbol + "</strong> and add it to the public account";
+            var amountStr = await formatCurrencyAmount(proposal.amount);
+            return "create <strong>" + amountStr + "</strong> and add it to the public account";
         }
         break;
 
         case app.ProposalType.DestroyMoney:
         {
-            var symbol = await getVillageSymbol();
-
-            return "take <strong>" + proposal.amount + " " + symbol + "</strong> from the public account balance and <strong>destroy</strong> it";
+            var amountStr = await formatCurrencyAmount(proposal.amount);
+            return "take <strong>" + amountStr + "</strong> from the public account balance and <strong>destroy</strong> it";
         }
         break;
 
         case app.ProposalType.PayCitizen:
         {
-            var symbol = await getVillageSymbol();
             var citizen = await getCitizen(proposal.citizen);
+            var amountStr = await formatCurrencyAmount(proposal.amount);
 
-            return "transfer <strong>" + proposal.amount + " " + symbol + "</strong> from the public account to citizen <strong>" + citizen.redditUsername + "</strong>";
+            return "transfer <strong>" + amountStr + "</strong> from the public account to citizen <strong>" + citizen.redditUsername + "</strong>";
         }
         break;
 
         case app.ProposalType.FineCitizen:
-        {
-            var symbol = await getVillageSymbol();
+        {            
             var citizen = await getCitizen(proposal.citizen);
+            var amountStr = await formatCurrencyAmount(proposal.amount);
 
-            return "transfer <strong>" + proposal.amount + " " + symbol + "</strong> from citizen <strong>" + citizen.redditUsername + "</strong> to the public account";
+            return "transfer <strong>" + amountStr + "</strong> from citizen <strong>" + citizen.redditUsername + "</strong> to the public account";
         }
         break;
     }
@@ -319,6 +328,7 @@ function setupCommonFunctions()
 {
     window.app.VillageCoin = VillageCoin;
 
+    window.app.parseCurrencyAmount = parseCurrencyAmount;
     window.app.formatCurrencyAmount = formatCurrencyAmount;
     window.app.getCitizen = getCitizen;
     window.app.getAddressFromInput = getAddressFromInput;

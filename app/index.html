@@ -57,7 +57,7 @@
             var isValid = true;
             var invalidReason = "";
 
-            var amount = parseInt(document.getElementById("amount").value);
+            var amount = await app.parseCurrencyAmount(document.getElementById("amount").value);
             if(isNaN(amount) || amount < 0)
             {
                 isValid = false;
@@ -106,7 +106,7 @@
         try
         {
             var villageCoin = app.contract;
-            var amount = parseInt(document.getElementById("amount").value);
+            var amount = await app.parseCurrencyAmount(document.getElementById("amount").value);
             var toAddress = await app.getAddressFromInput("toAddress");
 
             await villageCoin.transfer(toAddress, amount, {from: app.account});            
