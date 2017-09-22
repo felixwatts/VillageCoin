@@ -1,23 +1,26 @@
 # Tasks
 
-- Make gatekeepers a subset of citizens
-- replace 'manager' with 'gatekeeper' throughout
-- replace 'account' with 'citizen' throughout
-- after createManager redirect to proposal page
-- it should be possible to view proposal page for decided proposals
-- make createAccount fully generic - just choose a folder to upload as supporting evidence, with a link/description from the currency creator on what to include
-- add currency spawning
+- fine citizen proposal
+- show user's recent transactions on index page
+- use reddit username instead of address throughout
+- add supporting evidence to all propsoal forms and do a valid url check
+- ? transaction tax
+- ? bond with create proposal
+- ? packages of proposals
+- devise and implement a way to upgrade
+- deploy to local node (not testrpc)
+- deploy contract to test network
+- deploy html to swarm
+- test whole system together on test network
+- get ENS name
 
-- create money proposal
-- wealth tax proposal
-- eject citizen proposal
-- dismiss gatekeeper proposal
-- spend public funds proposal
+- ? political parties
+- ? roles such as king/knight
+- citizens page
+- citizen page with voting history
+- ? eject citizen proposal
 
-- poll tax proposal?
-- transaction tax proposal?
 
-- bond with create proposal ?
 
 # Bugs
 

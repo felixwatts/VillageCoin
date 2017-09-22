@@ -195,6 +195,16 @@ contract VillageCoin is ERC223, SafeMath {
         OnProposalCreated(proposalId);
     }
 
+    function proposeFineCitizen(address citizen, uint amount, string supportingEvidence) public onlyCitizen {
+        require(isCitizen(citizen));
+
+        var proposalId = createProposal(ProposalType.FineCitizen, supportingEvidence);
+        _proposals[proposalId].fineCitizenCitizen = citizen;
+        _proposals[proposalId].fineCitizenAmount = amount;
+
+        OnProposalCreated(proposalId);
+    }
+
     // function proposeTaxWealth(uint percent) public onlyCitizen {
     //     var proposalId = _nextProposalId++;
     //     assert(!_proposals[proposalId].isExistent);
@@ -475,10 +485,8 @@ contract VillageCoin is ERC223, SafeMath {
                 destroyMoney(proposal.destroyMoneyAmount);        
             } else if (proposal.typ == ProposalType.PayCitizen) {
                 payCitizen(proposal.payCitizenCitizen, proposal.payCitizenAmount);
-            // } else if (proposal.typ == ProposalType.TaxWealth) {
-            //     taxWealth(proposal.taxWealthPercent);
-            // } else if (proposal.typ == ProposalType.SpendPublicMoney) {
-            //     spendPublicMoney(proposal.spendPublicMoneyTo, proposal.spendPublicMoneyAmount);
+            } else if (proposal.typ == ProposalType.FineCitizen) {
+                fineCitizen(proposal.fineCitizenCitizen, proposal.fineCitizenAmount);
             } else {
                 revert();
             }

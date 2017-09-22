@@ -28,9 +28,7 @@
 
     async function populateOpenProposals()
     {
-        var openProposals = await app.getUndecidedProposals();
-
-        console.log(openProposals);
+        var openProposals = await app.getUndecidedProposals();        
 
         if(openProposals.length == 0) return;
 

@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>VillageCoin - Make a Proposal</title>
+  <link href='https://fonts.googleapis.com/css?family=Open+Sans:400,700' rel='stylesheet' type='text/css'>
+  <script src="./common.js"></script>
+</head>
+<body>
+    <h1><span class="villageName"></span></h1>
+    <h2>Propose Fining a Citizen</h2>
+    <ul class="menu">
+        <li class="menu"><a class="menu" href="index.html">Home</a></li>
+        <li class="menu"><a class="menu" href="proposals.html">Vote</a></li>
+        <li class="menu"><a class="menu" href="createProposal.html">Make a Proposal</a></li>
+    </ul>  
+    
+    <p>Whether it be a fair sanction for anti-social behaviour, or more of a vindictive wealth grab - sometimes the state just needs to get its fingers into one particular wallet</p>
+    <p>If the proposal is enacted the specified amount of <span class="villageSymbol"></span> will be transferred from the specified citizen the public account</p>
+
+    <p>Use the form below to propose paying a citizen</p>
+
+    <p>I propose to fine
+        <input type="text" id="citizen" placeholder="e.g., 0x93e66d9baea28c17d9fc393b53e3fbdd76899dae" onchange="validateForm()"></input> the sum of <input type="text" id="amount" placeholder="e.g., 5" onchange="validateForm()"></input><span class="villageSymbol"></span> 
+    </p>
+    <p>You may optionally provide the URL of some <em>supporting evidence</em> to help convince other citizens of the value of your proposal.
+        <input type="text" id="supportingEvidence" placeholder="e.g. https://i.imgur.com/J5MKGp2.gifv" onchange="validateForm()"></input>
+    </p>
+    
+    <button class="voteButton" id="btnSend" onclick="submit()" disabled>Create Proposal</button></p>
+    <div id="formInvalidMessage"></div>
+    <span id="status"></span>   
+</body>
+</html>
+<script>
+
+async function submit() 
+{
+    try
+    {
+        var amountStr = document.getElementById("amount").value;
+        var amount = parseInt(amountStr);
+        var citizen = document.getElementById("citizen").value;
+        var supportingEvidence = document.getElementById("supportingEvidence").value;
+
+        receipt = await app.contract.proposeFineCitizen(citizen, amount, supportingEvidence, {from: app.account});
+
+        var proposalId = receipt.logs[0].args.proposalId.toNumber();
+
+        window.location.replace("proposal.html?id=" + proposalId);
+    }
+    catch(error)
+    {
+        console.log(error);
+        app.setStatus(error);
+    }
+
+}
+
+async function validateForm() 
+{
+    try
+    {
+        var isValid = true;
+        var invalidReason = "";
+
+        var amountStr = document.getElementById("amount").value;
+        var amount = parseInt(amountStr);
+
+        console.log(amount);
+        
+        if(isNaN(amount) || amount < 0)
+        {
+            isValid = false;
+            invalidReason = "The amount must be a positive integer";
+        } 
+        else
+        {
+            var toAddress = document.getElementById("citizen").value;
+            var isValidAddress = web3.isAddress(toAddress);
+            if(isValidAddress)
+            {
+                var villageCoin = app.contract;                
+                var isCitizen = await villageCoin.isCitizen.call(toAddress, amount, {from: app.account});
+                if(!isCitizen)
+                {
+                    isValid = false;
+                    invalidReason = "The 'To Account' is not a " + (await app.getVillageName()) + " citizen";
+                }
+            }
+            else
+            {
+                isValid = false;
+                invalidReason = "The 'To Account' is not a valid Ethereum address";
+            }
+        }
+       
+        var sendButton = document.getElementById("btnSend");
+        sendButton.disabled = !isValid;
+        var sendInvalidMessage = document.getElementById("formInvalidMessage");
+        sendInvalidMessage.innerHTML = invalidReason;
+    }
+    catch(error)
+    {
+        console.log(error);
+        app.setStatus(error);
+    }
+}
+
+    window.addEventListener('load', async function()
+    { 
+        await init();      
+        app.redirectNonCitizen();
+    });
+</script>

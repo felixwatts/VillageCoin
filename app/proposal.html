@@ -264,8 +264,6 @@
 
             var thresholdPercent = (await villageCoin.getProposalDecideThresholdPercent.call({from: app.account})).toNumber();
 
-            console.log(thresholdPercent);
-
             var citizenCount = (await villageCoin.getCitizenCount.call({from: app.account})).toNumber();    
             
             document.getElementById("proposalDetails").style.display = "inline";
