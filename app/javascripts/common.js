@@ -144,47 +144,58 @@ async function getVillageSymbol()
 
 async function getProposal(proposalId) 
 {
-    var data = await app.contract._proposals.call(proposalId, {from: app.account});
+    var proposalData = await app.contract._proposals.call(proposalId, {from: app.account});
+    var proposalStatusData = await app.contract._proposalStatus.call(proposalId, {from: app.account});
+
+    console.log(proposalData);
 
     var proposal = 
     {
         id: proposalId,
-        type: data[0].toNumber(),
-        voteCountYes: data[1].toNumber(),
-        voteCountNo: data[2].toNumber(),
-        proposer: data[3],
-        isExistent: data[4],
-        decision: data[5].toNumber(),
-        expiryTime: data[6],
-        supportingEvidenceUrl: data[11]       
+        type: proposalData[0].toNumber(),        
+        proposer: proposalData[1],
+        isExistent: proposalData[2],
+        expiryTime: proposalData[3].toNumber(),
+        supportingEvidenceUrl: proposalData[8],
+        isPartOfPackage: proposalData[9],
+        
+        voteCountYes: proposalStatusData[0].toNumber(),
+        voteCountNo: proposalStatusData[1].toNumber(),            
+        decision: proposalStatusData[2].toNumber(),                        
     };
 
     switch(proposal.type)
     {
         case app.ProposalType.SetParameter:
-            proposal.parameterName = data[7];
-            proposal.stringValue = data[8];
-            proposal.numberValue = data[9].toNumber();
+            proposal.parameterName = proposalData[4];
+            proposal.stringValue = proposalData[5];
+            proposal.numberValue = proposalData[6].toNumber();
             break;
 
         case app.ProposalType.CreateMoney:
-            proposal.amount = data[9].toNumber();
+            proposal.amount = proposalData[6].toNumber();
             break;
 
         case app.ProposalType.DestroyMoney:
-            proposal.amount = data[9].toNumber();
+            proposal.amount = proposalData[6].toNumber();
             break;
 
         case app.ProposalType.PayCitizen:
-            proposal.citizen = data[10];
-            proposal.amount = data[9].toNumber();
+            proposal.citizen = proposalData[7];
+            proposal.amount = proposalData[6].toNumber();
             break;
 
         case app.ProposalType.FineCitizen:
-            proposal.citizen = data[10];
-            proposal.amount = data[9].toNumber();
+            proposal.citizen = proposalData[7];
+            proposal.amount = proposalData[6].toNumber();
+            break;
+
+        case app.ProposalType.Package:
+            proposal.packageParts = await app.contract.getItemsOfPackage.call(proposalId, { from: app.account });
             break;
     }
+
+    proposal.description = await getProposalDescription(proposal); 
 
     return proposal;
 }
@@ -222,10 +233,8 @@ async function parseCurrencyAmount(amountStr)
     return new BigNumber(10).pow(decimals).mul(floatVal).toNumber();
 }
 
-async function getProposalDescription(proposalId)
+async function getProposalDescription(proposal)
 {
-    var proposal = await getProposal(proposalId);
-
     var description = "";
 
     switch(proposal.type)
@@ -269,6 +278,17 @@ async function getProposalDescription(proposalId)
             return "transfer <strong>" + amountStr + "</strong> from citizen <strong>" + citizen.redditUsername + "</strong> to the public account";
         }
         break;
+
+        case app.ProposalType.Package:
+        {
+            var parts = await Promise.all(proposal.packageParts.map(getProposal));
+            var partDescriptions = await Promise.all(parts.map(getProposalDescription));
+            var partsLis = partDescriptions.map(function(d){ return "<li>" + d + "</li>"});
+            var list = partsLis.reduce(function(head, tail){ return head + tail; });
+
+            return "do all " + proposal.packageParts.length + " of the following items: <ol>" + list + "</ol>";            
+        }
+        break;
     }
 
     return description
@@ -276,19 +296,39 @@ async function getProposalDescription(proposalId)
 
 function filterProposalByUndecided(proposal) 
 {
-    return proposal.isExistent && proposal.decision == app.ProposalDecision.Undecided;
+    return proposal.isExistent && proposal.decision == app.ProposalDecision.Undecided && !proposal.isPartOfPackage;
+}
+
+function filterProposalByPendingPackagePart(proposal) 
+{
+    return proposal.isExistent && proposal.isPartOfPackage && proposal.decision == app.ProposalDecision.PackageUnassigned && proposal.proposer == app.account;
+}
+
+async function getAllProposals()
+{
+    var maxProposalId = await app.contract._nextProposalId.call({from: app.account});
+    var allProposalIds = [...Array(maxProposalId.toNumber()).keys()];
+    var allProposals = await Promise.all(allProposalIds.map(function(id){ return getProposal(id);}));
+
+    return allProposals;
 }
 
 async function getUndecidedProposals() 
 {
-    var villageCoin = app.contract;
-    var maxProposalId = await villageCoin._nextProposalId.call({from: app.account});
-    var allProposalIds = [...Array(maxProposalId.toNumber()).keys()];
-    var allProposals = await Promise.all(allProposalIds.map(function(id){ return getProposal(id);}));
+    var allProposals = await getAllProposals();
 
     var votableProposals = allProposals.filter(filterProposalByUndecided);
     
     return votableProposals;
+}
+
+async function getPendingPackageParts() 
+{
+    var allProposals = await getAllProposals();
+
+    var pendingPackageParts = allProposals.filter(filterProposalByPendingPackagePart);
+    
+    return pendingPackageParts;
 }
 
 async function parseForm()
@@ -320,6 +360,14 @@ async function parseForm()
             await parseUrlInput(urlInputs[i], parsingErrors, results); // todo make parallel
         }
 
+        var boolInputs = document.getElementsByClassName("inputBool");
+        for(var i = 0; i < boolInputs.length; i++)
+        {
+            results[boolInputs[i].id] = boolInputs[i].value;
+        }
+
+        await parsePackagePartsInput(parsingErrors, results);
+
         await parseParameterInput(parsingErrors, results);
 
         results.errorMessage = parsingErrors.reduce(function(head, tail){ return head + "<br>" + tail}, "");
@@ -340,6 +388,28 @@ async function parseForm()
     inputInvalidMessage.innerHTML = results.isValid ? "" : results.errorMessage;    
 
     return results;
+}
+
+async function parsePackagePartsInput(parsingErrors, results)
+{
+    var packagePartInputs = document.getElementsByClassName("inputPackagePart");
+    if(packagePartInputs.length == 0) return;
+
+    results.packageParts = [];
+
+    for(var i = 0; i < packagePartInputs.length; i++)
+    {
+        if(packagePartInputs[i].checked)
+        {
+            var partId = parseInt(packagePartInputs[i].id.substr(5));
+            results.packageParts.push(partId);
+        }
+    }
+
+    if(results.packageParts.length == 0)
+    {
+        parsingErrors.push("You must select at least one proposal to include in the package");
+    }
 }
 
 async function parseParameterInput(parsingErrors, results)
@@ -475,10 +545,10 @@ function setupCommonFunctions()
     window.app.setStatus = setStatus;
     window.app.redirectCitizen = redirectCitizen;
     window.app.redirectNonCitizen = redirectNonCitizen;
-    window.app.getProposalDescription = getProposalDescription;
     window.app.populateVillageName = populateVillageName;
     window.app.populateVillageSymbol = populateVillageSymbol;
     window.app.getUndecidedProposals = getUndecidedProposals;
+    window.app.getPendingPackageParts = getPendingPackageParts;
 
     var ProposalType = {};
     ProposalType.SetParameter = 0; 
@@ -486,6 +556,7 @@ function setupCommonFunctions()
     ProposalType.DestroyMoney = 2;
     ProposalType.PayCitizen = 3; 
     ProposalType.FineCitizen = 4;
+    ProposalType.Package = 5;
     window.app.ProposalType = ProposalType;
 
     var ProposalDecision = {};
@@ -493,6 +564,8 @@ function setupCommonFunctions()
     ProposalDecision.Accepted = 1;
     ProposalDecision.Rejected = 2;
     ProposalDecision.Expired = 3;
+    ProposalDecision.PackageUnassigned = 4;
+    ProposalDecision.PackageAssigned = 5;
     window.app.ProposalDecision = ProposalDecision;
 }
 

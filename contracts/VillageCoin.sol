@@ -34,17 +34,23 @@ contract VillageCoin is ERC223, SafeMath {
 
     struct Proposal {
         ProposalType typ;
-        uint voteCountYes;
-        uint voteCountNo;
         address proposer;        
         bool isExistent;
-        ProposalDecision decision;
         uint expiryTime;
         string stringParam1;
         string stringParam2;        
         uint numberParam1;                
         address addressParam1;                    
         string supportingEvidenceUrl;
+        bool isPartOfPackage;
+        uint[] packageParts;
+    }
+
+    struct ProposalStatus {
+        mapping(address=>VoteStatus) votes;
+        uint voteCountYes;
+        uint voteCountNo;
+        ProposalDecision decision;
     }
 
     //
@@ -56,14 +62,17 @@ contract VillageCoin is ERC223, SafeMath {
         CreateMoney, 
         DestroyMoney,
         PayCitizen, 
-        FineCitizen 
+        FineCitizen,
+        Package
         }
 
     enum ProposalDecision {
         Undecided,
         Accepted,
         Rejected,
-        Expired
+        Expired,
+        PackageUnassigned,
+        PackageAssigned
     }
 
     enum VoteStatus {
@@ -90,7 +99,7 @@ contract VillageCoin is ERC223, SafeMath {
 
     uint public _nextProposalId;
     mapping(uint=>Proposal) public _proposals;  
-    mapping(uint=>mapping(address=>VoteStatus)) public _votes; 
+    mapping(uint=>ProposalStatus) public _proposalStatus;
 
     //
     // Events
@@ -180,12 +189,14 @@ contract VillageCoin is ERC223, SafeMath {
     function tryDecideProposal(uint proposalId) public {
 
         assert(_proposals[proposalId].isExistent);
-        assert(_proposals[proposalId].decision == ProposalDecision.Undecided);
+        assert(!_proposals[proposalId].isPartOfPackage);
+        assert(_proposalStatus[proposalId].decision == ProposalDecision.Undecided);
 
         var proposal = _proposals[proposalId];
+        var proposalStatus = _proposalStatus[proposalId];
 
-        var percentYes = ((proposal.voteCountYes * 100) / _citizenCount);
-        var percentNo = ((proposal.voteCountNo * 100) / _citizenCount);
+        var percentYes = ((proposalStatus.voteCountYes * 100) / _citizenCount);
+        var percentNo = ((proposalStatus.voteCountNo * 100) / _citizenCount);
 
         var threshold = getNumberParameter("proposalDecideThresholdPercent");
 
@@ -202,56 +213,82 @@ contract VillageCoin is ERC223, SafeMath {
     // Citizen actions
     //
 
+    function proposePackage(uint[] partIds, string supportingEvidence) public onlyCitizen {
+        var proposalId = createProposal(ProposalType.Package, supportingEvidence, "", "", 0, 0x0, false);
+        
+        for (uint i = 0; i < partIds.length; i++) {
+            var partId = partIds[i];
+            var part = _proposals[partId];
+            require(part.isExistent);
+            require(part.isPartOfPackage);
+            require(_proposalStatus[partId].decision == ProposalDecision.PackageUnassigned);
+            require(part.typ != ProposalType.Package);
+            require(part.proposer == msg.sender); // not really neccesary
+
+            _proposals[proposalId].packageParts.push(partId);
+            _proposalStatus[partId].decision = ProposalDecision.PackageAssigned;
+        }
+    }
+
     function proposeSetParameter (
         string parameterName,
         string stringValue,
         uint numberValue,
-        string supportingEvidence
+        string supportingEvidence,
+        bool isPartOfPackage
     ) public onlyCitizen 
     {
         require(_parameters[parameterName].isExistent);
 
-        createProposal(ProposalType.SetParameter, supportingEvidence, parameterName, stringValue, numberValue, 0x0);
+        createProposal(ProposalType.SetParameter, supportingEvidence, parameterName, stringValue, numberValue, 0x0, isPartOfPackage);
     }
 
-    function proposeCreateMoney(uint amount, string supportingEvidence) public onlyCitizen {
+    function proposeCreateMoney(uint amount, string supportingEvidence, bool isPartOfPackage) public onlyCitizen {
 
-        createProposal(ProposalType.CreateMoney, supportingEvidence, "", "", amount, 0x0);
+        createProposal(ProposalType.CreateMoney, supportingEvidence, "", "", amount, 0x0, isPartOfPackage);
     }
 
-    function proposeDestroyMoney(uint amount, string supportingEvidence) public onlyCitizen {
+    function proposeDestroyMoney(uint amount, string supportingEvidence, bool isPartOfPackage) public onlyCitizen {
 
-        createProposal(ProposalType.DestroyMoney, supportingEvidence, "", "", amount, 0x0);
+        createProposal(ProposalType.DestroyMoney, supportingEvidence, "", "", amount, 0x0, isPartOfPackage);
     }
 
-    function proposePayCitizen(address citizen, uint amount, string supportingEvidence) public onlyCitizen {
+    function proposePayCitizen(address citizen, uint amount, string supportingEvidence, bool isPartOfPackage) public onlyCitizen {
         require(isCitizen(citizen));
 
-        createProposal(ProposalType.PayCitizen, supportingEvidence, "", "", amount, citizen);
+        createProposal(ProposalType.PayCitizen, supportingEvidence, "", "", amount, citizen, isPartOfPackage);
     }
 
-    function proposeFineCitizen(address citizen, uint amount, string supportingEvidence) public onlyCitizen {
+    function proposeFineCitizen(address citizen, uint amount, string supportingEvidence, bool isPartOfPackage) public onlyCitizen {
         require(isCitizen(citizen));
 
-        createProposal(ProposalType.FineCitizen, supportingEvidence, "", "", amount, citizen);
+        createProposal(ProposalType.FineCitizen, supportingEvidence, "", "", amount, citizen, isPartOfPackage);
     }
 
     function voteOnProposal(uint proposalId, bool isYes) public onlyCitizen {
         require(_proposals[proposalId].isExistent);
-        require(_proposals[proposalId].decision == ProposalDecision.Undecided);
-        require(_votes[proposalId][msg.sender] == VoteStatus.HasNotVoted);
+        require(!_proposals[proposalId].isPartOfPackage);
+        require(_proposalStatus[proposalId].decision == ProposalDecision.Undecided);
+        require(_proposalStatus[proposalId].votes[msg.sender] == VoteStatus.HasNotVoted);
 
-        _votes[proposalId][msg.sender] = isYes ? VoteStatus.VotedYes : VoteStatus.VotedNo;          
+        _proposalStatus[proposalId].votes[msg.sender] = isYes ? VoteStatus.VotedYes : VoteStatus.VotedNo;          
         if (isYes) {
-            _proposals[proposalId].voteCountYes++;
+            _proposalStatus[proposalId].voteCountYes++;
         } else {
-            _proposals[proposalId].voteCountNo++;
+            _proposalStatus[proposalId].voteCountNo++;
         }
     }
 
     //
     // Views
     //
+
+    function getItemsOfPackage(uint proposalId) public constant returns(uint[]) {
+        require(_proposals[proposalId].isExistent);
+        require(_proposals[proposalId].typ == ProposalType.Package);
+
+        return _proposals[proposalId].packageParts;
+    }
 
     function getAddressOfRedditUsername(string redditUsername) public constant returns(address) {
         return _citizenByRedditUsername[redditUsername];
@@ -297,7 +334,7 @@ contract VillageCoin is ERC223, SafeMath {
     }
 
     function getHasSenderVoted(uint proposalId) returns(bool) {
-        return _votes[proposalId][msg.sender] != VoteStatus.HasNotVoted;
+        return _proposalStatus[proposalId].votes[msg.sender] != VoteStatus.HasNotVoted;
     }
    
     //
@@ -392,34 +429,43 @@ contract VillageCoin is ERC223, SafeMath {
     // Internal Stuff
     //
 
-    function createProposal(ProposalType typ, string supportingEvidenceUrl, string stringParam1, string stringParam2, uint numberParam1, address addressParam1) private returns(uint) {
+    function createProposal(ProposalType typ, string supportingEvidenceUrl, string stringParam1, string stringParam2, uint numberParam1, address addressParam1, bool isPartOfPackage) private returns(uint) {
         var proposalId = _nextProposalId++;
         assert(!_proposals[proposalId].isExistent);
 
         _proposals[proposalId].isExistent = true;
+        _proposals[proposalId].proposer = msg.sender;
         _proposals[proposalId].typ = typ;
         _proposals[proposalId].expiryTime = now + getNumberParameter("proposalTimeLimitDays") * 1 days;
         _proposals[proposalId].supportingEvidenceUrl = supportingEvidenceUrl;
         _proposals[proposalId].stringParam1 = stringParam1;
         _proposals[proposalId].stringParam2 = stringParam2;
         _proposals[proposalId].numberParam1 = numberParam1;
-        _proposals[proposalId].addressParam1 = addressParam1;
+        _proposals[proposalId].addressParam1 = addressParam1; 
+        _proposals[proposalId].isPartOfPackage = isPartOfPackage; 
 
-        OnProposalCreated(proposalId);
+        if (isPartOfPackage) {
+            _proposalStatus[proposalId].decision = ProposalDecision.PackageUnassigned;
+        }           
+
+        OnProposalCreated(proposalId);           
 
         return proposalId;
     }
 
     function decideProposal(uint proposalId, ProposalDecision decision) private {        
         
-        assert(decision != ProposalDecision.Undecided);
+        assert(decision != ProposalDecision.Undecided);        
 
         var proposal = _proposals[proposalId];
-                
-        assert(proposal.isExistent);
-        assert(proposal.decision == ProposalDecision.Undecided);
+        assert(_proposals[proposalId].isExistent);
+
+        var proposalStatus = _proposalStatus[proposalId];                        
+        assert(proposalStatus.decision == ProposalDecision.Undecided || proposalStatus.decision == ProposalDecision.PackageAssigned);
         
-        proposal.decision = decision;
+        if (!proposal.isPartOfPackage) {
+            proposalStatus.decision = decision;
+        }
 
         if (decision == ProposalDecision.Accepted) {
             if (proposal.typ == ProposalType.SetParameter) {
@@ -432,6 +478,10 @@ contract VillageCoin is ERC223, SafeMath {
                 payCitizen(proposal.addressParam1, proposal.numberParam1);
             } else if (proposal.typ == ProposalType.FineCitizen) {
                 fineCitizen(proposal.addressParam1, proposal.numberParam1);
+            } else if (proposal.typ == ProposalType.Package) {
+                for (uint i = 0; i < proposal.packageParts.length; i++) {
+                    decideProposal(proposal.packageParts[i], decision);
+                }
             } else {
                 revert();
             }

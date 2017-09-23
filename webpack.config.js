@@ -20,6 +20,7 @@ module.exports = {
       { from: './app/proposeDestroyMoney.html', to: "proposeDestroyMoney.html" },
       { from: './app/proposePayCitizen.html', to: "proposePayCitizen.html" },
       { from: './app/proposeFineCitizen.html', to: "proposeFineCitizen.html" },
+      { from: './app/proposePackage.html', to: "proposePackage.html" },
       { from: './app/howToJoin.html', to: "howToJoin.html" },
     ])
   ],

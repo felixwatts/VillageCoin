@@ -23,8 +23,7 @@
 
 async function buildProposalRow(proposal)
 {
-    var description = await app.getProposalDescription(proposal.id);
-    return "<tr><td><a href='proposal.html?id=" + proposal.id + "'>proposal #" + proposal.id + "</a></td><td>" + description + "</a>";
+    return "<tr><td><a href='proposal.html?id=" + proposal.id + "'>proposal #" + proposal.id + "</a></td><td>" + proposal.description + "</a>";
 }
 
 async function populateProposalsTable() 

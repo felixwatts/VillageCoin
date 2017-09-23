@@ -128,10 +128,8 @@
         }
     }
 
-    async function populateProposalDescription(proposalId)
+    async function populateProposalDescription(description)
     {
-        var description = await app.getProposalDescription(proposalId)
-
         document.getElementById("proposalDescription").innerHTML = description;
     }
 
@@ -163,7 +161,7 @@
         document.getElementById("proposalExpiry").innerHTML = "Expires on " + dateString;
     }
 
-    async function populateVoteBox(decision, isCitizen, proposalType, hasSenderVoted, proposalId)
+    async function populateVoteBox(decision, isCitizen, proposalType, hasSenderVoted, description)
     {
         switch(decision)
         {
@@ -182,7 +180,7 @@
                 {
                     document.getElementById("voteButtonsContainer").style.display = "inline";
 
-                    var yesDescription = await app.getProposalDescription(proposalId);
+                    var yesDescription = description;
                     document.getElementById("yesButtonDescription").innerHTML = yesDescription;
                     document.getElementById("noButtonDescription").innerHTML = "<strong>do not</strong> " + yesDescription;
                 }
@@ -256,10 +254,10 @@
             var citizenCount = (await app.contract._citizenCount.call({from: app.account})).toNumber();    
             
             document.getElementById("proposalDetails").style.display = "inline";
-            populateProposalDescription(proposalId);
+            populateProposalDescription(proposal.description);
             populateVoteChart(proposal.voteCountYes, proposal.voteCountNo, thresholdPercent, citizenCount);
             populateExpiry(proposal.expiryTime);
-            populateVoteBox(proposal.decision, isCitizen, proposal.type, hasSenderVoted, proposalId);
+            populateVoteBox(proposal.decision, isCitizen, proposal.type, hasSenderVoted, proposal.description);
             populateProposalStatus(proposal.decision, proposal.voteCountYes, proposal.voteCountNo, thresholdPercent, proposal.expiryTime, citizenCount);
             populateSupportingEvidence(proposal.supportingEvidenceUrl);
 
