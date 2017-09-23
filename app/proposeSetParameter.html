@@ -73,6 +73,7 @@
     </p>
     <p>You may optionally provide the URL of some <em>supporting evidence</em> to help convince other citizens of the value of your proposal.
         <input type="text" id="supportingEvidenceUrl" class="inputUrl" placeholder="e.g. https://i.imgur.com/J5MKGp2.gifv" onchange="app.parseForm()"></input></p>
+    <p><input type="checkbox" class="inputBool" id="isPartOfPackage">This proposal is part of a package</input></p>
     
     <button class="voteButton" id="inputSubmit" onclick="submit()" disabled>Create Proposal</button></p>
     <div id="inputInvalidMessage"></div>
@@ -117,7 +118,7 @@ async function submit()
         var results = await app.parseForm();
         if(!results.isValid) return;
 
-        var receipt = await app.contract.proposeSetParameter(results.parameterName, results.parameterStringValue, results.parameterNumberValue, results.supportingEvidenceUrl, {from: app.account});
+        var receipt = await app.contract.proposeSetParameter(results.parameterName, results.parameterStringValue, results.parameterNumberValue, results.supportingEvidenceUrl, results.isPartOfPackage, {from: app.account});
 
         var proposalId = receipt.logs[0].args.proposalId.toNumber();
 

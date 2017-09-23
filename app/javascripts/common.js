@@ -145,9 +145,7 @@ async function getVillageSymbol()
 async function getProposal(proposalId) 
 {
     var proposalData = await app.contract._proposals.call(proposalId, {from: app.account});
-    var proposalStatusData = await app.contract._proposalStatus.call(proposalId, {from: app.account});
-
-    console.log(proposalData);
+    var proposalStatusData = await app.contract._proposalStatus.call(proposalId, {from: app.account});    
 
     var proposal = 
     {
