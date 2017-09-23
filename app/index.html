@@ -18,7 +18,7 @@
 
     <p>Your balance is <span style="font-size:24pt;" id="balance"></span></p>
 
-    <p>Send <input type="text" id="amount" class="inputAmount" placeholder="e.g., 5" onchange="validateSendForm()"></input> to <input type="text" id="toAddress" class="inputAddress" placeholder="reddit username or ethereum address" onchange="validateSendForm()"><button id="inputSubmit" onclick="send()" disabled>SEND <span class="villageSymbol"></span></button></p>
+    <p>Send <input type="text" id="amount" class="inputAmount" placeholder="e.g., 5" onchange="app.parseForm()"></input> to <input type="text" id="toAddress" class="inputAddress" placeholder="username or address" onchange="app.parseForm()"><button id="inputSubmit" onclick="send()" disabled>SEND <span class="villageSymbol"></span></button></p>
     <div id="inputInvalidMessage"></div>
 
     <span id="status"></span>   
@@ -49,20 +49,6 @@
         document.getElementById("publicAccountBalance").innerHTML = await app.formatCurrencyAmount(balance);
     }
 
-    async function validateSendForm() 
-    {
-
-        try
-        {
-            await app.validateForm();
-        }
-        catch(error)
-        {
-            console.log(error);
-            app.setStatus(error);
-        }
-    }
-
     async function populateBalance() 
     {
         try
@@ -82,7 +68,7 @@
     {
         try
         {
-            var formContents = await app.validateForm();
+            var formContents = await app.parseForm();
             if(!formContents.isValid) return;
 
             await app.contract.transfer(formContents.toAddress, formContents.amount, {from: app.account});            

@@ -150,3 +150,7 @@ td.header {
   border-left-width: 3px;
   border-left-color:black
 }
+
+#inputInvalidMessage {
+  color: #800000;
+}

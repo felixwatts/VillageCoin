@@ -214,13 +214,12 @@ async function formatCurrencyAmount(amount)
 
 async function parseCurrencyAmount(amountStr)
 {
-    var x = parseFloat(amountStr);
-    console.log(x);
-
-    if(isNaN(parseFloat(amountStr))) return NaN;
+    var floatVal = parseFloat(amountStr);
+    if(isNaN(floatVal)) return NaN;
+    if(floatVal < 0) return NaN;
 
     var decimals = await app.contract.decimals.call({from: app.account});
-    return new BigNumber(10).pow(decimals).mul(parseFloat(amountStr)).toNumber();
+    return new BigNumber(10).pow(decimals).mul(floatVal).toNumber();
 }
 
 async function getProposalDescription(proposalId)
@@ -292,48 +291,107 @@ async function getUndecidedProposals()
     return votableProposals;
 }
 
-async function validateForm()
+async function parseForm()
 {
-    var validationErrors = [];
-    var results = {};
+    var results = 
+    {
+        isValid: false
+    };
 
-    var addressInputs = document.getElementsByClassName("inputAddress");
-    for(var i = 0; i < addressInputs.length; i++)
+    try
     {
-        await validateAddressInput(addressInputs[i], validationErrors, results); // todo make parallel
-    }
+        var parsingErrors = [];
+    
+        var addressInputs = document.getElementsByClassName("inputAddress");
+        for(var i = 0; i < addressInputs.length; i++)
+        {
+            await parseAddressInput(addressInputs[i], parsingErrors, results); // todo make parallel
+        }
+    
+        var amountInputs = document.getElementsByClassName("inputAmount");
+        for(var i = 0; i < amountInputs.length; i++)
+        {
+            await parseAmountInput(amountInputs[i], parsingErrors, results); // todo make parallel
+        }
+    
+        var urlInputs = document.getElementsByClassName("inputUrl");
+        for(var i = 0; i < urlInputs.length; i++)
+        {
+            await parseUrlInput(urlInputs[i], parsingErrors, results); // todo make parallel
+        }
 
-    var amountInputs = document.getElementsByClassName("inputAmount");
-    for(var i = 0; i < amountInputs.length; i++)
-    {
-        await validateAmountInput(amountInputs[i], validationErrors, results); // todo make parallel
-    }
+        await parseParameterInput(parsingErrors, results);
 
-    var urlInputs = document.getElementsByClassName("inputUrl");
-    for(var i = 0; i < urlInputs.length; i++)
-    {
-        await validateUrlInput(urlInputs[i], validationErrors, results); // todo make parallel
+        results.errorMessage = parsingErrors.reduce(function(head, tail){ return head + "<br>" + tail}, "");
+    
+        if(parsingErrors.length == 0)
+        {
+            results.isValid = true;            
+        }  
     }
-
-    if(validationErrors.length != 0)
+    catch(error)
     {
-        results.isValid = false;
-        results.errorMessage = validationErrors.reduce(function(head, tail){ return head + "<br>" + tail});
-    }
-    else
-    {
-        results.isValid = true;
+        results.errorMessage = error;
     }
 
     var submitButton = document.getElementById("inputSubmit");
     submitButton.disabled = !results.isValid;
     var inputInvalidMessage = document.getElementById("inputInvalidMessage");
-    inputInvalidMessage.innerHTML = results.isValid ? "" : results.errorMessage;
+    inputInvalidMessage.innerHTML = results.isValid ? "" : results.errorMessage;    
 
     return results;
 }
 
-async function validateAmountInput(element, validationErrors, results)
+async function parseParameterInput(parsingErrors, results)
+{
+    if(document.getElementById("inputParameterName") == undefined) return;
+
+    var parameterName = document.getElementById("inputParameterName").value;
+    var parameterValueStr = document.getElementById("inputParameterValue").value;
+    
+    if(parameterName == undefined)
+    {
+        parsingErrors.push("You must enter a parameter name");
+        return;        
+    }
+
+    if(parameterValueStr == undefined || parameterValueStr == "")
+    {
+        parsingErrors.push("You must enter a parameter value");
+        return;  
+    }
+
+    var isNumberParameter = await app.contract.isNumberParameter.call(parameterName, {from: app.account});
+    var isStringParameter = await app.contract.isStringParameter.call(parameterName, {from: app.account});
+
+    if(isNumberParameter)
+    {
+        var parameterValueNum = parseInt(parameterValueStr);
+        if(isNaN(parameterValueNum) || parameterValueNum < 0)
+        {
+            parsingErrors.push("The parameter value must be a positive integer");
+            return;  
+        }
+        else
+        {
+            results.parameterName = parameterName;
+            results.parameterNumberValue = parameterValueNum;
+            results.parameterStringValue = "";
+        }
+    }
+    else if(isStringParameter)
+    {
+        results.parameterName = parameterName;
+        results.parameterNumberValue = 0;
+        results.parameterStringValue = parameterValueStr;
+    }
+    else
+    {
+        parsingErrors.push("Unknown parameter: " + parameterName);
+    }
+}
+
+async function parseAmountInput(element, parsingErrors, results)
 {
     var amountStr = element.value;
 
@@ -341,7 +399,7 @@ async function validateAmountInput(element, validationErrors, results)
 
     if(isNaN(amount))
     {
-        validationErrors.push("Invalid currency amount")
+        parsingErrors.push("Invalid currency amount")
     }
     else
     {
@@ -349,13 +407,13 @@ async function validateAmountInput(element, validationErrors, results)
     }
 }
 
-async function validateAddressInput(element, validationErrors, results)
+async function parseAddressInput(element, parsingErrors, results)
 {
     var addressStr = element.value;
 
     if(addressStr == undefined || addressStr == "")
     {
-        validationErrors.push("You must specify a citizen");
+        parsingErrors.push("You must specify a citizen");
         return;
     }
 
@@ -365,7 +423,7 @@ async function validateAddressInput(element, validationErrors, results)
         var isCitizen = await app.contract.isCitizen.call(toAddress, amount, {from: app.account});
         if(!isCitizen)
         {
-            validationErrors.push(addressStr + " is not a citizen");
+            parsingErrors.push(addressStr + " is not a citizen");
         }
         else
         {
@@ -378,7 +436,7 @@ async function validateAddressInput(element, validationErrors, results)
         
         if(address == "0x0000000000000000000000000000000000000000")
         {
-            validationErrors.push(addressStr + " is not a citizen");
+            parsingErrors.push(addressStr + " is not a citizen");
         }
         else
         {            
@@ -387,18 +445,17 @@ async function validateAddressInput(element, validationErrors, results)
     }  
 }
 
-async function validateUrlInput(element, validationErrors, results)
+async function parseUrlInput(element, parsingErrors, results)
 {
     var urlStr = element.value;
-    if(urlStr == undefined || urlStr == "") return;
 
-    if(validUrl.isWebUri(urlStr))
+    if(urlStr == "" || validUrl.isWebUri(urlStr))
     {
         results[element.id] = urlStr;
     }
     else
     {
-        validationErrors.push("Invalid URL");
+        parsingErrors.push("Invalid URL");
     }
 }
 
@@ -406,7 +463,7 @@ function setupCommonFunctions()
 {
     window.app.VillageCoin = VillageCoin;
 
-    window.app.validateForm = validateForm;
+    window.app.parseForm = parseForm;
     window.app.parseCurrencyAmount = parseCurrencyAmount;
     window.app.formatCurrencyAmount = formatCurrencyAmount;
     window.app.getCitizen = getCitizen;

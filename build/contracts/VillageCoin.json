@@ -857,8 +857,66 @@
       "links": {},
       "address": "0x2d49654371806c12be9720b1d9e919e70011d48a",
       "updated_at": 1506085242901
+    },
+    "1506163562430": {
+      "events": {
+        "0x9cebbdec6b7eecc62b533e64241f2373f0e6e76383505a2a483b91aba582611e": {
+          "anonymous": false,
+          "inputs": [
+            {
+              "indexed": false,
+              "name": "proposalId",
+              "type": "uint256"
+            }
+          ],
+          "name": "OnProposalCreated",
+          "type": "event"
+        },
+        "0x099dc2787ac04f90a05f72c0bf2535f8cce4e80b38da8333a372abe09fd34347": {
+          "anonymous": false,
+          "inputs": [
+            {
+              "indexed": false,
+              "name": "proposalId",
+              "type": "uint256"
+            }
+          ],
+          "name": "OnProposalDecided",
+          "type": "event"
+        },
+        "0xe19260aff97b920c7df27010903aeb9c8d2be5d310a2c67824cf3f15396e4c16": {
+          "anonymous": false,
+          "inputs": [
+            {
+              "indexed": true,
+              "name": "from",
+              "type": "address"
+            },
+            {
+              "indexed": true,
+              "name": "to",
+              "type": "address"
+            },
+            {
+              "indexed": false,
+              "name": "value",
+              "type": "uint256"
+            },
+            {
+              "indexed": false,
+              "name": "data",
+              "type": "bytes"
+            }
+          ],
+          "name": "Transfer",
+          "type": "event"
+        }
+      },
+      "links": {},
+      "address": "0xd5561299920e9f76be471a4b637bf46b638233b4",
+      "updated_at": 1506163590972
     }
   },
   "schema_version": "0.0.5",
-  "updated_at": 1506100306320
+  "updated_at": 1506163590972
 }

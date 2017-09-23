@@ -20,10 +20,10 @@
     <p>Use the form below to propose money creation</p>
 
     <p>I propose to create
-        <input type="text" id="amount" class="inputAmount" placeholder="e.g., 5" onchange="validateForm()"></input><span class="villageSymbol"></span>
+        <input type="text" id="amount" class="inputAmount" placeholder="e.g., 5" onchange="app.parseForm()"></input><span class="villageSymbol"></span>
     </p>
     <p>You may optionally provide the URL of some <em>supporting evidence</em> to help convince other citizens of the value of your proposal.
-        <input type="text" id="supportingEvidenceUrl" class="inputUrl" placeholder="e.g. https://i.imgur.com/J5MKGp2.gifv" onchange="validateForm()"></input>
+        <input type="text" id="supportingEvidenceUrl" class="inputUrl" placeholder="e.g. https://i.imgur.com/J5MKGp2.gifv" onchange="app.parseForm()"></input>
     </p>
     
     <button class="voteButton" id="inputSubmit" onclick="submit()" disabled>Create Proposal</button></p>
@@ -37,7 +37,7 @@ async function submit()
 {
     try
     {
-        var results = await app.validateForm();
+        var results = await app.parseForm();
         if(!results.isValid) return;
 
         receipt = await app.contract.proposeCreateMoney(results.amount, results.supportingEvidenceUrl, {from: app.account});
@@ -54,22 +54,9 @@ async function submit()
 
 }
 
-async function validateForm() 
-{
-    try
-    {
-        await app.validateForm();
-    }
-    catch(error)
-    {
-        console.log(error);
-        app.setStatus(error);
-    }
-}
-
-    window.addEventListener('load', async function()
-    { 
-        await init();      
-        app.redirectNonCitizen();
-    });
+window.addEventListener('load', async function()
+{ 
+    await init();      
+    app.redirectNonCitizen();
+});
 </script>
