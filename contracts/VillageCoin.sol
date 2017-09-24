@@ -129,7 +129,10 @@ contract VillageCoin is ERC223, SafeMath {
         _parameters["taxPeriodDays"] = Parameter({stringValue:"", numberValue:7, isNumber:true, isExistent:true, minNumberValue:1, maxNumberValue:0});
         _parameters["taxPollTax"] = Parameter({stringValue:"", numberValue:1, isNumber:true, isExistent:true, minNumberValue:0, maxNumberValue:0});
         _parameters["taxWealthTaxPercent"] = Parameter({stringValue:"", numberValue:0, isNumber:true, isExistent:true, minNumberValue:0, maxNumberValue:100});
-        _parameters["taxBasicIncome"] = Parameter({stringValue:"", numberValue:0, isNumber:true, isExistent:true, minNumberValue:0, maxNumberValue:0});        
+        _parameters["taxBasicIncome"] = Parameter({stringValue:"", numberValue:0, isNumber:true, isExistent:true, minNumberValue:0, maxNumberValue:0});
+        _parameters["taxTransactionTaxFlat"] = Parameter({stringValue:"", numberValue:0, isNumber:true, isExistent:true, minNumberValue:0, maxNumberValue:0});
+        _parameters["taxTransactionTaxPercent"] = Parameter({stringValue:"", numberValue:0, isNumber:true, isExistent:true, minNumberValue:0, maxNumberValue:100});        
+
         
         addCitizen(PUBLIC_ACCOUNT, "RedditVillage_PublicAccount");
         _citizenCount = 0; // public account doesnt count towards the citizen count because it does not vote
@@ -282,6 +285,18 @@ contract VillageCoin is ERC223, SafeMath {
     //
     // Views
     //
+
+    function calculateTransactionTax(address from, address to, uint amount) public constant returns(uint) {
+        uint transactionTaxTotal = 0;
+        
+        if (from != PUBLIC_ACCOUNT && to != PUBLIC_ACCOUNT) {
+            uint transactionTaxFlat = getNumberParameter("taxTransactionTaxFlat");
+            uint transactionTaxPercent = safeMul(getNumberParameter("taxTransactionTaxPercent"), amount) / 100;
+            transactionTaxTotal = safeAdd(transactionTaxFlat, transactionTaxPercent);
+        }
+
+        return transactionTaxTotal;
+    }
 
     function getItemsOfPackage(uint proposalId) public constant returns(uint[]) {
         require(_proposals[proposalId].isExistent);
@@ -617,10 +632,15 @@ contract VillageCoin is ERC223, SafeMath {
     function transferInternal(address from, address to, uint amount, bytes data) private {
         assert(isCitizen(from));        
         assert(isCitizen(to));
-        assert(_citizens[from].balance >= amount);
 
-        _citizens[from].balance -= amount;
+        var transactionTaxTotal = calculateTransactionTax(from, to, amount);
+        uint totalWithdrawn = safeAdd(amount, transactionTaxTotal);
+
+        assert(_citizens[from].balance >= totalWithdrawn);
+
+        _citizens[from].balance -= totalWithdrawn;
         _citizens[to].balance = safeAdd(_citizens[to].balance, amount);
+        _citizens[PUBLIC_ACCOUNT].balance = safeAdd(_citizens[PUBLIC_ACCOUNT].balance, transactionTaxTotal);
 
         Transfer(from, to, amount, data);
     }

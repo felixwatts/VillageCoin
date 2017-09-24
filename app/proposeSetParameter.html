@@ -53,7 +53,7 @@
         </tr>  
 
         <tr>
-            <td>taxPollTax</td><td>A constant amount transferred from each citizen account to the public account every time taxes are applied</td><td id="taxPollTaxValue"></td>
+            <td>taxPollTax</td><td>A fixed amount transferred from each citizen account to the public account every time taxes are applied</td><td id="taxPollTaxValue"></td>
         </tr>  
 
         <tr>
@@ -61,7 +61,15 @@
         </tr>  
 
         <tr>
-            <td>taxBasicIncome</td><td>A constant amount that is transferred from the public account to each citizen account each time taxes are applied</td><td id="taxBasicIncomeValue"></td>
+            <td>taxBasicIncome</td><td>A fixed amount that is transferred from the public account to each citizen account each time taxes are applied</td><td id="taxBasicIncomeValue"></td>
+        </tr>  
+
+        <tr>
+            <td>taxTransactionTaxFlat</td><td>A fixed charge applied to each transfer. On each transfer between citizens the sender pays this fixed amount into the public account</td><td id="taxTransactionTaxFlatValue"></td>
+        </tr>  
+
+        <tr>
+            <td>taxTransactionTaxPercent</td><td>A sliding charge applied to each transfer. On each transfer between citizens the sender pays this percentage of the transfer amount into the public account</td><td id="taxTransactionTaxPercentValue"></td>
         </tr>  
     </table>
 
@@ -95,7 +103,9 @@ async function populateParameterValues()
         "taxPeriodDays",
         "taxPollTax",
         "taxWealthTaxPercent",
-        "taxBasicIncome"  
+        "taxBasicIncome",
+        "taxTransactionTaxFlat",
+        "taxTransactionTaxPercent"
     ];
 
     var parameterValues = await Promise.all(numberParameters.map(function(parameterName){ return app.contract.getNumberParameter.call(parameterName); }));

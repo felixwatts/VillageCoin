@@ -18,13 +18,34 @@
 
     <p>Your balance is <span style="font-size:24pt;" id="balance"></span></p>
 
-    <p>Send <input type="text" id="amount" class="inputAmount" placeholder="e.g., 5" onchange="app.parseForm()"></input> to <input type="text" id="toAddress" class="inputAddress" placeholder="username or address" onchange="app.parseForm()"><button id="inputSubmit" onclick="send()" disabled>SEND <span class="villageSymbol"></span></button></p>
+    <p>Send <input type="text" id="amount" class="inputAmount" placeholder="e.g., 5" onchange="parseSendForm()"></input> to <input type="text" id="toAddress" class="inputAddress" placeholder="username or address" onchange="parseSendForm()"><button id="inputSubmit" onclick="send()" disabled>SEND <span class="villageSymbol"></span></button></p>
+    <div style="color:#34A853" id="transactionTaxMessage"></div>
     <div id="inputInvalidMessage"></div>
 
     <span id="status"></span>   
 </body>
 </html>
 <script>
+
+    async function parseSendForm() 
+    {
+        var results = await app.parseForm();
+
+        var transactionTaxMessage = "";
+
+        if(results.isValid)
+        {
+            var transactionTax = (await app.contract.calculateTransactionTax(app.account, results.toAddress, results.amount)).toNumber();
+
+            if(transactionTax > 0)
+            {
+                var transactionTaxStr = await app.formatCurrencyAmount(transactionTax);
+                transactionTaxMessage = "⚠ This transfer will incur a transaction tax of " + transactionTaxStr; 
+            }
+        }
+
+        document.getElementById("transactionTaxMessage").innerHTML = transactionTaxMessage;
+    }
 
     async function populateOpenProposals()
     {
@@ -84,12 +105,20 @@
 
     window.addEventListener('load', async function()
     { 
-        await init();
-        app.redirectNonCitizen();
-        await populateBalance();
-        await populatePopulation();
-        await populatePublicAccountBalance();
-        await populateOpenProposals();  
-        await app.populateRedditUsername();      
+        try
+        {
+            await init();
+            app.redirectNonCitizen();
+            await populateBalance();
+            await populatePopulation();
+            await populatePublicAccountBalance();
+            await populateOpenProposals();  
+            await app.populateRedditUsername(); 
+        }
+        catch(error)
+        {
+            console.log(error);
+            app.setStatus(error);
+        }     
     });
 </script>

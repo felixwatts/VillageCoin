@@ -361,7 +361,7 @@ async function parseForm()
         var boolInputs = document.getElementsByClassName("inputBool");
         for(var i = 0; i < boolInputs.length; i++)
         {
-            results[boolInputs[i].id] = boolInputs[i].value;
+            results[boolInputs[i].id] = boolInputs[i].checked;
         }
 
         await parsePackagePartsInput(parsingErrors, results);
