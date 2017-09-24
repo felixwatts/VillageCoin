@@ -29,22 +29,30 @@
 
     async function parseSendForm() 
     {
-        var results = await app.parseForm();
-
-        var transactionTaxMessage = "";
-
-        if(results.isValid)
+        try
         {
-            var transactionTax = (await app.contract.calculateTransactionTax(app.account, results.toAddress, results.amount)).toNumber();
-
-            if(transactionTax > 0)
+            var results = await app.parseForm();
+            
+            var transactionTaxMessage = "";
+    
+            if(results.isValid)
             {
-                var transactionTaxStr = await app.formatCurrencyAmount(transactionTax);
-                transactionTaxMessage = "⚠ This transfer will incur a transaction tax of " + transactionTaxStr; 
+                var transactionTax = (await app.contract.calculateTransactionTax(app.account, results.toAddress, results.amount)).toNumber();
+    
+                if(transactionTax > 0)
+                {
+                    var transactionTaxStr = await app.formatCurrencyAmount(transactionTax);
+                    transactionTaxMessage = "⚠ This transfer will incur a transaction tax of " + transactionTaxStr; 
+                }
             }
+    
+            document.getElementById("transactionTaxMessage").innerHTML = transactionTaxMessage;
         }
-
-        document.getElementById("transactionTaxMessage").innerHTML = transactionTaxMessage;
+        catch(error)
+        {
+            console.log(error);
+            app.setStatus(error);
+        }
     }
 
     async function populateOpenProposals()
@@ -72,17 +80,9 @@
 
     async function populateBalance() 
     {
-        try
-        {
-            var villageCoin = app.contract;
-            var balance = await villageCoin.balanceOf.call(app.account, {from: app.account});
-            document.getElementById("balance").innerHTML = await app.formatCurrencyAmount(balance);
-        }
-        catch(error)
-        {
-            console.log(error);
-            app.setStatus(error);
-        }
+        var villageCoin = app.contract;
+        var balance = await villageCoin.balanceOf.call(app.account, {from: app.account});
+        document.getElementById("balance").innerHTML = await app.formatCurrencyAmount(balance);
     }
 
     async function send()
@@ -92,8 +92,8 @@
             var formContents = await app.parseForm();
             if(!formContents.isValid) return;
 
-            await app.contract.transfer(formContents.toAddress, formContents.amount, {from: app.account});            
-
+            var receipt = await app.contract.transfer(formContents.toAddress, formContents.amount, {from: app.account});
+            
             populateBalance();
         }
         catch(error)

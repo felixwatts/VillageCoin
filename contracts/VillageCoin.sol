@@ -131,7 +131,9 @@ contract VillageCoin is ERC223, SafeMath {
         _parameters["taxWealthTaxPercent"] = Parameter({stringValue:"", numberValue:0, isNumber:true, isExistent:true, minNumberValue:0, maxNumberValue:100});
         _parameters["taxBasicIncome"] = Parameter({stringValue:"", numberValue:0, isNumber:true, isExistent:true, minNumberValue:0, maxNumberValue:0});
         _parameters["taxTransactionTaxFlat"] = Parameter({stringValue:"", numberValue:0, isNumber:true, isExistent:true, minNumberValue:0, maxNumberValue:0});
-        _parameters["taxTransactionTaxPercent"] = Parameter({stringValue:"", numberValue:0, isNumber:true, isExistent:true, minNumberValue:0, maxNumberValue:100});        
+        _parameters["taxTransactionTaxPercent"] = Parameter({stringValue:"", numberValue:0, isNumber:true, isExistent:true, minNumberValue:0, maxNumberValue:100});
+        _parameters["taxProposalTaxFlat"] = Parameter({stringValue:"", numberValue:0, isNumber:true, isExistent:true, minNumberValue:0, maxNumberValue:0});
+        _parameters["taxProposalTaxPercent"] = Parameter({stringValue:"", numberValue:0, isNumber:true, isExistent:true, minNumberValue:0, maxNumberValue:100});
 
         
         addCitizen(PUBLIC_ACCOUNT, "RedditVillage_PublicAccount");
@@ -158,6 +160,7 @@ contract VillageCoin is ERC223, SafeMath {
 
     function addCitizen(address addr, string redditUsername) onlyGatekeeper public {
         require(!isRedditUserACitizen(redditUsername));
+        require(!isCitizen(addr));
 
         _citizens[addr].owner = addr;
         _citizens[addr].isExistent = true;
@@ -285,6 +288,16 @@ contract VillageCoin is ERC223, SafeMath {
     //
     // Views
     //
+
+    function calculateProposalTax(address proposer) public constant returns(uint) {
+
+        uint proposalTaxFlat = getNumberParameter("taxProposalTaxFlat");
+        uint balance = balanceOf(proposer);
+        uint proposalTaxPercent = safeMul(getNumberParameter("taxProposalTaxPercent"), balance) / 100;
+        uint proposalTaxTotal = safeAdd(proposalTaxFlat, proposalTaxPercent);
+
+        return proposalTaxTotal;
+    }
 
     function calculateTransactionTax(address from, address to, uint amount) public constant returns(uint) {
         uint transactionTaxTotal = 0;
@@ -448,6 +461,12 @@ contract VillageCoin is ERC223, SafeMath {
         var proposalId = _nextProposalId++;
         assert(!_proposals[proposalId].isExistent);
 
+        if (!isPartOfPackage) {
+            uint tax = calculateProposalTax(msg.sender);
+            require(balanceOf(msg.sender) >= tax);
+            transferInternal(msg.sender, PUBLIC_ACCOUNT, tax);
+        }
+
         _proposals[proposalId].isExistent = true;
         _proposals[proposalId].proposer = msg.sender;
         _proposals[proposalId].typ = typ;
@@ -461,7 +480,7 @@ contract VillageCoin is ERC223, SafeMath {
 
         if (isPartOfPackage) {
             _proposalStatus[proposalId].decision = ProposalDecision.PackageUnassigned;
-        }           
+        }                     
 
         OnProposalCreated(proposalId);           
 

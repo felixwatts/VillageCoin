@@ -329,6 +329,26 @@ async function getPendingPackageParts()
     return pendingPackageParts;
 }
 
+async function populateProposalTax()
+{
+    var proposalTaxMessage = "";
+
+    var isPartOfPackage = (document.getElementById("isPartOfPackage") != undefined && document.getElementById("isPartOfPackage").checked);
+
+    if(!isPartOfPackage)
+    {
+        var proposalTax = (await app.contract.calculateProposalTax(app.account)).toNumber();
+        
+        if(proposalTax > 0)
+        {
+            var proposalTaxStr = await app.formatCurrencyAmount(proposalTax);
+            proposalTaxMessage = "⚠ Creating this proposal will incur a proposal tax of " + proposalTaxStr; 
+        }
+    }
+
+    document.getElementById("proposalTaxMessage").innerHTML = proposalTaxMessage;
+}
+
 async function parseForm()
 {
     var results = 
@@ -547,6 +567,7 @@ function setupCommonFunctions()
     window.app.populateVillageSymbol = populateVillageSymbol;
     window.app.getUndecidedProposals = getUndecidedProposals;
     window.app.getPendingPackageParts = getPendingPackageParts;
+    window.app.populateProposalTax = populateProposalTax;
 
     var ProposalType = {};
     ProposalType.SetParameter = 0; 

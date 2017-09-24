@@ -53,8 +53,6 @@ h3 {
 }
 
 #status {
-  border-width: 2px;
-  border-color: #ffcc00;
   background-color: #fff8de;
   border-radius: 8px;
   padding: 16px;
@@ -153,4 +151,8 @@ td.header {
 
 #inputInvalidMessage {
   color: #EA4335;
+}
+
+.warning {
+  color:#34A853;
 }

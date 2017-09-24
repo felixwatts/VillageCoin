@@ -70,7 +70,15 @@
 
         <tr>
             <td>taxTransactionTaxPercent</td><td>A sliding charge applied to each transfer. On each transfer between citizens the sender pays this percentage of the transfer amount into the public account</td><td id="taxTransactionTaxPercentValue"></td>
+        </tr> 
+        
+        <tr>
+            <td>taxProposalTaxFlat</td><td>A fixed amount that is transferred from a citizen's balance to the public account when they create a proposal</td><td id="taxProposalTaxFlatValue"></td>
         </tr>  
+
+        <tr>
+            <td>taxProposalTaxPercent</td><td>A percentage of each citizen's balance that is transferred to the public account when they create a proposal</td><td id="taxProposalTaxPercentValue"></td>
+        </tr> 
     </table>
 
     <p>Use the form below to propose a change to a parameter</p>
@@ -81,9 +89,10 @@
     </p>
     <p>You may optionally provide the URL of some <em>supporting evidence</em> to help convince other citizens of the value of your proposal.
         <input type="text" id="supportingEvidenceUrl" class="inputUrl" placeholder="e.g. https://i.imgur.com/J5MKGp2.gifv" onchange="app.parseForm()"></input></p>
-    <p><input type="checkbox" class="inputBool" id="isPartOfPackage">This proposal is part of a package</input></p>
+    <p><input type="checkbox" class="inputBool" id="isPartOfPackage" onchange="app.populateProposalTax()">This proposal is part of a package</input></p>
     
     <button class="voteButton" id="inputSubmit" onclick="submit()" disabled>Create Proposal</button></p>
+    <div class="warning" id="proposalTaxMessage"></div>
     <div id="inputInvalidMessage"></div>
     <span id="status"></span>   
 </body>
@@ -105,7 +114,9 @@ async function populateParameterValues()
         "taxWealthTaxPercent",
         "taxBasicIncome",
         "taxTransactionTaxFlat",
-        "taxTransactionTaxPercent"
+        "taxTransactionTaxPercent",
+        "taxProposalTaxFlat",
+        "taxProposalTaxPercent"
     ];
 
     var parameterValues = await Promise.all(numberParameters.map(function(parameterName){ return app.contract.getNumberParameter.call(parameterName); }));
@@ -130,7 +141,7 @@ async function submit()
 
         var receipt = await app.contract.proposeSetParameter(results.parameterName, results.parameterStringValue, results.parameterNumberValue, results.supportingEvidenceUrl, results.isPartOfPackage, {from: app.account});
 
-        var proposalId = receipt.logs[0].args.proposalId.toNumber();
+        var proposalId = receipt.logs.filter(function(log){ return log.event == "OnProposalCreated"})[0].args.proposalId.toNumber();
 
         window.location.replace("proposal.html?id=" + proposalId);
     }
@@ -147,5 +158,6 @@ window.addEventListener('load', async function()
     await init();      
     app.redirectNonCitizen();
     await populateParameterValues();
+    await app.populateProposalTax();
 });
 </script>

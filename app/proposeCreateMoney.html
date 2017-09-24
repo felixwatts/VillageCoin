@@ -25,9 +25,10 @@
     <p>You may optionally provide the URL of some <em>supporting evidence</em> to help convince other citizens of the value of your proposal.
         <input type="text" id="supportingEvidenceUrl" class="inputUrl" placeholder="e.g. https://i.imgur.com/J5MKGp2.gifv" onchange="app.parseForm()"></input>
     </p>
-    <p><input type="checkbox" class="inputBool" id="isPartOfPackage">This proposal is part of a package</input></p>
+    <p><input type="checkbox" class="inputBool" id="isPartOfPackage" onchange="app.populateProposalTax()">This proposal is part of a package</input></p>
     
     <button class="voteButton" id="inputSubmit" onclick="submit()" disabled>Create Proposal</button></p>
+    <div class="warning" id="proposalTaxMessage"></div>
     <div id="inputInvalidMessage"></div>
     <span id="status"></span>   
 </body>
@@ -43,7 +44,7 @@ async function submit()
 
         receipt = await app.contract.proposeCreateMoney(results.amount, results.supportingEvidenceUrl, results.isPartOfPackage, {from: app.account});
 
-        var proposalId = receipt.logs[0].args.proposalId.toNumber();
+        var proposalId = receipt.logs.filter(function(log){ return log.event == "OnProposalCreated"})[0].args.proposalId.toNumber();
 
         window.location.replace("proposal.html?id=" + proposalId);
     }
@@ -59,5 +60,6 @@ window.addEventListener('load', async function()
 { 
     await init();      
     app.redirectNonCitizen();
+    await app.populateProposalTax();
 });
 </script>
