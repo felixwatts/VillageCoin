@@ -14,18 +14,67 @@
         <li class="menu"><a class="menu" href="createProposal.html">Make a Proposal</a></li>
     </ul>    
 
+    <span id="announcementMessage" style="display:none"></span>
+
     <p>Welcome to <span class="villageName"></span> <strong><span class="redditUsername"></span></strong>! The population is <strong id="population"></strong>. The public account balance is <strong><span id="publicAccountBalance"></span></strong>. <span id="openProposals"></span></p>
 
     <p>Your balance is <span style="font-size:24pt;" id="balance"></span></p>
 
     <p>Send <input type="text" id="amount" class="inputAmount" placeholder="e.g., 5" onchange="parseSendForm()"></input> to <input type="text" id="toAddress" class="inputAddress" placeholder="username or address" onchange="parseSendForm()"><button id="inputSubmit" onclick="send()" disabled>SEND <span class="villageSymbol"></span></button></p>
-    <div style="color:#34A853" id="transactionTaxMessage"></div>
+    <div class="warning" id="transactionTaxMessage"></div>
     <div id="inputInvalidMessage"></div>
+
+    <h3>Recent Transfers</h3>
+    <table id="recentTransfers"></table>
 
     <span id="status"></span>   
 </body>
 </html>
 <script>
+
+    async function buildTransferRow(transfer)
+    {        
+        var fromUsername = (await app.contract._citizens.call(transfer.args.from))[3];
+        var toUsername = (await app.contract._citizens.call(transfer.args.to))[3];
+        var amount = await app.formatCurrencyAmount(transfer.args.value);
+
+        return "<tr><td>" + fromUsername + "</td><td>" + toUsername + "</td><td>" + amount + "</td></tr>";
+    }
+
+    function filterTransferByUser(transfer)
+    {
+        return transfer.args.from == app.account || transfer.args.to == app.account;
+    }
+
+    async function populateRecentTransfers() 
+    {
+        var event = app.contract.Transfer({}, {fromBlock: 0, toBlock: 'latest'});
+
+        event.get(async function(error, result)
+        {
+            var rows = await Promise.all(result.filter(filterTransferByUser).map(buildTransferRow));
+
+            var html = rows.reverse().slice(0, 5).reduce(function(head, tail){ return head + tail ;}, "<tr><td><strong>From</strong></td><td><strong>To</strong></td><td><strong>Amount</strong></td></tr>");
+
+            document.getElementById("recentTransfers").innerHTML = html;
+        });
+
+    // event.watch(function(error, response)
+    // {
+    //    //once the event has been detected, take actions as desired
+    //     var data = 'from: ' + response.args._from+"<br>candidateName: "+web3.toUtf8(response.args._candidateName) +"<br>";
+    // });
+    }
+
+    async function populateAnnouncement()
+    {
+        var msg = await app.contract._announcementMessage.call({from: app.account});
+        if(msg == "") return;
+
+        var element = document.getElementById("announcementMessage");
+        element.innerHTML = msg;
+        element.style.display = "inline";
+    }
 
     async function parseSendForm() 
     {
@@ -114,6 +163,8 @@
             await populatePublicAccountBalance();
             await populateOpenProposals();  
             await app.populateRedditUsername(); 
+            await populateAnnouncement();
+            await populateRecentTransfers();
         }
         catch(error)
         {
