@@ -8,11 +8,11 @@ var TokenLib = artifacts.require("TokenLib");
 var VillageCoin = artifacts.require("VillageCoin");
 
 
-module.exports = function(deployer) {
-  deployer.deploy(SafeMathLib);
+module.exports = async function(deployer) {
+  await deployer.deploy(SafeMathLib);
 
   deployer.link(SafeMathLib, TokenLib);
-  deployer.deploy(TokenLib);
+  await deployer.deploy(TokenLib);
   deployer.link(TokenLib, TaxLib);
 
   deployer.link(SafeMathLib, VillageCoin);
@@ -21,11 +21,11 @@ module.exports = function(deployer) {
   deployer.link(SafeMathLib, ProposalLib);
   deployer.link(SafeMathLib, TaxLib);
 
-  deployer.deploy(CitizenLib);
-  deployer.deploy(DemocracyLib);
-  deployer.deploy(ParameterLib);
-  deployer.deploy(ProposalLib);
-  deployer.deploy(TaxLib);
+  await deployer.deploy(CitizenLib);
+  await deployer.deploy(DemocracyLib);
+  await deployer.deploy(ParameterLib);
+  await deployer.deploy(ProposalLib);
+  await deployer.deploy(TaxLib);
   
   deployer.link(CitizenLib, VillageCoin);
   deployer.link(DemocracyLib, VillageCoin);
@@ -34,5 +34,5 @@ module.exports = function(deployer) {
   deployer.link(TaxLib, VillageCoin);
   deployer.link(TokenLib, VillageCoin);
 
-  deployer.deploy(VillageCoin);
+  await deployer.deploy(VillageCoin);
 };
