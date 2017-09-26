@@ -27,11 +27,6 @@ library DemocracyLib {
         self.expiryTime = now.plus(timeToLive);
     }
 
-    function hasVoted(Referendum storage self, address voter) public constant returns(bool) {
-        require(self.isExistent);
-        return self.hasVoted[voter];
-    }
-
     function vote(Referendum storage self, address voter, bool isYes) public {
         require(self.isExistent);
         require(!self.hasVoted[voter]);

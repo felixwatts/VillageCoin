@@ -26,10 +26,9 @@ contract VillageCoin {
     string public _announcementMessage; 
 
     ParameterLib.ParameterSet _parameters;
-    ERC20Lib.TokenStorage _balances;
+    TokenLib.TokenStorage _balances;
     CitizenLib.Citizenry _citizens;
     ProposalLib.ProposalSet _proposals;
- 
     mapping(uint=>DemocracyLib.Referendum) public _referendums;
 
     //
@@ -71,9 +70,6 @@ contract VillageCoin {
         _parameters.addNumber("taxTransactionTaxPercent", 0, 0, 100);
         _parameters.addNumber("taxProposalTaxFlat", 0, 0, 0);
         _parameters.addNumber("taxProposalTaxPercent", 0, 0, 100);        
-        
-        //addCitizen(PUBLIC_ACCOUNT, "RedditVillage_PublicAccount");
-        //_citizenCount = 0; // public account doesnt count towards the citizen count because it does not vote
 
         _nextTaxTime = now.plus(getNumberParameter("taxPeriodDays").times(1 days)); 
     }
@@ -117,9 +113,9 @@ contract VillageCoin {
         
         var referendum = _referendums[proposalId];
 
-        var decision = referendum.tryDecide(_citizenCount, _parameters.getNumber("proposalDecideThresholdPercent"));
+        var decision = referendum.tryDecide(_citizens.count, _parameters.getNumber("proposalDecideThresholdPercent"));
 
-        if (decision == DemocracyLib.ReferendumDecision.Accepted) {
+        if (decision == DemocracyLib.ReferendumState.Accepted) {
             enactProposal(proposalId);
         }
     }
@@ -129,8 +125,8 @@ contract VillageCoin {
     //
 
     function proposePackage(uint[] partIds, string supportingEvidence) public onlyCitizen {
-        payProposalTax(false);
-        _proposals.proposePackage(partIds, supportingEvidence);
+        uint proposalId = _proposals.proposePackage(partIds, supportingEvidence);
+        afterCreateProposal(proposalId);        
     }
 
     function proposeSetParameter (
@@ -142,33 +138,30 @@ contract VillageCoin {
     ) public onlyCitizen 
     {
         require(_parameters.isParameter(parameterName));
-        payProposalTax(isPartOfPackage);
-        _proposals.proposeSetParameter(parameterName, stringValue, numberValue, supportingEvidence, isPartOfPackage);        
+        uint proposalId = _proposals.proposeSetParameter(parameterName, stringValue, numberValue, supportingEvidence, isPartOfPackage);
+        afterCreateProposal(proposalId);      
     }
 
     function proposeCreateMoney(uint amount, string supportingEvidence, bool isPartOfPackage) public onlyCitizen {
-        payProposalTax(isPartOfPackage);
         uint proposalId = _proposals.proposeCreateMoney(amount, supportingEvidence, isPartOfPackage);
-        if (!isPartOfPackage) {
-            _referendums[proposalId].init();
-        }
+        afterCreateProposal(proposalId);
     }
 
     function proposeDestroyMoney(uint amount, string supportingEvidence, bool isPartOfPackage) public onlyCitizen {
-        payProposalTax(isPartOfPackage);
-        _proposals.proposeDestroyMoney(amount, supportingEvidence, isPartOfPackage);
+        uint proposalId = _proposals.proposeDestroyMoney(amount, supportingEvidence, isPartOfPackage);
+        afterCreateProposal(proposalId);
     }
 
     function proposePayCitizen(address citizen, uint amount, string supportingEvidence, bool isPartOfPackage) public onlyCitizen {
         require(_citizens.isCitizen(citizen));
-        payProposalTax(isPartOfPackage);
-        _proposals.proposePayCitizen(citizen, amount, supportingEvidence, isPartOfPackage);
+        uint proposalId = _proposals.proposePayCitizen(citizen, amount, supportingEvidence, isPartOfPackage);
+        afterCreateProposal(proposalId);
     }
 
     function proposeFineCitizen(address citizen, uint amount, string supportingEvidence, bool isPartOfPackage) public onlyCitizen {
         require(_citizens.isCitizen(citizen));
-        payProposalTax(isPartOfPackage);
-        _proposals.proposeFineCitizen(citizen, amount, supportingEvidence, isPartOfPackage);        
+        uint proposalId = _proposals.proposeFineCitizen(citizen, amount, supportingEvidence, isPartOfPackage);        
+        afterCreateProposal(proposalId);
     }
 
     function voteOnProposal(uint proposalId, bool isYes) public onlyCitizen {
@@ -185,17 +178,18 @@ contract VillageCoin {
         uint balance = balanceOf(proposer);
         uint proposalTaxPercent = getNumberParameter("taxProposalTaxPercent");
 
-        return TaxLib.calculateProposalTax(proposer, proposalTaxFlat, proposalTaxPercent, balance);
+        return TaxLib.calculateProposalTax(proposalTaxFlat, proposalTaxPercent, balance);
     }
 
     function calculateTransactionTax(address from, address to, uint amount) public constant returns(uint) {
         uint transactionTaxFlat = _parameters.getNumber("taxTransactionTaxFlat");
         uint transactionTaxPercent = _parameters.getNumber("taxTransactionTaxPercent");
+
         return TaxLib.calculateTransactionTax(amount, from, to, transactionTaxFlat, transactionTaxPercent);
     }
 
     function getItemsOfPackage(uint proposalId) public constant returns(uint[]) {
-        return _proposals.getItemsOfPackage(proposalId);
+        return _proposals.proposals[proposalId].packageParts;
     }
 
     function getAddressOfRedditUsername(string redditUsername) public constant returns(address) {
@@ -203,7 +197,6 @@ contract VillageCoin {
     }
 
     function isRedditUserACitizen(string redditUsername) public constant returns (bool) {
-
         return _citizens.isCitizen(redditUsername);
     }
 
@@ -220,9 +213,8 @@ contract VillageCoin {
     }
 
     function getStringParameter(string name) public constant returns(string) {
-        string memory result;
-        result = _parameters.getString(name);
-        return result;
+        require(_parameters.isStringParameter(name));
+        return _parameters.parameters[name].stringValue;
     }
 
     function isCitizen(address addr) public constant returns (bool) {
@@ -230,7 +222,7 @@ contract VillageCoin {
     }
 
     function getHasSenderVoted(uint proposalId) returns(bool) {
-        return _referendums[proposalId].hasVoted(msg.sender);
+        return _referendums[proposalId].hasVoted[msg.sender];
     }
 
     //
@@ -239,14 +231,14 @@ contract VillageCoin {
 
     event Transfer(address indexed from, address indexed to, uint amount);
   
-    function transfer(address to, uint value) public onlyCitizen returns (bool success) {
+    function transfer(address to, uint amount) public onlyCitizen returns (bool success) {
         require(_citizens.isCitizen(to));
         uint transactionTax = calculateTransactionTax(msg.sender, to, amount);
-        _balances.transfer(msg.sender, TokenLib.PUBLIC_ACCOUNT, transactionTax);                
+        _balances.transfer(msg.sender, TokenLib.getPublicAccount(), transactionTax);                
         _balances.transfer(msg.sender, to, amount);
     }
 
-    function transferFrom(TokenStorage storage self, address _from, address _to, uint _value) returns (bool success) {
+    function transferFrom(address from, address to, uint value) returns (bool success) {
         return false; // not supported
     }
 
@@ -255,20 +247,20 @@ contract VillageCoin {
         return _balances.balanceOf(owner);
     }
 
-    function approve(TokenStorage storage self, address _spender, uint _value) returns (bool success) {
+    function approve(address spender, uint value) returns (bool success) {
         return false; // not supported
     }
 
-    function allowance(TokenStorage storage self, address _owner, address _spender) constant returns (uint remaining) {
+    function allowance(address owner, address spender) constant returns (uint remaining) {
         return 0; // not supported
     }
 
     function name() constant returns (string) {
-        return _parameters.getString("name");
+        return _parameters.parameters["name"].stringValue;
     }
 
     function symbol() constant returns (string) {
-        return _parameters.getString("symbol");
+        return _parameters.parameters["symbol"].stringValue;
     }
 
     function decimals() constant returns (uint8) {
@@ -283,78 +275,43 @@ contract VillageCoin {
     // Internal Stuff
     //
 
-    function payProposalTax(bool isPartOfPackage) private returns(uint) {
-
+    function afterCreateProposal(uint proposalId) private {
+        bool isPartOfPackage = _proposals.proposals[proposalId].isPartOfPackage;
         if (isPartOfPackage) {
             return;
         }
+        payProposalTax();
+        _referendums[proposalId].init(_parameters.getNumber("proposalTimeLimitDays") * 1 days);
+    }
 
-        uint tax = TaxLib.calculateProposalTax(msg.sender, _parameters.getNumber("taxProposalTaxFlat"), _parameters.getNumber("taxProposalTaxPercent"), _balances.balanceOf(msg.sender));
-        _balances.transfer(msg.sender, TokenLib.PUBLIC_ACCOUNT, tax);     
+    function payProposalTax() private {
+        uint tax = calculateProposalTax(msg.sender);
+        _balances.transfer(msg.sender, TokenLib.getPublicAccount(), tax);     
     }
 
     function enactProposal(uint proposalId) private {
 
-        var proposal = _proposals[proposalId];
+        var proposal = _proposals.proposals[proposalId];
         assert(proposal.isExistent);
 
-         // to make sure it has not already been enacted
-
-        if (proposal.typ == ProposalType.SetParameter) {
+        if (proposal.typ == ProposalLib.ProposalType.SetParameter) {
                 _parameters.set(proposal.stringParam1, proposal.stringParam2, proposal.numberParam1);
-            } else if (proposal.typ == ProposalType.CreateMoney) {
+            } else if (proposal.typ == ProposalLib.ProposalType.CreateMoney) {
                 _balances.createMoney(proposal.numberParam1);
-            } else if (proposal.typ == ProposalType.DestroyMoney) {
+            } else if (proposal.typ == ProposalLib.ProposalType.DestroyMoney) {
                 _balances.destroyMoney(proposal.numberParam1);        
-            } else if (proposal.typ == ProposalType.PayCitizen) {
+            } else if (proposal.typ == ProposalLib.ProposalType.PayCitizen) {
                 payCitizen(proposal.addressParam1, proposal.numberParam1);
-            } else if (proposal.typ == ProposalType.FineCitizen) {
+            } else if (proposal.typ == ProposalLib.ProposalType.FineCitizen) {
                 fineCitizen(proposal.addressParam1, proposal.numberParam1);
-            } else if (proposal.typ == ProposalType.Package) {
+            } else if (proposal.typ == ProposalLib.ProposalType.Package) {
                 for (uint i = 0; i < proposal.packageParts.length; i++) {
-                    decideProposal(proposal.packageParts[i], decision);
+                    enactProposal(proposal.packageParts[i]);
                 }
             } else {
                 revert();
             }
     }
-
-    // function decideProposal(uint proposalId, ProposalDecision decision) private {        
-        
-    //     assert(decision != ProposalDecision.Undecided);        
-
-    //     var proposal = _proposals[proposalId];
-    //     assert(_proposals[proposalId].isExistent);
-
-    //     var proposalStatus = _proposalStatus[proposalId];                        
-    //     assert(proposalStatus.decision == ProposalDecision.Undecided || proposalStatus.decision == ProposalDecision.PackageAssigned);
-        
-    //     if (!proposal.isPartOfPackage) {
-    //         proposalStatus.decision = decision;
-    //     }
-
-    //     if (decision == ProposalDecision.Accepted) {
-    //         if (proposal.typ == ProposalType.SetParameter) {
-    //             setParameter(proposal.stringParam1, proposal.stringParam2, proposal.numberParam1);
-    //         } else if (proposal.typ == ProposalType.CreateMoney) {
-    //             createMoney(proposal.numberParam1);
-    //         } else if (proposal.typ == ProposalType.DestroyMoney) {
-    //             destroyMoney(proposal.numberParam1);        
-    //         } else if (proposal.typ == ProposalType.PayCitizen) {
-    //             payCitizen(proposal.addressParam1, proposal.numberParam1);
-    //         } else if (proposal.typ == ProposalType.FineCitizen) {
-    //             fineCitizen(proposal.addressParam1, proposal.numberParam1);
-    //         } else if (proposal.typ == ProposalType.Package) {
-    //             for (uint i = 0; i < proposal.packageParts.length; i++) {
-    //                 decideProposal(proposal.packageParts[i], decision);
-    //             }
-    //         } else {
-    //             revert();
-    //         }
-    //     }
-
-    //     OnProposalDecided(proposalId);
-    // }
 
     function applyPollTax() private {
         var pollTaxAmount = _parameters.getNumber("taxPollTax");
@@ -362,11 +319,9 @@ contract VillageCoin {
             return;
         }
 
-        for (uint i = 0; i < _citizens.allCitizensEver; i++) { 
-            address citizen = _citizens.allCitizensEver[i];
-            if (_citizens.isCitizen(citizen)) {
-                _balances.transferAsMuchAsPossibleOf(citizen, TokenLib.PUBLIC_ACCOUNT, pollTaxAmount);                       
-            }
+        for (_citizens.iterateStart(); _citizens.iterateValid(); _citizens.iterateNext()) {
+            var citizen = _citizens.iterateCurrent();
+            _balances.transferAsMuchAsPossibleOf(citizen, TokenLib.getPublicAccount(), pollTaxAmount);
         }
     }
 
@@ -377,12 +332,10 @@ contract VillageCoin {
             return;
         }
 
-        for (uint i = 0; i < _citizens.allCitizensEver; i++) { 
-            address citizen = _citizens.allCitizensEver[i];
-            if (_citizens.isCitizen(citizen)) {
-                var wealthTaxAmount = TaxLib.calculateWealthTax(_balances.balanceOf(citizen), wealthTaxPercent);
-                _balances.transfer(citizen, TokenLib.PUBLIC_ACCOUNT, wealthTaxAmount);                       
-            }
+        for (_citizens.iterateStart(); _citizens.iterateValid(); _citizens.iterateNext()) {
+            var citizen = _citizens.iterateCurrent();
+            var wealthTaxAmount = TaxLib.calculateWealthTax(_balances.balanceOf(citizen), wealthTaxPercent);
+            _balances.transfer(citizen, TokenLib.getPublicAccount(), wealthTaxAmount); 
         }
     }
 
@@ -392,29 +345,26 @@ contract VillageCoin {
             return;
         }
 
-        var totalValue = basicIncomeAmount.times(_citizenCount);
-        var publicFunds = _balances.balanceOf(PUBLIC_ACCOUNT);
+        var totalValue = basicIncomeAmount.times(_citizens.count);
+        var publicFunds = _balances.balanceOf(TokenLib.getPublicAccount());
         if (totalValue > publicFunds) {
             basicIncomeAmount = publicFunds / _citizens.count;
         }
 
-        for (uint i = 0; i < _citizens.allCitizensEver.length; i++) {
-            address citizen = _citizens.allCitizensEver[i];
-
-            if (_citizens[citizen].isExistent) { 
-                _balances.transfer(PUBLIC_ACCOUNT, citizen, basicIncomeAmount);                            
-            }
+        for (_citizens.iterateStart(); _citizens.iterateValid(); _citizens.iterateNext()) {
+            var citizen = _citizens.iterateCurrent();
+            _balances.transfer(TokenLib.getPublicAccount(), citizen, basicIncomeAmount);  
         }
     }
 
     function payCitizen(address citizen, uint amount) private {
         assert(isCitizen(citizen));
-        _balances.transferAsMuchAsPossibleOf(TokenLib.PUBLIC_ACCOUNT, citizen, amount);
+        _balances.transferAsMuchAsPossibleOf(TokenLib.getPublicAccount(), citizen, amount);
     }
 
     function fineCitizen(address citizen, uint amount) private {
         assert(isCitizen(citizen));
-        _balances.transferAsMuchAsPossibleOf(citizen, TokenLib.PUBLIC_ACCOUNT, amount);
+        _balances.transferAsMuchAsPossibleOf(citizen, TokenLib.getPublicAccount(), amount);
     }
 
     modifier onlyCitizen {

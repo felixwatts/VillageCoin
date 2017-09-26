@@ -5,7 +5,11 @@ import "./SafeMathLib.sol";
 library TokenLib {
   using SafeMathLib for uint;
 
-  address constant PUBLIC_ACCOUNT = 0;
+  address constant public PUBLIC_ACCOUNT = 0;
+
+  function getPublicAccount() public constant returns(address) {
+    return PUBLIC_ACCOUNT;
+  }
 
   struct TokenStorage {
     mapping (address => uint) balances;
@@ -27,9 +31,9 @@ library TokenLib {
   }
 
   function transferAsMuchAsPossibleOf(TokenStorage storage self, address from, address to, uint value) public {
-    uint balance = self.balanceOf(from);
+    uint balance = balanceOf(self, from);
     uint amountToTransfer = balance < value ? balance : value;
-    self.transfer(from, to, amountToTransfer);
+    transfer(self, from, to, amountToTransfer);
   }
 
   function balanceOf(TokenStorage storage self, address owner) constant returns (uint balance) {
@@ -44,7 +48,7 @@ library TokenLib {
       Transfer(PUBLIC_ACCOUNT, PUBLIC_ACCOUNT, amount);
   }
 
-  function destroyMoney(TokenStorage storage self, uint amount) private {
+  function destroyMoney(TokenStorage storage self, uint amount) public {
     if (amount > self.balances[PUBLIC_ACCOUNT]) {
         amount = self.balances[PUBLIC_ACCOUNT];
     }

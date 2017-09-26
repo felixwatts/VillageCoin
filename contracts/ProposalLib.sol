@@ -2,9 +2,10 @@ pragma solidity ^0.4.9;
 
 import "./SafeMathLib.sol";
 
-library CitizenLib {
+library ProposalLib {
 
     using SafeMathLib for uint;
+    using ProposalLib for ProposalSet;
 
     event OnProposalCreated(uint proposalId);
 
@@ -37,11 +38,11 @@ library CitizenLib {
         mapping(uint=>Proposal) proposals;
     }
 
-    function proposePackage(ProposalSet storage self, uint[] partIds, string supportingEvidence) public {
+    function proposePackage(ProposalSet storage self, uint[] partIds, string supportingEvidence) public returns(uint){
 
         require(partIds.length <= 32);
 
-        var proposalId = self.createProposal(ProposalType.Package, supportingEvidence, "", "", 0, 0x0, false);
+        var proposalId = createProposal(self, ProposalType.Package, supportingEvidence, "", "", 0, 0x0, false);
         
         for (uint i = 0; i < partIds.length; i++) {
             var partId = partIds[i];
@@ -55,35 +56,38 @@ library CitizenLib {
             self.proposals[proposalId].packageParts.push(partId);
             self.proposals[partId].isAssignedToPackage = true;
         }
+
+        return proposalId;
     }
 
     function proposeSetParameter (
+        ProposalSet storage self, 
         string parameterName,
         string stringValue,
         uint numberValue,
         string supportingEvidence,
         bool isPartOfPackage
-    ) public 
+    ) public returns(uint)
     {
-        createProposal(ProposalType.SetParameter, supportingEvidence, parameterName, stringValue, numberValue, 0x0, isPartOfPackage);
+        return createProposal(self, ProposalType.SetParameter, supportingEvidence, parameterName, stringValue, numberValue, 0x0, isPartOfPackage);
     }
 
-    function proposeCreateMoney(uint amount, string supportingEvidence, bool isPartOfPackage) public {
+    function proposeCreateMoney(ProposalSet storage self, uint amount, string supportingEvidence, bool isPartOfPackage) public returns(uint) {
 
-        createProposal(ProposalType.CreateMoney, supportingEvidence, "", "", amount, 0x0, isPartOfPackage);
+        return createProposal(self, ProposalType.CreateMoney, supportingEvidence, "", "", amount, 0x0, isPartOfPackage);
     }
 
-    function proposeDestroyMoney(uint amount, string supportingEvidence, bool isPartOfPackage) public {
+    function proposeDestroyMoney(ProposalSet storage self, uint amount, string supportingEvidence, bool isPartOfPackage) public returns(uint) {
 
-        createProposal(ProposalType.DestroyMoney, supportingEvidence, "", "", amount, 0x0, isPartOfPackage);
+        return createProposal(self, ProposalType.DestroyMoney, supportingEvidence, "", "", amount, 0x0, isPartOfPackage);
     }
 
-    function proposePayCitizen(address citizen, uint amount, string supportingEvidence, bool isPartOfPackage) public {
-        createProposal(ProposalType.PayCitizen, supportingEvidence, "", "", amount, citizen, isPartOfPackage);
+    function proposePayCitizen(ProposalSet storage self, address citizen, uint amount, string supportingEvidence, bool isPartOfPackage) public returns(uint) {
+        return createProposal(self, ProposalType.PayCitizen, supportingEvidence, "", "", amount, citizen, isPartOfPackage);
     }
 
-    function proposeFineCitizen(address citizen, uint amount, string supportingEvidence, bool isPartOfPackage) public {
-        createProposal(ProposalType.FineCitizen, supportingEvidence, "", "", amount, citizen, isPartOfPackage);
+    function proposeFineCitizen(ProposalSet storage self, address citizen, uint amount, string supportingEvidence, bool isPartOfPackage) public returns(uint) {
+        return createProposal(self, ProposalType.FineCitizen, supportingEvidence, "", "", amount, citizen, isPartOfPackage);
     }
 
     function createProposal(ProposalSet storage self, ProposalType typ, string supportingEvidenceUrl, string stringParam1, string stringParam2, uint numberParam1, address addressParam1, bool isPartOfPackage) private returns(uint) {

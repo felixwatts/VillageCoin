@@ -60,10 +60,10 @@ library ParameterLib {
     }
 
     function set(ParameterSet storage self, string name, string stringValue, uint numberValue) public {
-        if (self.isStringParameter(name)) {
-            self.setString(name, stringValue);
-        } else if (self.isNumberParameter(name)) {
-            self.setNumber(name, numberValue);
+        if (isStringParameter(self, name)) {
+            setString(self, name, stringValue);
+        } else if (isNumberParameter(self, name)) {
+            setNumber(self, name, numberValue);
         } else {
             revert();
         }
