@@ -14,7 +14,7 @@
         <li class="menu"><a class="menu" href="createProposal.html">Make a Proposal</a></li>
     </ul>    
 
-    <span id="announcementMessage" style="display:none"></span>
+    <div id="announcementMessage" style="display:none"></div>
 
     <p>Welcome to <span class="villageName"></span> <strong><span class="redditUsername"></span></strong>! The population is <strong id="population"></strong>. The public account balance is <strong><span id="publicAccountBalance"></span></strong>. <span id="openProposals"></span></p>
 
@@ -34,9 +34,9 @@
 
     async function buildTransferRow(transfer)
     {        
-        var fromUsername = (await app.contract._citizens.call(transfer.args.from))[3];
-        var toUsername = (await app.contract._citizens.call(transfer.args.to))[3];
-        var amount = await app.formatCurrencyAmount(transfer.args.value);
+        var fromUsername = (await app.getCitizenByAddress(transfer.args.from)).username;
+        var toUsername = (await app.getCitizenByAddress(transfer.args.to)).username;
+        var amount = await app.formatCurrencyAmount(transfer.args.amount);
 
         return "<tr><td>" + fromUsername + "</td><td>" + toUsername + "</td><td>" + amount + "</td></tr>";
     }
@@ -58,12 +58,6 @@
 
             document.getElementById("recentTransfers").innerHTML = html;
         });
-
-    // event.watch(function(error, response)
-    // {
-    //    //once the event has been detected, take actions as desired
-    //     var data = 'from: ' + response.args._from+"<br>candidateName: "+web3.toUtf8(response.args._candidateName) +"<br>";
-    // });
     }
 
     async function populateAnnouncement()
@@ -117,7 +111,7 @@
 
     async function populatePopulation()
     {
-        var population = await app.contract._citizenCount.call({from: app.account});
+        var population = (await app.contract._citizens.call({from: app.account}))[0].toNumber();
         document.getElementById("population").innerHTML = population;
     }
 

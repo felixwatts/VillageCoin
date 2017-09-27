@@ -1,6 +1,5 @@
 # Tasks
 
-- show user's recent transactions on index page
 - devise and implement a way to upgrade
 - deploy to local node (not testrpc)
 - deploy contract to test network

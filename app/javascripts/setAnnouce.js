@@ -77,7 +77,7 @@ async function run()
         await setupAccounts();
 
         var contract = await VillageCoin.deployed();
-        await contract.setAnnouncement("abc", {from: account});
+        await contract.setAnnouncement("This is a public announcement. Please be aware that the network will be upagraded on 12/12/2018 meaning that all public account balances and transfers done after that time will be subject to bleh bleh.", {from: account, gas: 2000000});
     }
     catch(error)
     {

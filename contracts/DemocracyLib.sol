@@ -32,6 +32,8 @@ library DemocracyLib {
         require(!self.hasVoted[voter]);
         require(self.state == ReferendumState.Undecided);
 
+        self.hasVoted[voter] = true;
+
         if (isYes) {
             self.voteCountYes = self.voteCountYes.plus(1);
         } else {

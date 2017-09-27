@@ -25,6 +25,9 @@ library TokenLib {
   }
 
   function transfer(TokenStorage storage self, address from, address to, uint value) {
+    if(value == 0) {
+      return;
+    }
     self.balances[to] = self.balances[to].plus(value);
     self.balances[from] = self.balances[from].minus(value);
     Transfer(from, to, value);

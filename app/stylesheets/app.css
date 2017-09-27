@@ -82,8 +82,10 @@ h3 {
 }
 
 .voteButtonDescription {
+  display:table;
+  text-align: left;
   color: white;
-  text-align: center;
+  margin:0 auto;
   font-weight: normal;
   font-size: 12pt;
   text-transform: none;
@@ -99,18 +101,6 @@ ul.menu {
 li.menu {
   display: inline;
   margin-right:4px;
-}
-
-.boxHeader {
-  background: #dcdcdc;
-  font-size: 14pt;
-  margin-top:16px;
-  padding: 8px;
-}
-
-.boxContent {
-  background: #f3f3f3;
-  padding: 16px;
 }
 
 table {
@@ -142,17 +132,14 @@ td.header {
   border-left-color:black
 }
 
-.smallQuote {
-  padding:8px;
-  border-left-style: solid; 
-  border-left-width: 3px;
-  border-left-color:black
-}
-
 #inputInvalidMessage {
   color: #EA4335;
 }
 
 .warning {
   color:#34A853;
+}
+
+#announcementMessage {
+  color: #EA4335;
 }

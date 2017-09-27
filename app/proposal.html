@@ -47,14 +47,14 @@
             <div>
                 <button class="voteButton" style="background:#34A853" onclick="vote(true)">
                     YES
-                    <div class="voteButtonDescription" id="yesButtonDescription"></div>
+                    <div><div class="voteButtonDescription" id="yesButtonDescription"></div></div>
                 </button>
             </div>
             <br>
             <div>
                 <button class="voteButton" style="background:#EA4335" onclick="vote(false)">
                         NO
-                        <div class="voteButtonDescription" id="noButtonDescription"></div>
+                        <div><div class="voteButtonDescription" id="noButtonDescription"></div></div>
                 </button>
             </div>
         </div>
@@ -252,9 +252,9 @@
 
             if(!proposal.isExistent) return;             
 
-            var thresholdPercent = (await app.contract.getProposalDecideThresholdPercent.call({from: app.account})).toNumber();
+            var thresholdPercent = (await app.contract.getNumberParameter.call("proposalDecideThresholdPercent", {from: app.account})).toNumber();
 
-            var citizenCount = (await app.contract._citizenCount.call({from: app.account})).toNumber();    
+            var citizenCount = (await app.contract._citizens.call({from: app.account}))[0].toNumber();    
             
             document.getElementById("proposalDetails").style.display = "inline";
             populateProposalDescription(proposal.description);

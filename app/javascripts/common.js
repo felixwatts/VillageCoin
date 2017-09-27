@@ -96,7 +96,8 @@ async function redirectCitizen()
 
 async function populateRedditUsername()
 {
-    var redditUsername = (await app.contract._citizens.call(app.account))[3];
+    var citizen = await getCitizenByAddress(app.account);
+    var redditUsername = citizen.username;
 
     var redditUsernameElements = document.getElementsByClassName("redditUsername");
 
@@ -132,7 +133,7 @@ async function populateVillageSymbol()
 
 async function getVillageName() 
 {
-    var villageName = await app.contract.name.call({from: app.account});
+    var villageName = await app.contract.name.call({from: app.account});    
     return villageName;
 }
 
@@ -142,10 +143,40 @@ async function getVillageSymbol()
     return symbol;
 }
 
+async function getCitizenByUsername(username)
+{
+    var citizenData = await app.contract.getCitizenByUsername.call(username, {from: app.account});
+
+    var citizen = 
+    {
+        username: username,
+        isExistent: citizenData[0],
+        addr: citizenData[1],
+        balance: citizenData[2].toNumber()
+    }
+
+    return citizen;
+}
+
+async function getCitizenByAddress(addr)
+{
+    var citizenData = await app.contract.getCitizenByAddress.call(addr, {from: app.account});
+
+    var citizen = 
+    {
+        username: citizenData[1],
+        isExistent: citizenData[0],
+        addr: addr,
+        balance: citizenData[2].toNumber()
+    }
+
+    return citizen;
+}
+
 async function getProposal(proposalId) 
 {
-    var proposalData = await app.contract._proposals.call(proposalId, {from: app.account});
-    var proposalStatusData = await app.contract._proposalStatus.call(proposalId, {from: app.account});    
+    var proposalData = await app.contract.getProposal.call(proposalId, {from: app.account});
+    var referendumData = await app.contract._referendums.call(proposalId, {from: app.account});  
 
     var proposal = 
     {
@@ -153,39 +184,40 @@ async function getProposal(proposalId)
         type: proposalData[0].toNumber(),        
         proposer: proposalData[1],
         isExistent: proposalData[2],
-        expiryTime: proposalData[3].toNumber(),
-        supportingEvidenceUrl: proposalData[8],
-        isPartOfPackage: proposalData[9],
+        expiryTime: referendumData[2].toNumber(),
+        supportingEvidenceUrl: proposalData[7],
+        isPartOfPackage: proposalData[8],
+        isAssignedToPackage: proposalData[9],
         
-        voteCountYes: proposalStatusData[0].toNumber(),
-        voteCountNo: proposalStatusData[1].toNumber(),            
-        decision: proposalStatusData[2].toNumber(),                        
+        voteCountYes: referendumData[3].toNumber(),
+        voteCountNo: referendumData[4].toNumber(),            
+        decision: referendumData[1].toNumber(),                        
     };
 
     switch(proposal.type)
     {
         case app.ProposalType.SetParameter:
-            proposal.parameterName = proposalData[4];
-            proposal.stringValue = proposalData[5];
-            proposal.numberValue = proposalData[6].toNumber();
+            proposal.parameterName = proposalData[3];
+            proposal.stringValue = proposalData[4];
+            proposal.numberValue = proposalData[5].toNumber();
             break;
 
         case app.ProposalType.CreateMoney:
-            proposal.amount = proposalData[6].toNumber();
+            proposal.amount = proposalData[5].toNumber();
             break;
 
         case app.ProposalType.DestroyMoney:
-            proposal.amount = proposalData[6].toNumber();
+            proposal.amount = proposalData[5].toNumber();
             break;
 
         case app.ProposalType.PayCitizen:
-            proposal.citizen = proposalData[7];
-            proposal.amount = proposalData[6].toNumber();
+            proposal.citizen = proposalData[6];
+            proposal.amount = proposalData[5].toNumber();
             break;
 
         case app.ProposalType.FineCitizen:
-            proposal.citizen = proposalData[7];
-            proposal.amount = proposalData[6].toNumber();
+            proposal.citizen = proposalData[6];
+            proposal.amount = proposalData[5].toNumber();
             break;
 
         case app.ProposalType.Package:
@@ -196,21 +228,6 @@ async function getProposal(proposalId)
     proposal.description = await getProposalDescription(proposal); 
 
     return proposal;
-}
-
-async function getCitizen(addr)
-{
-    var data = await app.contract._citizens.call(addr, {from: app.account});
-
-    var citizen = 
-    {
-        address: data[0],
-        balance: data[1].toNumber(),
-        isExistent: data[2],
-        redditUsername: data[3]
-    };
-
-    return citizen;
 }
 
 async function formatCurrencyAmount(amount)
@@ -261,19 +278,19 @@ async function getProposalDescription(proposal)
 
         case app.ProposalType.PayCitizen:
         {
-            var citizen = await getCitizen(proposal.citizen);
+            var citizen = await getCitizenByAddress(proposal.citizen);
             var amountStr = await formatCurrencyAmount(proposal.amount);
 
-            return "transfer <strong>" + amountStr + "</strong> from the public account to citizen <strong>" + citizen.redditUsername + "</strong>";
+            return "transfer <strong>" + amountStr + "</strong> from the public account to citizen <strong>" + citizen.username + "</strong>";
         }
         break;
 
         case app.ProposalType.FineCitizen:
         {            
-            var citizen = await getCitizen(proposal.citizen);
+            var citizen = await getCitizenByAddress(proposal.citizen);
             var amountStr = await formatCurrencyAmount(proposal.amount);
 
-            return "transfer <strong>" + amountStr + "</strong> from citizen <strong>" + citizen.redditUsername + "</strong> to the public account";
+            return "transfer <strong>" + amountStr + "</strong> from citizen <strong>" + citizen.username + "</strong> to the public account";
         }
         break;
 
@@ -299,13 +316,13 @@ function filterProposalByUndecided(proposal)
 
 function filterProposalByPendingPackagePart(proposal) 
 {
-    return proposal.isExistent && proposal.isPartOfPackage && proposal.decision == app.ProposalDecision.PackageUnassigned && proposal.proposer == app.account;
+    return proposal.isExistent && proposal.isPartOfPackage && !proposal.isAssignedToPackage && proposal.proposer == app.account;
 }
 
 async function getAllProposals()
 {
-    var maxProposalId = await app.contract._nextProposalId.call({from: app.account});
-    var allProposalIds = [...Array(maxProposalId.toNumber()).keys()];
+    var maxProposalId = (await app.contract._proposals.call({from: app.account})).toNumber();
+    var allProposalIds = [...Array(maxProposalId).keys()];
     var allProposals = await Promise.all(allProposalIds.map(function(id){ return getProposal(id);}));
 
     return allProposals;
@@ -424,9 +441,9 @@ async function parsePackagePartsInput(parsingErrors, results)
         }
     }
 
-    if(results.packageParts.length == 0)
+    if(results.packageParts.length < 2)
     {
-        parsingErrors.push("You must select at least one proposal to include in the package");
+        parsingErrors.push("You must select at least two proposals to include in the package");
     }
 }
 
@@ -508,7 +525,7 @@ async function parseAddressInput(element, parsingErrors, results)
     var isValidAddress = web3.isAddress(addressStr);
     if(isValidAddress)
     {            
-        var isCitizen = await app.contract.isCitizen.call(toAddress, amount, {from: app.account});
+        var isCitizen = (await getCitizenByAddress(addressStr, amount, {from: app.account})).isExistent;
         if(!isCitizen)
         {
             parsingErrors.push(addressStr + " is not a citizen");
@@ -520,15 +537,14 @@ async function parseAddressInput(element, parsingErrors, results)
     }
     else
     {
-        var address = await app.contract.getAddressOfRedditUsername(addressStr, {from: app.account});
-        
-        if(address == "0x0000000000000000000000000000000000000000")
+        var citizen = await getCitizenByUsername(addressStr, {from: app.account});        
+        if(!citizen.isExistent)
         {
             parsingErrors.push(addressStr + " is not a citizen");
         }
         else
         {            
-            results[element.id] = address;
+            results[element.id] = citizen.addr;
         }
     }  
 }
@@ -551,10 +567,11 @@ function setupCommonFunctions()
 {
     window.app.VillageCoin = VillageCoin;
 
+    window.app.getCitizenByUsername = getCitizenByUsername;
+    window.app.getCitizenByAddress = getCitizenByAddress;
     window.app.parseForm = parseForm;
     window.app.parseCurrencyAmount = parseCurrencyAmount;
     window.app.formatCurrencyAmount = formatCurrencyAmount;
-    window.app.getCitizen = getCitizen;
     window.app.populateRedditUsername = populateRedditUsername;
     window.app.getProposal = getProposal;
     window.app.getVillageName = getVillageName;
@@ -583,20 +600,19 @@ function setupCommonFunctions()
     ProposalDecision.Accepted = 1;
     ProposalDecision.Rejected = 2;
     ProposalDecision.Expired = 3;
-    ProposalDecision.PackageUnassigned = 4;
-    ProposalDecision.PackageAssigned = 5;
+
     window.app.ProposalDecision = ProposalDecision;
 }
 
 window.init = async function()
 {
     window.app = {};
-    
+
     setupWeb3Provider();
     await setupAccounts();
     setupCommonFunctions();
-    
-    window.app.contract = await VillageCoin.deployed();
+
+    window.app.contract = await VillageCoin.deployed();// VillageCoin.at("0x46bbc5f28719174cc6edd88aeeb6a48d3c3ff9ea");//.deployed();
     
     populateVillageName();
     populateVillageSymbol();

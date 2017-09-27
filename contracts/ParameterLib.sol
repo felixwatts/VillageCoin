@@ -40,7 +40,7 @@ library ParameterLib {
 
     function getNumber(ParameterSet storage self, string name) public returns(uint) {
         require(self.parameters[name].isExistent);
-        require(!self.parameters[name].isNumber);
+        require(self.parameters[name].isNumber);
 
         return self.parameters[name].numberValue;
     }

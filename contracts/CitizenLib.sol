@@ -20,6 +20,15 @@ library CitizenLib {
         int iterationIndex;
     }
 
+    function init(Citizenry storage self) public {
+        assert(self.allUsernamesEver.length == 0);
+
+        self.citizenByUsername["!PublicAccount"].isExistent = true;
+        self.citizenByUsername["!PublicAccount"].username = "!PublicAccount";
+        self.citizenByUsername["!PublicAccount"].addr = 0x0;
+        self.usernameByAddress[0x0] = "!PublicAccount";
+    }
+
     function iterateStart(Citizenry storage self) public {
         self.iterationIndex = -1;
     }

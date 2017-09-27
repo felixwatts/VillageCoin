@@ -27,8 +27,8 @@ contract VillageCoin {
 
     ParameterLib.ParameterSet _parameters;
     TokenLib.TokenStorage _balances;
-    CitizenLib.Citizenry _citizens;
-    ProposalLib.ProposalSet _proposals;
+    CitizenLib.Citizenry public _citizens;
+    ProposalLib.ProposalSet public _proposals;
     mapping(uint=>DemocracyLib.Referendum) public _referendums;
 
     //
@@ -52,6 +52,8 @@ contract VillageCoin {
 
     function init() onlyGatekeeper public {
 
+        _citizens.init();
+
         _parameters.addString("name", "RedditVillage");
         _parameters.addString("symbol", "RVX");
         _parameters.addNumber("decimals", 0, 0, 8);
@@ -71,7 +73,7 @@ contract VillageCoin {
         _parameters.addNumber("taxProposalTaxFlat", 0, 0, 0);
         _parameters.addNumber("taxProposalTaxPercent", 0, 0, 100);        
 
-        _nextTaxTime = now.plus(getNumberParameter("taxPeriodDays").times(1 days)); 
+        _nextTaxTime = now.plus(_parameters.getNumber("taxPeriodDays").times(1 days)); 
     }
 
     function setAnnouncement(string announcement) onlyGatekeeper public {
@@ -188,16 +190,67 @@ contract VillageCoin {
         return TaxLib.calculateTransactionTax(amount, from, to, transactionTaxFlat, transactionTaxPercent);
     }
 
+    function getProposal(uint proposalId) public constant returns(
+        ProposalLib.ProposalType typ, 
+        address proposer, 
+        bool isExistent,
+        string stringParam1,
+        string stringParam2,        
+        uint numberParam1,              
+        address addressParam1,                    
+        string supportingEvidenceUrl,
+        bool isPartOfPackage,
+        bool isAssignedToPackage) 
+        {
+
+            ProposalLib.Proposal storage proposal = _proposals.proposals[proposalId];
+        
+            typ = proposal.typ;
+            proposer = proposal.proposer;
+            isExistent = proposal.isExistent;
+            stringParam1 = proposal.stringParam1;
+            stringParam2 = proposal.stringParam2;
+            numberParam1 = proposal.numberParam1;
+            addressParam1 = proposal.addressParam1;
+            supportingEvidenceUrl = proposal.supportingEvidenceUrl;
+            isPartOfPackage = proposal.isPartOfPackage;
+            isAssignedToPackage = proposal.isAssignedToPackage;
+
+            return;
+    }
+
     function getItemsOfPackage(uint proposalId) public constant returns(uint[]) {
         return _proposals.proposals[proposalId].packageParts;
     }
 
-    function getAddressOfRedditUsername(string redditUsername) public constant returns(address) {
-        return _citizens.getAddress(redditUsername);
+    function getCitizenByUsername(string username) public constant returns(
+        bool isExistent,
+        address addr,
+        uint balance)
+    {
+        CitizenLib.Citizen storage citizen = _citizens.citizenByUsername[username];
+
+        isExistent = citizen.isExistent;
+        addr = citizen.addr;
+        balance = isExistent ? _balances.balances[addr] : 0;
+
+        return;
     }
 
-    function isRedditUserACitizen(string redditUsername) public constant returns (bool) {
-        return _citizens.isCitizen(redditUsername);
+    function getCitizenByAddress(address addr) public constant returns(
+        bool isExistent,
+        string username,
+        uint balance)
+    {
+        require(_citizens.isCitizen(addr));
+
+        CitizenLib.Citizen storage citizen = _citizens.citizenByUsername[_citizens.usernameByAddress[addr]];
+
+        isExistent = citizen.isExistent;
+        username = citizen.username;
+        balance = isExistent ? _balances.balances[addr] : 0;
+
+        return;
     }
 
     function isNumberParameter(string name) public constant returns(bool) {
