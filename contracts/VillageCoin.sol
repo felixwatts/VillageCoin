@@ -98,10 +98,10 @@ contract VillageCoin {
     //
 
     function applyTaxesIfDue() public {
-        // var isDue = now > _nextTaxTime;
-        // if(!isDue) {
-        //     return;
-        // }
+        var isDue = now > _nextTaxTime;
+        if(!isDue) {
+            return;
+        }
 
         _nextTaxTime = _nextTaxTime.plus(getNumberParameter("taxPeriodDays").times(1 days)); 
 

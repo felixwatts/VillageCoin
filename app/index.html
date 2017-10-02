@@ -28,6 +28,12 @@
     <table id="recentTransfers"></table>
 
     <span id="status"></span>   
+
+    <div id="overlayMessage" class="overlayMessage">
+        <div id=overlayMessageContent></div>
+        <button id="overlayMessageDismissButton">Dismiss</button>
+    </div>
+    <div id="overlayBackground" class="overlayBackground"></div>
 </body>
 </html>
 <script>
@@ -135,7 +141,8 @@
             var formContents = await app.parseForm();
             if(!formContents.isValid) return;
 
-            var receipt = await app.contract.transfer(formContents.toAddress, formContents.amount, {from: app.account});
+            var receipt = await app.doTransaction(app.contract.transfer(formContents.toAddress, formContents.amount, {from: app.account}));
+            if(receipt == undefined) return;
             
             populateBalance();
         }

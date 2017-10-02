@@ -1,12 +1,12 @@
 import "../stylesheets/app.css";
 
-import { default as Web3 } from 'web3';
-import { default as contract } from 'truffle-contract';
+import { default as Web3 } from "web3";
+import { default as contract } from "truffle-contract";
 
-var BigNumber = require('bignumber.js');
-var validUrl = require('valid-url');
+var BigNumber = require("bignumber.js");
+var validUrl = require("valid-url");
 
-import villagecoin_artifacts from '../../build/contracts/VillageCoin.json';
+import villagecoin_artifacts from "../../build/contracts/VillageCoin.json";
 
 var VillageCoin = contract(villagecoin_artifacts);
 
@@ -20,9 +20,9 @@ function setStatus (message)
 function setupWeb3Provider() 
 {
     // Checking if Web3 has been injected by the browser (Mist/MetaMask)
-    if (typeof web3 !== 'undefined') {
+    if (typeof web3 !== "undefined") {
         console.warn("Using web3 detected from external source. If you find that your accounts don't appear or you have 0 MetaCoin, ensure you've configured that source properly. If using MetaMask, see the following link. Feel free to delete this warning. :) http://truffleframework.com/tutorials/truffle-and-metamask")
-        // Use Mist/MetaMask's provider
+        // Use Mist/MetaMask"s provider
         window.web3 = new Web3(web3.currentProvider);
     } else {
         console.warn("No web3 detected. Falling back to http://localhost:8545. You should remove this fallback when you deploy live, as it's inherently insecure. Consider switching to Metamask for development. More info here: http://truffleframework.com/tutorials/truffle-and-metamask");
@@ -563,10 +563,68 @@ async function parseUrlInput(element, parsingErrors, results)
     }
 }
 
+async function doTransaction(transaction)
+{
+    try
+    {
+        showOverlayMessage("☕ The network is processing your transaction...")
+
+        var receipt = await transaction;
+
+        // TODO detect failure and
+        // await showOverlayMessageAndWaitForDismiss(failure message);
+
+        dismissOverlayMessage();
+
+        return receipt;
+    }
+    catch(error)
+    {
+        console.log(error);
+        await showOverlayMessageAndWaitForDismiss(error);
+        return undefined;
+    }
+}
+
+function showOverlayMessage(innerHtml)
+{
+    document.getElementById("overlayMessageContent").innerHTML = innerHtml;
+    document.getElementById("overlayMessageDismissButton").style.display = "none";
+    document.getElementById("overlayMessageDismissButton").disabled = true;
+    document.getElementById("overlayMessage").style.display = "block";
+    document.getElementById("overlayBackground").style.display = "block"
+}
+
+function showOverlayMessageAndWaitForDismiss(innerHtml)
+{
+    var promise = new Promise(function(resolve, reject) 
+    {
+        document.getElementById("overlayMessageContent").innerHTML = innerHtml;
+        document.getElementById("overlayMessageDismissButton").style.display = "inline";
+        document.getElementById("overlayMessageDismissButton").disabled = false;
+        document.getElementById("overlayMessageDismissButton").onclick = function()
+        {
+            dismissOverlayMessage();
+            resolve();
+        }
+        document.getElementById("overlayMessage").style.display = "block";
+        document.getElementById("overlayBackground").style.display = "block"
+    });
+
+    return promise;
+}
+
+function dismissOverlayMessage()
+{
+    document.getElementById("overlayMessage").style.display = "none";
+    document.getElementById("overlayBackground").style.display = "none";
+}
+
 function setupCommonFunctions() 
 {
     window.app.VillageCoin = VillageCoin;
 
+    window.app.doTransaction = doTransaction;
     window.app.getCitizenByUsername = getCitizenByUsername;
     window.app.getCitizenByAddress = getCitizenByAddress;
     window.app.parseForm = parseForm;

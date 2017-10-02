@@ -94,7 +94,13 @@
     <button class="voteButton" id="inputSubmit" onclick="submit()" disabled>Create Proposal</button></p>
     <div class="warning" id="proposalTaxMessage"></div>
     <div id="inputInvalidMessage"></div>
-    <span id="status"></span>   
+    <span id="status"></span>  
+    
+    <div id="overlayMessage" class="overlayMessage">
+        <div id=overlayMessageContent></div>
+        <button id="overlayMessageDismissButton">Dismiss</button>
+    </div>
+    <div id="overlayBackground" class="overlayBackground"></div>
 </body>
 </html>
 <script>
@@ -139,7 +145,8 @@ async function submit()
         var results = await app.parseForm();
         if(!results.isValid) return;
 
-        var receipt = await app.contract.proposeSetParameter(results.parameterName, results.parameterStringValue, results.parameterNumberValue, results.supportingEvidenceUrl, results.isPartOfPackage, {from: app.account});
+        var receipt = await app.doTransaction(app.contract.proposeSetParameter(results.parameterName, results.parameterStringValue, results.parameterNumberValue, results.supportingEvidenceUrl, results.isPartOfPackage, {from: app.account}));
+        if(receipt == undefined) return;
 
         var proposalId = receipt.logs.filter(function(log){ return log.event == "OnProposalCreated"})[0].args.proposalId.toNumber();
 

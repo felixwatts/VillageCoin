@@ -36,13 +36,10 @@ module.exports = function(deployer)
     deployer.link(ProposalLib, VillageCoin);
     deployer.link(TaxLib, VillageCoin);
     deployer.link(TokenLib, VillageCoin);
-  
-    var address = deployer.deploy(VillageCoin);
-  
-    console.log(address);
   }
   catch(error)
   {
     console.log(error);
+    throw(error);
   }
 };

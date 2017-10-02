@@ -82,6 +82,11 @@
         </div>
     </div>
     <div id="status"></div>
+    <div id="overlayMessage" class="overlayMessage">
+        <div id=overlayMessageContent></div>
+        <button id="overlayMessageDismissButton">Dismiss</button>
+    </div>
+    <div id="overlayBackground" class="overlayBackground"></div>
 </body>
 </html>
 <script>
@@ -103,7 +108,9 @@
             var proposalId = getProposalId();
 
             var villageCoin = app.contract;
-            await villageCoin.voteOnProposal(proposalId, isYes, {from: app.account});
+
+            var receipt = await app.doTransaction(app.contract.voteOnProposal(proposalId, isYes, {from: app.account}));
+            if(receipt == undefined) return;
 
             window.location.reload();
         }
