@@ -33,7 +33,7 @@
     <span id="status"></span>   
 
     <div id="overlayMessage" class="overlayMessage">
-        <div id=overlayMessageContent>Transaction in pogress...</div>
+        <div id=overlayMessageContent></div>
         <button id="overlayMessageDismissButton">Dismiss</button>
     </div>
     <div id="overlayBackground" class="overlayBackground"></div>
@@ -49,12 +49,7 @@ async function submit()
         if(!results.isValid) return;
 
         var receipt = await app.doTransaction(app.contract.proposeCreateMoney(results.amount, results.supportingEvidenceUrl, results.isPartOfPackage, {from: app.account}));
-
         if(receipt == undefined) return;
-
-        //receipt = await app.contract.proposeCreateMoney(results.amount, results.supportingEvidenceUrl, results.isPartOfPackage, {from: app.account});
-
-        //console.log(receipt);
 
         var proposalId = receipt.logs.filter(function(log){ return log.event == "OnProposalCreated"})[0].args.proposalId.toNumber();
 

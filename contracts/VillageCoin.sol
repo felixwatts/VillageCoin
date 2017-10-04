@@ -56,7 +56,7 @@ contract VillageCoin {
 
         _parameters.addString("name", "RedditVillage");
         _parameters.addString("symbol", "RVX");
-        _parameters.addNumber("decimals", 0, 0, 8);
+        _parameters.addNumber("decimals", 0, 0, 18);
 
         _parameters.addNumber("initialAccountBalance", 1000, 0, 0);
         _parameters.addNumber("proposalDecideThresholdPercent", 60, 0, 100);
@@ -99,7 +99,7 @@ contract VillageCoin {
 
     function applyTaxesIfDue() public {
         var isDue = now > _nextTaxTime;
-        if(!isDue) {
+        if (!isDue) {
             return;
         }
 
