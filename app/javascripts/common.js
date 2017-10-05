@@ -477,6 +477,22 @@ async function parseParameterInput(parsingErrors, results)
         }
         else
         {
+            var range = await app.contract.getNumberParameterRange(parameterName);
+            var min = range[0].toNumber();
+            var max = range[1].toNumber();
+
+            if(parameterValueNum < min)
+            {
+                parsingErrors.push("The parameter value must be >= " + min);
+                return;
+            }
+
+            if(max > 0 && parameterValueNum > max)
+            {
+                parsingErrors.push("The parameter value must be <= " + max);
+                return;
+            }
+
             results.parameterName = parameterName;
             results.parameterNumberValue = parameterValueNum;
             results.parameterStringValue = "";

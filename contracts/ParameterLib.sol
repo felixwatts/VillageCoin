@@ -45,6 +45,23 @@ library ParameterLib {
         return self.parameters[name].numberValue;
     }
 
+    function validateValue(ParameterSet storage self, string name, string stringValue, uint numberValue) public constant {
+        if (isStringParameter(self, name)) {
+            return;
+        } else if (isNumberParameter(self, name)) {
+            validateNumberValue(self, name, numberValue);
+        } else {
+            assert(false);
+        }
+    }
+
+    function validateNumberValue(ParameterSet storage self, string name, uint value) public constant {
+        require(self.parameters[name].isExistent);
+        require(self.parameters[name].isNumber);
+        require(value >= self.parameters[name].minNumberValue);
+        require(self.parameters[name].maxNumberValue == 0 || value <= self.parameters[name].maxNumberValue);
+    }
+
     //
     // Modifiers
     //
@@ -65,7 +82,7 @@ library ParameterLib {
         } else if (isNumberParameter(self, name)) {
             setNumber(self, name, numberValue);
         } else {
-            revert();
+            assert(false);
         }
     }
 
@@ -77,10 +94,7 @@ library ParameterLib {
     }
 
     function setNumber(ParameterSet storage self, string name, uint value) public {
-        require(self.parameters[name].isExistent);
-        require(self.parameters[name].isNumber);
-        require(value >= self.parameters[name].minNumberValue);
-        require(self.parameters[name].maxNumberValue == 0 || value <= self.parameters[name].maxNumberValue);
+        validateNumberValue(self, name, value);
 
         self.parameters[name].numberValue = value;
     }

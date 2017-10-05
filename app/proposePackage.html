@@ -30,10 +30,10 @@
     <p>You may optionally provide the URL of some <em>supporting evidence</em> to help convince other citizens of the value of your proposal.
         <input type="text" id="supportingEvidenceUrl" class="inputUrl" placeholder="e.g. https://i.imgur.com/J5MKGp2.gifv" onchange="app.parseForm()"></input>
     </p>
-    
+    <div id="inputInvalidMessage"></div>
     <button class="voteButton" id="inputSubmit" onclick="submit()" disabled>Create Proposal</button></p>
     <div class="warning" id="proposalTaxMessage"></div>
-    <div id="inputInvalidMessage"></div>
+    
     <span id="status"></span>   
 
     <div id="overlayMessage" class="overlayMessage">
@@ -41,6 +41,8 @@
         <button id="overlayMessageDismissButton">Dismiss</button>
     </div>
     <div id="overlayBackground" class="overlayBackground"></div>
+
+    <div class="footer">Checkout my <a href="https://github.com/felixwatts/VillageCoin">sourcecode on github</a></div>
 </body>
 </html>
 <script>

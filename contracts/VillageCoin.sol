@@ -61,7 +61,7 @@ contract VillageCoin {
         _parameters.addNumber("initialAccountBalance", 1000, 0, 0);
         _parameters.addNumber("proposalDecideThresholdPercent", 60, 0, 100);
         _parameters.addNumber("proposalTimeLimitDays", 30, 0, 0);
-        _parameters.addNumber("citizenRequirementMinCommentKarma", 500, 100, 0);
+        _parameters.addNumber("citizenRequirementMinCommentKarma", 0, 0, 0);
         _parameters.addNumber("citizenRequirementMinPostKarma", 0, 0, 0);
 
         _parameters.addNumber("taxPeriodDays", 30, 1, 0);
@@ -139,7 +139,8 @@ contract VillageCoin {
         bool isPartOfPackage
     ) public onlyCitizen 
     {
-        require(_parameters.isParameter(parameterName));
+        _parameters.validateValue(parameterName, stringValue, numberValue);
+
         uint proposalId = _proposals.proposeSetParameter(parameterName, stringValue, numberValue, supportingEvidence, isPartOfPackage);
         afterCreateProposal(proposalId);      
     }
@@ -263,6 +264,13 @@ contract VillageCoin {
 
     function getNumberParameter(string name) public constant returns(uint current) {
         return _parameters.getNumber(name);
+    }
+
+    function getNumberParameterRange(string name) public constant returns(uint min, uint max) {
+        require(_parameters.isNumberParameter(name));
+        min = _parameters.parameters[name].minNumberValue;
+        max = _parameters.parameters[name].maxNumberValue;
+        return;
     }
 
     function getStringParameter(string name) public constant returns(string) {
