@@ -1,5 +1,10 @@
 pragma solidity ^0.4.9;
 
+// Parameters is a key-value store where the key is a string and the value can be either a string or a number
+// Parameters are defined using the addString and addNumber functions
+// Parameters can be get and set using getString, setString, getNumber, setNumber and set functions
+// Undefined parameters cannot be get or set
+// Number type parameters have an enforced min-max range. 
 library ParameterLib {
 
     struct Parameter {
@@ -11,7 +16,7 @@ library ParameterLib {
         uint maxNumberValue; // 0 = no max
     }
 
-    struct ParameterSet {
+    struct Parameters {
         mapping(string=>Parameter) parameters;
     }
 
@@ -19,33 +24,33 @@ library ParameterLib {
     // Views
     //
 
-    function isParameter(ParameterSet storage self, string name) public constant returns(bool) {
+    function isParameter(Parameters storage self, string name) public constant returns(bool) {
         return self.parameters[name].isExistent;
     }
 
-    function isNumberParameter(ParameterSet storage self, string name) public constant returns(bool) {
+    function isNumberParameter(Parameters storage self, string name) public constant returns(bool) {
         return self.parameters[name].isExistent && self.parameters[name].isNumber;
     }
 
-    function isStringParameter(ParameterSet storage self, string name) public constant returns(bool) {
+    function isStringParameter(Parameters storage self, string name) public constant returns(bool) {
         return self.parameters[name].isExistent && !self.parameters[name].isNumber;
     }
 
-    function getString(ParameterSet storage self, string name) public returns(string) {
+    function getString(Parameters storage self, string name) public returns(string) {
         require(self.parameters[name].isExistent);
         require(!self.parameters[name].isNumber);
 
         return self.parameters[name].stringValue;
     }
 
-    function getNumber(ParameterSet storage self, string name) public returns(uint) {
+    function getNumber(Parameters storage self, string name) public returns(uint) {
         require(self.parameters[name].isExistent);
         require(self.parameters[name].isNumber);
 
         return self.parameters[name].numberValue;
     }
 
-    function validateValue(ParameterSet storage self, string name, string stringValue, uint numberValue) public constant {
+    function validateValue(Parameters storage self, string name, string stringValue, uint numberValue) public constant {
         if (isStringParameter(self, name)) {
             return;
         } else if (isNumberParameter(self, name)) {
@@ -55,7 +60,7 @@ library ParameterLib {
         }
     }
 
-    function validateNumberValue(ParameterSet storage self, string name, uint value) public constant {
+    function validateNumberValue(Parameters storage self, string name, uint value) public constant {
         require(self.parameters[name].isExistent);
         require(self.parameters[name].isNumber);
         require(value >= self.parameters[name].minNumberValue);
@@ -66,17 +71,17 @@ library ParameterLib {
     // Modifiers
     //
 
-    function addString(ParameterSet storage self, string name, string value) public {
+    function addString(Parameters storage self, string name, string value) public {
         require(!self.parameters[name].isExistent);
         self.parameters[name] = Parameter({stringValue:value, numberValue:0, isNumber:false, isExistent:true, minNumberValue:0, maxNumberValue:0});
     }
 
-    function addNumber(ParameterSet storage self, string name, uint value, uint minValue, uint maxValue) public {
+    function addNumber(Parameters storage self, string name, uint value, uint minValue, uint maxValue) public {
         require(!self.parameters[name].isExistent);
         self.parameters[name] = Parameter({stringValue:"", numberValue:value, isNumber:true, isExistent:true, minNumberValue:minValue, maxNumberValue:maxValue});
     }
 
-    function set(ParameterSet storage self, string name, string stringValue, uint numberValue) public {
+    function set(Parameters storage self, string name, string stringValue, uint numberValue) public {
         if (isStringParameter(self, name)) {
             setString(self, name, stringValue);
         } else if (isNumberParameter(self, name)) {
@@ -86,14 +91,14 @@ library ParameterLib {
         }
     }
 
-    function setString(ParameterSet storage self, string name, string value) public {
+    function setString(Parameters storage self, string name, string value) public {
         require(self.parameters[name].isExistent);
         require(!self.parameters[name].isNumber);
 
         self.parameters[name].stringValue = value;
     }
 
-    function setNumber(ParameterSet storage self, string name, uint value) public {
+    function setNumber(Parameters storage self, string name, uint value) public {
         validateNumberValue(self, name, value);
 
         self.parameters[name].numberValue = value;

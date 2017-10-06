@@ -3,6 +3,7 @@ pragma solidity ^0.4.9;
 import "./SafeMathLib.sol";
 import "./TokenLib.sol";
 
+// Some pure fuctions for calcuating tax amounts due for different types of tax
 library TaxLib {
 
     using SafeMathLib for uint;

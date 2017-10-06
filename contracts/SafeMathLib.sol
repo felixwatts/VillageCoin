@@ -1,5 +1,6 @@
 pragma solidity ^0.4.9;
 
+// Implements arithmetic on uint that throws an exception if overflow occurs
 library SafeMathLib {
   function times(uint a, uint b) returns (uint) {
     uint c = a * b;
