@@ -1,8 +1,15 @@
 body {
-  margin-left: 25%;
-  margin-right: 25%;
-  margin-top: 10%;
   font-family: "Open Sans", sans-serif;
+  background: #7b8e7b;
+}
+
+.page {
+  margin-left: auto;
+  margin-right: auto;
+  margin-top: 10%;
+  background: white;
+  padding: 32px;
+  width: 800px;
 }
 
 label {
@@ -103,8 +110,9 @@ li.menu {
   margin-right:4px;
 }
 
-table {
-  width:100%;
+table {  
+  width: 100%;
+  background: #f9f9f9; 
 }
 
 td {

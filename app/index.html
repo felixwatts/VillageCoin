@@ -6,35 +6,38 @@
   <script src="./common.js"></script>
 </head>
 <body>
-    <h1><span class="villageName"></span></h1>   
-    <h2>Home</h2> 
-    <ul class="menu">
-        <li class="menu"><a class="menu" href="index.html">Home</a></li>
-        <li class="menu"><a class="menu" href="proposals.html">Vote</a></li>
-        <li class="menu"><a class="menu" href="createProposal.html">Make a Proposal</a></li>
-    </ul>    
+    <div class="page">
+        <h1><span class="villageName"></span></h1>   
+        <h2>Home</h2> 
+        <ul class="menu">
+            <li class="menu"><a class="menu" href="index.html">Home</a></li>
+            <li class="menu"><a class="menu" href="proposals.html">Vote</a></li>
+            <li class="menu"><a class="menu" href="createProposal.html">Make a Proposal</a></li>
+            <li class="menu"><a class="menu" href="citizens.html">Citizens</a></li>
+        </ul>    
 
-    <div id="announcementMessage" style="display:none"></div>
+        <div id="announcementMessage" style="display:none"></div>
 
-    <p>Welcome to <span class="villageName"></span> <strong><span class="redditUsername"></span></strong>! The population is <strong id="population"></strong>. The public account balance is <strong><span id="publicAccountBalance"></span></strong>. <span id="openProposals"></span></p>
+        <p>Welcome to <span class="villageName"></span> <strong><span class="redditUsername"></span></strong>! The population is <strong id="population"></strong>. The public account balance is <strong><span id="publicAccountBalance"></span></strong>. <span id="openProposals"></span></p>
 
-    <p>Your balance is <span style="font-size:24pt;" id="balance"></span></p>
+        <p>Your balance is <span style="font-size:24pt;" id="balance"></span></p>
 
-    <p>Send <input type="text" id="amount" class="inputAmount" placeholder="e.g., 5" onchange="parseSendForm()"></input> to <input type="text" id="toAddress" class="inputAddress" placeholder="username or address" onchange="parseSendForm()"><button id="inputSubmit" onclick="send()" disabled>SEND <span class="villageSymbol"></span></button></p>
-    <div class="warning" id="transactionTaxMessage"></div>
-    <div id="inputInvalidMessage"></div>
+        <p>Send <input type="text" id="amount" class="inputAmount" placeholder="e.g., 5" onchange="parseSendForm()"></input> to <input type="text" id="toAddress" class="inputAddress" placeholder="username or address" onchange="parseSendForm()"><button id="inputSubmit" onclick="send()" disabled>SEND <span class="villageSymbol"></span></button></p>
+        <div class="warning" id="transactionTaxMessage"></div>
+        <div id="inputInvalidMessage"></div>
 
-    <h3>Recent Transfers</h3>
-    <table id="recentTransfers"></table>
+        <h3>Recent Transfers</h3>
+        <table id="recentTransfers"></table>
 
-    <span id="status"></span>   
+        <span id="status"></span>   
 
-    <div id="overlayMessage" class="overlayMessage">
-        <div id=overlayMessageContent></div>
-        <button id="overlayMessageDismissButton">Dismiss</button>
+        <div id="overlayMessage" class="overlayMessage">
+            <div id=overlayMessageContent></div>
+            <button id="overlayMessageDismissButton">Dismiss</button>
+        </div>
+        <div id="overlayBackground" class="overlayBackground"></div>
+        <div class="footer">Checkout my <a href="https://github.com/felixwatts/VillageCoin">sourcecode on github</a></div>
     </div>
-    <div id="overlayBackground" class="overlayBackground"></div>
-    <div class="footer">Checkout my <a href="https://github.com/felixwatts/VillageCoin">sourcecode on github</a></div>
 </body>
 </html>
 <script>
@@ -61,7 +64,7 @@
         {
             var rows = await Promise.all(result.filter(filterTransferByUser).map(buildTransferRow));
 
-            var html = rows.reverse().slice(0, 5).reduce(function(head, tail){ return head + tail ;}, "<tr><td><strong>From</strong></td><td><strong>To</strong></td><td><strong>Amount</strong></td></tr>");
+            var html = rows.reverse().slice(0, 5).reduce(function(head, tail){ return head + tail ;}, "<td class='header'>From</td><td class='header'>To</td><td class='header'>Amount</td></tr>");
 
             document.getElementById("recentTransfers").innerHTML = html;
         });
@@ -118,7 +121,7 @@
 
     async function populatePopulation()
     {
-        var population = (await app.contract._citizens.call({from: app.account}))[0].toNumber();
+        var population = (await app.contract._citizens.call({from: app.account}))[1].toNumber();
         document.getElementById("population").innerHTML = population;
     }
 

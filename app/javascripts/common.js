@@ -76,6 +76,36 @@ function setupAccounts()
     return promise;
 }
 
+async function getCitizen(id)
+{
+    var data = await app.contract.getCitizen.call(id);
+
+    var citizen = 
+    {
+        id: id,
+        username: data[0],
+        address: data[1],
+        isExistent: data[2]
+    }
+
+    if(citizen.isExistent)
+    {
+        citizen.balance = (await app.contract.balanceOf(citizen.address)).toNumber();    
+    }
+
+    return citizen;
+}
+
+async function getCitizens() 
+{
+    var nextId = (await app.contract._citizens.call())[0].toNumber();
+    var allIds = [...Array(nextId).keys()];
+    
+    var allCitizens = await Promise.all(allIds.map(getCitizen));
+    
+    return allCitizens.filter(function(c){ return c.isExistent;});
+}
+
 async function redirectNonCitizen()
 {
     var villageCoin = app.contract;
@@ -191,6 +221,9 @@ async function getProposal(proposalId)
         voteCountNo: referendumData[4].toNumber(),            
         decision: referendumData[1].toNumber(),                        
     };
+
+    var proposer = await app.contract.getCitizenByAddress.call(proposalData[1]);
+    proposal.proposerUsername = proposer[1];
 
     switch(proposal.type)
     {
@@ -677,6 +710,7 @@ function setupCommonFunctions()
     window.app.getDecidedProposals = getDecidedProposals;
     window.app.getPendingPackageParts = getPendingPackageParts;
     window.app.populateProposalTax = populateProposalTax;
+    window.app.getCitizens = getCitizens;
 
     var ProposalType = {};
     ProposalType.SetParameter = 0; 
@@ -691,7 +725,6 @@ function setupCommonFunctions()
     ProposalDecision.Undecided = 0;
     ProposalDecision.Accepted = 1;
     ProposalDecision.Rejected = 2;
-    ProposalDecision.Expired = 3;
 
     window.app.ProposalDecision = ProposalDecision;
 }

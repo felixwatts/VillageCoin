@@ -6,88 +6,96 @@
   <script src="./common.js"></script>
 </head>
 <body>
-    <h1><span class="villageName"></span></h1>
-    <h2 id="proposalName"></h2>
-    <ul class="menu">
-        <li class="menu"><a class="menu" href="index.html">Home</a></li>
-        <li class="menu"><a class="menu" href="proposals.html">Vote</a></li>
-        <li class="menu"><a class="menu" href="createProposal.html">Make a Proposal</a></li>
-    </ul>    
-      
-    <div id="proposalDetails" style="display: none">
-
-        <p id="proposalDescription" class="bigQuote"></p>
-        <p id="proposalIsPartOfPackageMessage" style="display:none">This proposal is part of a package and cannot be voted on directly</p>
-        <p id="supportingEvidenceMessage" style="display:none">The proposer has provided some <a id="supportingEvidenceLink" target="_blank">supporting evidence</a></p>
-        <div id="voteChart" style="display:none;margin-top:16px;grid-template-rows:1fr;grid-template-columns:1fr 7fr;height:60px;padding:16px;background-color:#fff8de;border-radius:8px">
-            <div style="grid-row:1;grid-column:1;display:grid;grid-template-rows:repeat(2, 1fr);grid-row-gap:8px;">
-                <div id="labelYesVotes" style="grid-row:1;grid-column:1;line-height:26px">YES</div>
-                <div id="labelNoVotes" style="grid-row:2;grid-column:1;line-height:26px">NO</div>
-            </div>
-            <div id="votesChartContainer" style="grid-row:1;grid-column:2;display:grid;grid-template-rows:repeat(2, 1fr);grid-row-gap:8px;grid-template-columns: repeat(100, 1fr);width:100%">
-                    <div id="voteChartBarYes" style="grid-column-start:1;grid-column-end: 101;grid-row-start:1;grid-row-end:2;border-radius: 0 5px 5px 0;background:#34A853"></div>
-                    <div id="voteChartBarNo" style="grid-column-start:1;grid-column-end: 101;grid-row-start:2;grid-row-end:3;border-radius: 0 5px 5px 0;background:#EA4335"></div>
-                    <div style="grid-column-start:1;grid-column-end: 1;grid-row-start:1;grid-row-end:3;border-left-style: solid;border-left-width: 2px;border-left-color: black"></div>
-                    <div id="voteChartThreshold" style="grid-column-start:60;grid-column-end: 61;grid-row-start:1;grid-row-end:3;border-left-style: dashed;border-left-width: 2px;border-left-color: black"></div>
-                    <div style="grid-column-start:100;grid-column-end: 101;grid-row-start:1;grid-row-end:3;border-left-style: solid;border-left-width: 2px;border-left-color: black"></div>
-            </div>
-        </div>
-        <p id="proposalExpiry"></p>
-
-        <div id="msgCannotVoteDecidedAccepted" style="display: none">Voting has finished for this proposal. The proposal was ACCEPTED</div>
-        <div id="msgCannotVoteDecidedRejected" style="display: none">Voting has finished for this proposal. The proposal was REJECTED</div>
-        <div id="msgCannotVoteDecidedExpired" style="display: none">Voting has finished for this proposal. The proposal expired with insufficient votes and so was REJECTED</div>
-
-        <div id="msgCannotVoteNonCitizen" style="display: none">You cannot vote on this proposal because you are not a citizen</div>        
-        <div id="msgCannotVoteAlreadyVoted" style="display: none">You have already voted on this proposal</div>
+    <div class="page">
+        <h1><span class="villageName"></span></h1>
+        <h2 id="proposalName"></h2>
+        <ul class="menu">
+            <li class="menu"><a class="menu" href="index.html">Home</a></li>
+            <li class="menu"><a class="menu" href="proposals.html">Vote</a></li>
+            <li class="menu"><a class="menu" href="createProposal.html">Make a Proposal</a></li>
+            <li class="menu"><a class="menu" href="citizens.html">Citizens</a></li>
+        </ul>    
         
+        <div id="proposalDetails" style="display: none">
+            <p id="proposer"></p>
+            <p id="proposalDescription" class="bigQuote"></p>
+            <p id="proposalIsPartOfPackageMessage" style="display:none">This proposal is part of a package and cannot be voted on directly</p>
+            <p id="supportingEvidenceMessage" style="display:none">The proposer has provided some <a id="supportingEvidenceLink" target="_blank">supporting evidence</a></p>
+            <div id="voteChart" style="display:none;margin-top:16px;grid-template-rows:1fr;grid-template-columns:1fr 7fr;height:60px;padding:16px;background-color:#fff8de;border-radius:8px">
+                <div style="grid-row:1;grid-column:1;display:grid;grid-template-rows:repeat(2, 1fr);grid-row-gap:8px;">
+                    <div id="labelYesVotes" style="grid-row:1;grid-column:1;line-height:26px">YES</div>
+                    <div id="labelNoVotes" style="grid-row:2;grid-column:1;line-height:26px">NO</div>
+                </div>
+                <div id="votesChartContainer" style="grid-row:1;grid-column:2;display:grid;grid-template-rows:repeat(2, 1fr);grid-row-gap:8px;grid-template-columns: repeat(100, 1fr);width:100%">
+                        <div id="voteChartBarYes" style="grid-column-start:1;grid-column-end: 101;grid-row-start:1;grid-row-end:2;border-radius: 0 5px 5px 0;background:#34A853"></div>
+                        <div id="voteChartBarNo" style="grid-column-start:1;grid-column-end: 101;grid-row-start:2;grid-row-end:3;border-radius: 0 5px 5px 0;background:#EA4335"></div>
+                        <div style="grid-column-start:1;grid-column-end: 1;grid-row-start:1;grid-row-end:3;border-left-style: solid;border-left-width: 2px;border-left-color: black"></div>
+                        <div id="voteChartThreshold" style="grid-column-start:60;grid-column-end: 61;grid-row-start:1;grid-row-end:3;border-left-style: dashed;border-left-width: 2px;border-left-color: black"></div>
+                        <div style="grid-column-start:100;grid-column-end: 101;grid-row-start:1;grid-row-end:3;border-left-style: solid;border-left-width: 2px;border-left-color: black"></div>
+                </div>
+            </div>
+            <p id="proposalExpiry"></p>
 
-        <div id="voteButtonsContainer" style="display: none">
-            <p>You may vote using the buttons below</p>
-            <div>
-                <button class="voteButton" style="background:#34A853" onclick="vote(true)">
-                    YES
-                    <div><div class="voteButtonDescription" id="yesButtonDescription"></div></div>
+            <div id="msgCannotVoteDecidedAccepted" style="display: none">Voting has finished for this proposal. The proposal was ACCEPTED</div>
+            <div id="msgCannotVoteDecidedRejected" style="display: none">Voting has finished for this proposal. The proposal was REJECTED</div>        
+
+            <div id="msgCannotVoteNonCitizen" style="display: none">You cannot vote on this proposal because you are not a citizen</div>        
+            <div id="msgCannotVoteAlreadyVoted" style="display: none">You have already voted on this proposal</div>
+            
+
+            <div id="voteButtonsContainer" style="display: none">
+                <p>You may vote using the buttons below</p>
+                <div>
+                    <button class="voteButton" style="background:#34A853" onclick="vote(true)">
+                        YES
+                        <div><div class="voteButtonDescription" id="yesButtonDescription"></div></div>
+                    </button>
+                </div>
+                <br>
+                <div>
+                    <button class="voteButton" style="background:#EA4335" onclick="vote(false)">
+                            NO
+                            <div><div class="voteButtonDescription" id="noButtonDescription"></div></div>
+                    </button>
+                </div>
+            </div>
+            <div id="proposalStatusOpen" style="display: none">
+                <p>The proposal needs more votes before it can be decided</p>
+            </div>
+            <div id="proposalStatusYes" style="display: none">
+                <p>The proposal has received enough YES votes to be accepted. You may click the button below to accept and enact the proposal. Be aware this may incur significant gas costs</p>
+                <button class="voteButton" onclick="decide()">
+                        Enact Proposal
+                        <div class="voteButtonDescription" id="enactButtonDescription"></div>
                 </button>
             </div>
-            <br>
-            <div>
-                <button class="voteButton" style="background:#EA4335" onclick="vote(false)">
-                        NO
-                        <div><div class="voteButtonDescription" id="noButtonDescription"></div></div>
-                </button>
-            </div>
-        </div>
-        <div id="proposalStatusOpen" style="display: none">
-            <p>The proposal needs more votes before it can be decided</p>
-        </div>
-        <div id="proposalStatusYes" style="display: none">
-            <p>The proposal has received enough YES votes to be accepted. You may click the button below to accept and enact the proposal. Be aware this may incur significant gas costs</p>
-            <button class="voteButton" onclick="decide()">
-                    Enact Proposal
-                    <div class="voteButtonDescription" id="enactButtonDescription"></div>
-            </button>
-        </div>
-        <div id="proposalStatusNo" style="display: none">
-            <p>The proposal has received enough NO votes to be rejected. You may click the button below to reject the proposal.</p>
-            <button class="voteButton" onclick="decide()">
-                    Reject Proposal
-            </button>
-        </div>
-        <div id="proposalStatusExpired" style="display: none">
-                <p>The proposal has expired without receiving enough YES or NO votes to be decisive. The proposal will not be accepted. You may click the button below to reject the proposal.</p>
+            <div id="proposalStatusNo" style="display: none">
+                <p>The proposal has received enough NO votes to be rejected. You may click the button below to reject the proposal.</p>
                 <button class="voteButton" onclick="decide()">
                         Reject Proposal
                 </button>
+            </div>
+            <div id="proposalStatusExpiredYes" style="display: none">
+                    <p>The proposal has expired with more YES votes than NO votes. You may click the button below to accept and enact the proposal</p>
+                    <button class="voteButton" onclick="decide()">
+                            Enact Proposal
+                    </button>
+            </div>
+            <div id="proposalStatusExpiredNo" style="display: none">
+                    <p>The proposal has expired with more NO votes than YES votes. You may click the button below to reject the proposal</p>
+                    <button class="voteButton" onclick="decide()">
+                            Enact Proposal
+                    </button>
+            </div>
         </div>
+        <div id="status"></div>
+        <div id="overlayMessage" class="overlayMessage">
+            <div id=overlayMessageContent></div>
+            <button id="overlayMessageDismissButton">Dismiss</button>
+        </div>
+        <div id="overlayBackground" class="overlayBackground"></div>
+        <div class="footer">Checkout my <a href="https://github.com/felixwatts/VillageCoin">sourcecode on github</a></div>
     </div>
-    <div id="status"></div>
-    <div id="overlayMessage" class="overlayMessage">
-        <div id=overlayMessageContent></div>
-        <button id="overlayMessageDismissButton">Dismiss</button>
-    </div>
-    <div id="overlayBackground" class="overlayBackground"></div>
-    <div class="footer">Checkout my <a href="https://github.com/felixwatts/VillageCoin">sourcecode on github</a></div>
 </body>
 </html>
 <script>
@@ -137,7 +145,12 @@
         }
     }
 
-    async function populateProposalDescription(description)
+    function populateProposer(proposerUsername)
+    {
+        document.getElementById("proposer").innerHTML = "<strong>" + proposerUsername + "</strong> has made the following proposal";
+    }
+
+    function populateProposalDescription(description)
     {
         document.getElementById("proposalDescription").innerHTML = description;
     }
@@ -203,10 +216,7 @@
                 break;
             case app.ProposalDecision.Rejected:
                 document.getElementById("msgCannotVoteDecidedRejected").style.display = "inline";
-                break;
-            case app.ProposalDecision.Expired:
-                document.getElementById("msgCannotVoteDecidedExpired").style.display = "inline";
-                break;                                
+                break;                               
         }
     }
 
@@ -227,7 +237,14 @@
         }
         else if(new Date(expiryTime * 1000) < new Date())
         {
-            document.getElementById("proposalStatusExpired").style.display = "inline";
+            if(yesVoteCount > noVoteCount)
+            {
+                document.getElementById("proposalStatusExpiredYes").style.display = "inline";
+            }
+            else
+            {
+                document.getElementById("proposalStatusExpiredNo").style.display = "inline";
+            }
         }
         else
         {
@@ -262,10 +279,11 @@
 
             var thresholdPercent = (await app.contract.getNumberParameter.call("proposalDecideThresholdPercent", {from: app.account})).toNumber();
 
-            var citizenCount = (await app.contract._citizens.call({from: app.account}))[0].toNumber();    
+            var citizenCount = (await app.contract._citizens.call({from: app.account}))[1].toNumber();    
             
             document.getElementById("proposalDetails").style.display = "inline";
             populateProposalDescription(proposal.description);
+            populateProposer(proposal.proposerUsername);
 
             if(proposal.isPartOfPackage)
             {

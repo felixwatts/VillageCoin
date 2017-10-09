@@ -1,32 +1,35 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>VillageCoin - Open Proposals</title>
+  <title>VillageCoin - Proposals</title>
   <link href='https://fonts.googleapis.com/css?family=Open+Sans:400,700' rel='stylesheet' type='text/css'>
   <script src="./common.js"></script>
 </head>
 <body>
-    <h1><span class="villageName"></span></h1>
-    <h2>Proposals</h2>  
-    <ul class="menu">
-        <li class="menu"><a class="menu" href="index.html">Home</a></li>
-        <li class="menu"><a class="menu" href="proposals.html">Vote</a></li>
-        <li class="menu"><a class="menu" href="createProposal.html">Make a Proposal</a></li>
-    </ul>  
-    <h3>Undecided Proposals</h3>   
-    <p>This is a list of proposals that are currently undecided. Although you never <em>have</em> to vote, it's important if you want to influence the future of the currency</p>    
-    <table id="tableProposalsUndecided"></table>
+    <div class="page">
+        <h1><span class="villageName"></span></h1>
+        <h2>Proposals</h2>  
+        <ul class="menu">
+            <li class="menu"><a class="menu" href="index.html">Home</a></li>
+            <li class="menu"><a class="menu" href="proposals.html">Vote</a></li>
+            <li class="menu"><a class="menu" href="createProposal.html">Make a Proposal</a></li>
+            <li class="menu"><a class="menu" href="citizens.html">Citizens</a></li>
+        </ul>  
+        <h3>Undecided Proposals</h3>   
+        <p>This is a list of proposals that are currently undecided. Although you never <em>have</em> to vote, it's important if you want to influence the future of the currency</p>    
+        <table id="tableProposalsUndecided"></table>
 
-    <h3>Decided Proposals</h3>   
-    <table id="tableProposalsDecided"></table>
+        <h3>Decided Proposals</h3>   
+        <table id="tableProposalsDecided"></table>
 
-    <div id="status"></div>   
-    <div id="overlayMessage" class="overlayMessage">
-        <div id=overlayMessageContent></div>
-        <button id="overlayMessageDismissButton">Dismiss</button>
+        <div id="status"></div>   
+        <div id="overlayMessage" class="overlayMessage">
+            <div id=overlayMessageContent></div>
+            <button id="overlayMessageDismissButton">Dismiss</button>
+        </div>
+        <div id="overlayBackground" class="overlayBackground"></div> 
+        <div class="footer">Checkout my <a href="https://github.com/felixwatts/VillageCoin">sourcecode on github</a></div>
     </div>
-    <div id="overlayBackground" class="overlayBackground"></div> 
-    <div class="footer">Checkout my <a href="https://github.com/felixwatts/VillageCoin">sourcecode on github</a></div>
 </body>
 </html>
 <script lang="javascript">
@@ -41,8 +44,6 @@ function decisionToString(decision)
             return "ACCEPTED";
         case app.ProposalDecision.Rejected:
             return "REJECTED";
-        case app.ProposalDecision.Expired:
-            return "EXPIRED";
         default: throw("unknown decision: " + decision);   
     }
 }
@@ -61,7 +62,7 @@ async function populateProposalsTable(proposals, tableName)
 
         var proposalsTableHtml = votableProposals.length == 0 
             ? "There are no proposals" 
-            : votableProposals.reduce(function(accumulator, currentValue) { return accumulator + currentValue; }, "");
+            : votableProposals.reduce(function(accumulator, currentValue) { return accumulator + currentValue; }, "<td class='header'>Name</td><td class='header'>Description</td><td class='header'>State</td></tr>");
 
         document.getElementById(tableName).innerHTML = proposalsTableHtml;
     } 

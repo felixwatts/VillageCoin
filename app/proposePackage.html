@@ -6,43 +6,46 @@
   <script src="./common.js"></script>
 </head>
 <body>
-    <h1><span class="villageName"></span></h1>
-    <h2>Propose a Package</h2>
-    <ul class="menu">
-        <li class="menu"><a class="menu" href="index.html">Home</a></li>
-        <li class="menu"><a class="menu" href="proposals.html">Vote</a></li>
-        <li class="menu"><a class="menu" href="createProposal.html">Make a Proposal</a></li>
-    </ul>  
-    
-    <p>Propose a coherent set of sensible adjustments, or sugarcoat your insidious power grab</p>
-    <p>A <em>package</em> is a proposal that contains several other proposals. It allows you to group individual proposals into a set that can be voted on and enacted together.</p>
-    <p>To construct your package:
-        <ol>
-            <li>Create each of the individual proposals that will make up your package using the normal process. For each one check the <em>This proposal is part of a package</em> checkbox</li>
-            <li>Come back to this page and use the form below to populate your package with the parts you just created</li>
-        </ol>
-    </p>
+    <div class="page">
+        <h1><span class="villageName"></span></h1>
+        <h2>Propose a Package</h2>
+        <ul class="menu">
+            <li class="menu"><a class="menu" href="index.html">Home</a></li>
+            <li class="menu"><a class="menu" href="proposals.html">Vote</a></li>
+            <li class="menu"><a class="menu" href="createProposal.html">Make a Proposal</a></li>
+            <li class="menu"><a class="menu" href="citizens.html">Citizens</a></li>
+        </ul>  
+        
+        <p>Propose a coherent set of sensible adjustments, or sugarcoat your insidious power grab</p>
+        <p>A <em>package</em> is a proposal that contains several other proposals. It allows you to group individual proposals into a set that can be voted on and enacted together.</p>
+        <p>To construct your package:
+            <ol>
+                <li>Create each of the individual proposals that will make up your package using the normal process. For each one check the <em>This proposal is part of a package</em> checkbox</li>
+                <li>Come back to this page and use the form below to populate your package with the parts you just created</li>
+            </ol>
+        </p>
 
-    <p>Select the items to include in the package:</p>
+        <p>Select the items to include in the package:</p>
 
-    <div id="parts"></div>
-    
-    <p>You may optionally provide the URL of some <em>supporting evidence</em> to help convince other citizens of the value of your proposal.
-        <input type="text" id="supportingEvidenceUrl" class="inputUrl" placeholder="e.g. https://i.imgur.com/J5MKGp2.gifv" onchange="app.parseForm()"></input>
-    </p>
-    <div id="inputInvalidMessage"></div>
-    <button class="voteButton" id="inputSubmit" onclick="submit()" disabled>Create Proposal</button></p>
-    <div class="warning" id="proposalTaxMessage"></div>
-    
-    <span id="status"></span>   
+        <div id="parts"></div>
+        
+        <p>You may optionally provide the URL of some <em>supporting evidence</em> to help convince other citizens of the value of your proposal.
+            <input type="text" id="supportingEvidenceUrl" class="inputUrl" placeholder="e.g. https://i.imgur.com/J5MKGp2.gifv" onchange="app.parseForm()"></input>
+        </p>
+        <div id="inputInvalidMessage"></div>
+        <button class="voteButton" id="inputSubmit" onclick="submit()" disabled>Create Proposal</button></p>
+        <div class="warning" id="proposalTaxMessage"></div>
+        
+        <span id="status"></span>   
 
-    <div id="overlayMessage" class="overlayMessage">
-        <div id=overlayMessageContent></div>
-        <button id="overlayMessageDismissButton">Dismiss</button>
+        <div id="overlayMessage" class="overlayMessage">
+            <div id=overlayMessageContent></div>
+            <button id="overlayMessageDismissButton">Dismiss</button>
+        </div>
+        <div id="overlayBackground" class="overlayBackground"></div>
+
+        <div class="footer">Checkout my <a href="https://github.com/felixwatts/VillageCoin">sourcecode on github</a></div>
     </div>
-    <div id="overlayBackground" class="overlayBackground"></div>
-
-    <div class="footer">Checkout my <a href="https://github.com/felixwatts/VillageCoin">sourcecode on github</a></div>
 </body>
 </html>
 <script>

@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>VillageCoin - Citizens</title>
+  <link href='https://fonts.googleapis.com/css?family=Open+Sans:400,700' rel='stylesheet' type='text/css'>
+  <script src="./common.js"></script>
+</head>
+<body>
+    <div class="page">
+        <h1><span class="villageName"></span></h1>
+        <h2>Citizens</h2>  
+        <ul class="menu">
+            <li class="menu"><a class="menu" href="index.html">Home</a></li>
+            <li class="menu"><a class="menu" href="proposals.html">Vote</a></li>
+            <li class="menu"><a class="menu" href="createProposal.html">Make a Proposal</a></li>
+            <li class="menu"><a class="menu" href="citizens.html">Citizens</a></li>
+        </ul>    
+        <p></p>
+        <table id="tableCitizens"></table>
+
+        <div id="status"></div>   
+        <div id="overlayMessage" class="overlayMessage">
+            <div id=overlayMessageContent></div>
+            <button id="overlayMessageDismissButton">Dismiss</button>
+        </div>
+        <div id="overlayBackground" class="overlayBackground"></div> 
+        <div class="footer">Checkout my <a href="https://github.com/felixwatts/VillageCoin">sourcecode on github</a></div>
+    </div>
+</body>
+</html>
+<script lang="javascript">
+
+async function buildCitizenRow(citizen)
+{
+    var balance = await app.formatCurrencyAmount(citizen.balance);
+    return "<tr><td>" + citizen.username + "</td><td>" + citizen.address + "</td><td>" + balance + "</td></tr>";
+}
+
+async function populateCitizensTable(citizens) 
+{
+    try 
+    {
+        var citizens = await app.getCitizens(); 
+        citizens = citizens.sort(function(a, b){ return b.balance - a.balance; });
+
+        var rows = await Promise.all(citizens.map(buildCitizenRow));
+
+        var html = citizens.length == 0 
+            ? "There are no citizens" 
+            : rows.reduce(function(accumulator, currentValue) { return accumulator + currentValue; }, "<td class='header'>Username</td><td class='header'>Address</td><td class='header'>Balance</td></tr>");
+
+        document.getElementById("tableCitizens").innerHTML = html;
+    } 
+    catch(error)
+    {
+        console.log(error);
+        app.setStatus(error);
+    }
+}
+
+window.addEventListener('load', async function()
+{
+    await init();
+    app.redirectNonCitizen();
+    await populateCitizensTable();
+});
+</script>

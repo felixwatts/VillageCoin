@@ -10,8 +10,10 @@ import "./SafeMathLib.sol";
 // While it is Undecided tryDecide may be called to attempt to 'decide' the referendum
 // There are three conditions for deciding a referendum:
 // - If the number of YES votes exceeds a given percentage (T) of a given number (P) then the Referendum is Accepted
-// - If the number of NO votes exceeds a given percentage (T) of a given number (P) then the Referendum is Rejected
-// - If the Referendum's ExpiryTime has passed the the Referendum is Expired
+// - else if the number of NO votes exceeds a given percentage (T) of a given number (P) then the Referendum is Rejected
+// - else if the Referendum's ExpiryTime has passed then 
+//   - If there are more YES than NO votes then the proposal is Accepted, 
+//   - Else it is Rejected
 // In practice, T is the parameter 'voteDecideThresholdPercent' and P is the total population of account holders.
 library ReferendumLib {
 
@@ -29,8 +31,7 @@ library ReferendumLib {
     enum ReferendumState {
         Undecided,
         Accepted,
-        Rejected,
-        Expired
+        Rejected
     }
 
     function init(Referendum storage self, uint timeToLive) public {
@@ -68,7 +69,11 @@ library ReferendumLib {
         } else if (percentNo >= thresholdPercent) {
             self.state = ReferendumState.Rejected;
         } else if (now > self.expiryTime) {
-            self.state = ReferendumState.Expired;
+            if (self.voteCountYes > self.voteCountNo) {
+                self.state = ReferendumState.Accepted;
+            } else {
+                self.state = ReferendumState.Rejected;
+            }
         }
 
         return self.state;

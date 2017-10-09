@@ -6,39 +6,42 @@
   <script src="./common.js"></script>
 </head>
 <body>
-    <h1><span class="villageName"></span></h1>
-    <h2>Propose Fining a Citizen</h2>
-    <ul class="menu">
-        <li class="menu"><a class="menu" href="index.html">Home</a></li>
-        <li class="menu"><a class="menu" href="proposals.html">Vote</a></li>
-        <li class="menu"><a class="menu" href="createProposal.html">Make a Proposal</a></li>
-    </ul>  
-    
-    <p>Whether it be a fair sanction for anti-social behaviour, or more of a vindictive wealth grab - sometimes the state just needs to get its fingers into one particular wallet</p>
-    <p>If the proposal is enacted the specified amount of <span class="villageSymbol"></span> will be transferred from the specified citizen the public account</p>
+    <div class="page">
+        <h1><span class="villageName"></span></h1>
+        <h2>Propose Fining a Citizen</h2>
+        <ul class="menu">
+            <li class="menu"><a class="menu" href="index.html">Home</a></li>
+            <li class="menu"><a class="menu" href="proposals.html">Vote</a></li>
+            <li class="menu"><a class="menu" href="createProposal.html">Make a Proposal</a></li>
+            <li class="menu"><a class="menu" href="citizens.html">Citizens</a></li>
+        </ul>  
+        
+        <p>Whether it be a fair sanction for anti-social behaviour, or more of a vindictive wealth grab - sometimes the state just needs to get its fingers into one particular wallet</p>
+        <p>If the proposal is enacted the specified amount of <span class="villageSymbol"></span> will be transferred from the specified citizen the public account</p>
 
-    <p>Use the form below to propose paying a citizen</p>
+        <p>Use the form below to propose paying a citizen</p>
 
-    <p>I propose to fine
-        <input type="text" id="citizen" class="inputAddress" placeholder="username or address" onchange="app.parseForm()"></input> the sum of 
-        <input type="text" id="amount" class="inputAmount" placeholder="e.g., 5" onchange="app.parseForm()"></input><span class="villageSymbol"></span> 
-    </p>
-    <p>You may optionally provide the URL of some <em>supporting evidence</em> to help convince other citizens of the value of your proposal.
-        <input type="text" id="supportingEvidenceUrl" class="inputUrl" placeholder="e.g. https://i.imgur.com/J5MKGp2.gifv" onchange="app.parseForm()"></input>
-    </p>
-    <p><input type="checkbox" class="inputBool" id="isPartOfPackage" onchange="app.populateProposalTax()">This proposal is part of a package</input></p>
-    <div id="inputInvalidMessage"></div>
-    <button class="voteButton" id="inputSubmit" onclick="submit()" disabled>Create Proposal</button></p>
-    <div class="warning" id="proposalTaxMessage"></div>
-    
-    <span id="status"></span>   
+        <p>I propose to fine
+            <input type="text" id="citizen" class="inputAddress" placeholder="username or address" onchange="app.parseForm()"></input> the sum of 
+            <input type="text" id="amount" class="inputAmount" placeholder="e.g., 5" onchange="app.parseForm()"></input><span class="villageSymbol"></span> 
+        </p>
+        <p>You may optionally provide the URL of some <em>supporting evidence</em> to help convince other citizens of the value of your proposal.
+            <input type="text" id="supportingEvidenceUrl" class="inputUrl" placeholder="e.g. https://i.imgur.com/J5MKGp2.gifv" onchange="app.parseForm()"></input>
+        </p>
+        <p><input type="checkbox" class="inputBool" id="isPartOfPackage" onchange="app.populateProposalTax()">This proposal is part of a package</input></p>
+        <div id="inputInvalidMessage"></div>
+        <button class="voteButton" id="inputSubmit" onclick="submit()" disabled>Create Proposal</button></p>
+        <div class="warning" id="proposalTaxMessage"></div>
+        
+        <span id="status"></span>   
 
-    <div id="overlayMessage" class="overlayMessage">
-        <div id=overlayMessageContent></div>
-        <button id="overlayMessageDismissButton">Dismiss</button>
+        <div id="overlayMessage" class="overlayMessage">
+            <div id=overlayMessageContent></div>
+            <button id="overlayMessageDismissButton">Dismiss</button>
+        </div>
+        <div id="overlayBackground" class="overlayBackground"></div>
+        <div class="footer">Checkout my <a href="https://github.com/felixwatts/VillageCoin">sourcecode on github</a></div>
     </div>
-    <div id="overlayBackground" class="overlayBackground"></div>
-    <div class="footer">Checkout my <a href="https://github.com/felixwatts/VillageCoin">sourcecode on github</a></div>
 </body>
 </html>
 <script>

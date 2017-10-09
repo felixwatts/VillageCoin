@@ -1,6 +1,6 @@
 var SafeMathLib = artifacts.require("./SafeMathLib.sol");
 var CitizenLib = artifacts.require("./CitizenLib.sol");
-var DemocracyLib = artifacts.require("./DemocracyLib.sol");
+var ReferendumLib = artifacts.require("./ReferendumLib.sol");
 var ParameterLib = artifacts.require("./ParameterLib.sol");
 var ProposalLib = artifacts.require("./ProposalLib.sol");
 var TaxLib = artifacts.require("./TaxLib.sol");

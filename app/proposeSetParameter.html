@@ -6,101 +6,104 @@
   <script src="./common.js"></script>
 </head>
 <body>
-    <h1><span class="villageName"></span></h1>
-    <h2>Propose Setting a Parameter</h2>
-    <ul class="menu">
-        <li class="menu"><a class="menu" href="index.html">Home</a></li>
-        <li class="menu"><a class="menu" href="proposals.html">Vote</a></li>
-        <li class="menu"><a class="menu" href="createProposal.html">Make a Proposal</a></li>
-    </ul>  
-    
-    <p>Parameters control many important (and some not so important) aspects of the <span class="villageName"></span> system. The table below details all the parameters and what they mean</p>
-
-    <table>
-        <tr>
-            <td><strong>Parameter Name</strong></td><td><strong>Meaning</strong></td><td><strong>Current Value</strong></td>
-        </tr>
-        <tr>
-            <td>name</td><td>The name of the currency. (RedditVillage initially)</td><td id="nameValue"></td>
-        </tr>
-        <tr>
-            <td>symbol</td><td>The ticker symbol of the currency</td><td id="symbolValue"></td>
-        </tr>
-        <tr>
-            <td>decimals</td><td>How many decimal places to print when displaying amounts of the currency</td><td id="decimalsValue"></td>
-        </tr>
-
-        <tr>
-            <td>citizenRequirementMinCommentKarma</td><td>Reddit users with less comment karma than this cannot join</td><td id="citizenRequirementMinCommentKarmaValue"></td>
-        </tr>  
-
-        <tr>
-            <td>citizenRequirementMinPostKarma</td><td>Reddit users with less post karma than this cannot join</td><td id="citizenRequirementMinPostKarmaValue"></td>
-        </tr>  
-
-        <tr>
-            <td>initialAccountBalance</td><td>How much of the currency is given to new users when they join.</td><td id="initialAccountBalanceValue"></td>
-        </tr>
-        <tr>
-            <td>proposalDecideThresholdPercent</td><td>The minimum percentage of the population that need to vote YES or NO on a proposal for it to be decided</td><td id="proposalDecideThresholdPercentValue"></td>
-        </tr>
-        <tr>
-            <td>proposalTimeLimitDays</td><td>The number of days a proposal can remain undecided before it expires</td><td id="proposalTimeLimitDaysValue"></td>
-        </tr>  
-
-        <tr>
-            <td>taxPeriodDays</td><td>How frequently taxes are applied, in days</td><td id="taxPeriodDaysValue"></td>
-        </tr>  
-
-        <tr>
-            <td>taxPollTax</td><td>A fixed amount transferred from each citizen account to the public account every time taxes are applied</td><td id="taxPollTaxValue"></td>
-        </tr>  
-
-        <tr>
-            <td>taxWealthTaxPercent</td><td>A percentage of each citizen's balance that is transferred to the public account each time taxes are applied</td><td id="taxWealthTaxPercentValue"></td>
-        </tr>  
-
-        <tr>
-            <td>taxBasicIncome</td><td>A fixed amount that is transferred from the public account to each citizen account each time taxes are applied</td><td id="taxBasicIncomeValue"></td>
-        </tr>  
-
-        <tr>
-            <td>taxTransactionTaxFlat</td><td>A fixed charge applied to each transfer. On each transfer between citizens the sender pays this fixed amount into the public account</td><td id="taxTransactionTaxFlatValue"></td>
-        </tr>  
-
-        <tr>
-            <td>taxTransactionTaxPercent</td><td>A sliding charge applied to each transfer. On each transfer between citizens the sender pays this percentage of the transfer amount into the public account</td><td id="taxTransactionTaxPercentValue"></td>
-        </tr> 
+    <div class="page">
+        <h1><span class="villageName"></span></h1>
+        <h2>Propose Setting a Parameter</h2>
+        <ul class="menu">
+            <li class="menu"><a class="menu" href="index.html">Home</a></li>
+            <li class="menu"><a class="menu" href="proposals.html">Vote</a></li>
+            <li class="menu"><a class="menu" href="createProposal.html">Make a Proposal</a></li>
+            <li class="menu"><a class="menu" href="citizens.html">Citizens</a></li>
+        </ul>  
         
-        <tr>
-            <td>taxProposalTaxFlat</td><td>A fixed amount that is transferred from a citizen's balance to the public account when they create a proposal</td><td id="taxProposalTaxFlatValue"></td>
-        </tr>  
+        <p>Parameters control many important (and some not so important) aspects of the <span class="villageName"></span> system. The table below details all the parameters and what they mean</p>
 
-        <tr>
-            <td>taxProposalTaxPercent</td><td>A percentage of each citizen's balance that is transferred to the public account when they create a proposal</td><td id="taxProposalTaxPercentValue"></td>
-        </tr> 
-    </table>
+        <table>
+            <tr>
+                <td><strong>Parameter Name</strong></td><td><strong>Meaning</strong></td><td><strong>Current Value</strong></td>
+            </tr>
+            <tr>
+                <td>name</td><td>The name of the currency. (RedditVillage initially)</td><td id="nameValue"></td>
+            </tr>
+            <tr>
+                <td>symbol</td><td>The ticker symbol of the currency</td><td id="symbolValue"></td>
+            </tr>
+            <tr>
+                <td>decimals</td><td>How many decimal places to print when displaying amounts of the currency</td><td id="decimalsValue"></td>
+            </tr>
 
-    <p>Use the form below to propose a change to a parameter</p>
+            <tr>
+                <td>citizenRequirementMinCommentKarma</td><td>Reddit users with less comment karma than this cannot join</td><td id="citizenRequirementMinCommentKarmaValue"></td>
+            </tr>  
 
-    <p>I propose to change the value of 
-        <input type="text" id="inputParameterName" placeholder="parameter name" onchange="app.parseForm()"></input> to 
-        <input type="text" id="inputParameterValue" placeholder="parameter value" onchange="app.parseForm()"></input>
-    </p>
-    <p>You may optionally provide the URL of some <em>supporting evidence</em> to help convince other citizens of the value of your proposal.
-        <input type="text" id="supportingEvidenceUrl" class="inputUrl" placeholder="e.g. https://i.imgur.com/J5MKGp2.gifv" onchange="app.parseForm()"></input></p>
-    <p><input type="checkbox" class="inputBool" id="isPartOfPackage" onchange="app.populateProposalTax()">This proposal is part of a package</input></p>
-    <div id="inputInvalidMessage"></div>
-    <button class="voteButton" id="inputSubmit" onclick="submit()" disabled>Create Proposal</button></p>
-    <div class="warning" id="proposalTaxMessage"></div>    
-    <span id="status"></span>  
-    
-    <div id="overlayMessage" class="overlayMessage">
-        <div id=overlayMessageContent></div>
-        <button id="overlayMessageDismissButton">Dismiss</button>
+            <tr>
+                <td>citizenRequirementMinPostKarma</td><td>Reddit users with less post karma than this cannot join</td><td id="citizenRequirementMinPostKarmaValue"></td>
+            </tr>  
+
+            <tr>
+                <td>initialAccountBalance</td><td>How much of the currency is given to new users when they join.</td><td id="initialAccountBalanceValue"></td>
+            </tr>
+            <tr>
+                <td>proposalDecideThresholdPercent</td><td>The minimum percentage of the population that need to vote YES or NO on a proposal for it to be decided</td><td id="proposalDecideThresholdPercentValue"></td>
+            </tr>
+            <tr>
+                <td>proposalTimeLimitDays</td><td>The number of days a proposal can remain undecided before it expires</td><td id="proposalTimeLimitDaysValue"></td>
+            </tr>  
+
+            <tr>
+                <td>taxPeriodDays</td><td>How frequently taxes are applied, in days</td><td id="taxPeriodDaysValue"></td>
+            </tr>  
+
+            <tr>
+                <td>taxPollTax</td><td>A fixed amount transferred from each citizen account to the public account every time taxes are applied</td><td id="taxPollTaxValue"></td>
+            </tr>  
+
+            <tr>
+                <td>taxWealthTaxPercent</td><td>A percentage of each citizen's balance that is transferred to the public account each time taxes are applied</td><td id="taxWealthTaxPercentValue"></td>
+            </tr>  
+
+            <tr>
+                <td>taxBasicIncome</td><td>A fixed amount that is transferred from the public account to each citizen account each time taxes are applied</td><td id="taxBasicIncomeValue"></td>
+            </tr>  
+
+            <tr>
+                <td>taxTransactionTaxFlat</td><td>A fixed charge applied to each transfer. On each transfer between citizens the sender pays this fixed amount into the public account</td><td id="taxTransactionTaxFlatValue"></td>
+            </tr>  
+
+            <tr>
+                <td>taxTransactionTaxPercent</td><td>A sliding charge applied to each transfer. On each transfer between citizens the sender pays this percentage of the transfer amount into the public account</td><td id="taxTransactionTaxPercentValue"></td>
+            </tr> 
+            
+            <tr>
+                <td>taxProposalTaxFlat</td><td>A fixed amount that is transferred from a citizen's balance to the public account when they create a proposal</td><td id="taxProposalTaxFlatValue"></td>
+            </tr>  
+
+            <tr>
+                <td>taxProposalTaxPercent</td><td>A percentage of each citizen's balance that is transferred to the public account when they create a proposal</td><td id="taxProposalTaxPercentValue"></td>
+            </tr> 
+        </table>
+
+        <p>Use the form below to propose a change to a parameter</p>
+
+        <p>I propose to change the value of 
+            <input type="text" id="inputParameterName" placeholder="parameter name" onchange="app.parseForm()"></input> to 
+            <input type="text" id="inputParameterValue" placeholder="parameter value" onchange="app.parseForm()"></input>
+        </p>
+        <p>You may optionally provide the URL of some <em>supporting evidence</em> to help convince other citizens of the value of your proposal.
+            <input type="text" id="supportingEvidenceUrl" class="inputUrl" placeholder="e.g. https://i.imgur.com/J5MKGp2.gifv" onchange="app.parseForm()"></input></p>
+        <p><input type="checkbox" class="inputBool" id="isPartOfPackage" onchange="app.populateProposalTax()">This proposal is part of a package</input></p>
+        <div id="inputInvalidMessage"></div>
+        <button class="voteButton" id="inputSubmit" onclick="submit()" disabled>Create Proposal</button></p>
+        <div class="warning" id="proposalTaxMessage"></div>    
+        <span id="status"></span>  
+        
+        <div id="overlayMessage" class="overlayMessage">
+            <div id=overlayMessageContent></div>
+            <button id="overlayMessageDismissButton">Dismiss</button>
+        </div>
+        <div id="overlayBackground" class="overlayBackground"></div>
+        <div class="footer">Checkout my <a href="https://github.com/felixwatts/VillageCoin">sourcecode on github</a></div>
     </div>
-    <div id="overlayBackground" class="overlayBackground"></div>
-    <div class="footer">Checkout my <a href="https://github.com/felixwatts/VillageCoin">sourcecode on github</a></div>
 </body>
 </html>
 <script>

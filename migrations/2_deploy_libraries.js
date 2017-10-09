@@ -1,6 +1,6 @@
 var SafeMathLib = artifacts.require("./SafeMathLib.sol");
 var CitizenLib = artifacts.require("./CitizenLib.sol");
-var DemocracyLib = artifacts.require("./DemocracyLib.sol");
+var ReferendumLib = artifacts.require("./ReferendumLib.sol");
 var ParameterLib = artifacts.require("./ParameterLib.sol");
 var ProposalLib = artifacts.require("./ProposalLib.sol");
 var TaxLib = artifacts.require("./TaxLib.sol");
@@ -20,18 +20,18 @@ module.exports = function(deployer)
   
     deployer.link(SafeMathLib, VillageCoin);
     deployer.link(SafeMathLib, CitizenLib);
-    deployer.link(SafeMathLib, DemocracyLib);
+    deployer.link(SafeMathLib, ReferendumLib);
     deployer.link(SafeMathLib, ProposalLib);
     deployer.link(SafeMathLib, TaxLib);
   
     deployer.deploy(CitizenLib);
-    deployer.deploy(DemocracyLib);
+    deployer.deploy(ReferendumLib);
     deployer.deploy(ParameterLib);
     deployer.deploy(ProposalLib);
     deployer.deploy(TaxLib);
     
     deployer.link(CitizenLib, VillageCoin);
-    deployer.link(DemocracyLib, VillageCoin);
+    deployer.link(ReferendumLib, VillageCoin);
     deployer.link(ParameterLib, VillageCoin);
     deployer.link(ProposalLib, VillageCoin);
     deployer.link(TaxLib, VillageCoin);

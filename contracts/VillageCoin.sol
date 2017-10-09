@@ -53,7 +53,7 @@ contract VillageCoin {
     //
 
     event OnProposalCreated(uint proposalId);
-    event OnProposalDecided(uint proposalId);  
+    //event OnProposalDecided(uint proposalId);  
 
     //
     // Constructor 
@@ -71,28 +71,16 @@ contract VillageCoin {
     // Initializes the contract with some required state
     function init() onlyGatekeeper public {
 
-        _citizens.init();
-
-        _parameters.addString("name", "RedditVillage");
-        _parameters.addString("symbol", "RVX");
-        _parameters.addNumber("decimals", 0, 0, 18);
-
-        _parameters.addNumber("initialAccountBalance", 1000, 0, 0);
-        _parameters.addNumber("proposalDecideThresholdPercent", 60, 0, 100);
-        _parameters.addNumber("proposalTimeLimitDays", 30, 0, 0);
-        _parameters.addNumber("citizenRequirementMinCommentKarma", 0, 0, 0);
-        _parameters.addNumber("citizenRequirementMinPostKarma", 0, 0, 0);
-
-        _parameters.addNumber("taxPeriodDays", 30, 1, 0);
-        _parameters.addNumber("taxPollTax", 0, 0, 0);
-        _parameters.addNumber("taxWealthTaxPercent", 0, 0, 100);
-        _parameters.addNumber("taxBasicIncome", 0, 0, 0);
-        _parameters.addNumber("taxTransactionTaxFlat", 0, 0, 0);
-        _parameters.addNumber("taxTransactionTaxPercent", 0, 0, 100);
-        _parameters.addNumber("taxProposalTaxFlat", 0, 0, 0);
-        _parameters.addNumber("taxProposalTaxPercent", 0, 0, 100);        
-
+        _citizens.init();     
         _nextTaxTime = now.plus(_parameters.getNumber("taxPeriodDays").times(1 days)); 
+    }
+
+    function addStringParameter(string name, string initialValue) onlyGatekeeper public {
+        _parameters.addString(name, initialValue);
+    }
+
+    function addNumberParameter (string name, uint initialValue, uint min, uint max) onlyGatekeeper public {
+        _parameters.addNumber(name, initialValue, min, max);
     }
 
     // Set the announcement message at the top of the website
@@ -130,7 +118,7 @@ contract VillageCoin {
             return;
         }
 
-        _nextTaxTime = _nextTaxTime.plus(getNumberParameter("taxPeriodDays").times(1 days)); 
+        _nextTaxTime = _nextTaxTime.plus(_parameters.getNumber("taxPeriodDays").times(1 days)); 
 
         applyPollTax();
         applyWealthTax();
@@ -140,7 +128,7 @@ contract VillageCoin {
 
     // Check the referendum on the given proposal and implement the proposed changes if the referendum has been Accepted
     // Throws if the referendum is not currently Undecided
-    // Changes the state of the referendum from Undecided to Accepted, Rejected or Expired if any of the respective conditions are met
+    // Changes the state of the referendum from Undecided to Accepted or Rejected if any of the respective conditions are met
     // Enacts the changes of the proposal if it is newly Accepted
     function tryDecideProposal(uint proposalId) public {
         
@@ -214,12 +202,22 @@ contract VillageCoin {
     // Views
     //
 
+    function getCitizen(uint id) public constant returns (string username, address addr, bool isExistent) {
+        username = _citizens.citizens[id].username;
+        addr = _citizens.citizens[id].addr;
+        isExistent = _citizens.citizens[id].isExistent;
+    }
+
+    function isCitizen(address addr) public constant returns(bool) {
+        return _citizens.isCitizen(addr);      
+    }
+
     // Return the tax due if the specified Citizen makes a proposal
     function calculateProposalTax(address proposer) public constant returns(uint) {
 
-        uint proposalTaxFlat = getNumberParameter("taxProposalTaxFlat");
-        uint balance = balanceOf(proposer);
-        uint proposalTaxPercent = getNumberParameter("taxProposalTaxPercent");
+        uint proposalTaxFlat = _parameters.getNumber("taxProposalTaxFlat");
+        uint balance = _tokens.balanceOf(proposer);
+        uint proposalTaxPercent = _parameters.getNumber("taxProposalTaxPercent");
 
         return TaxLib.calculateProposalTax(proposalTaxFlat, proposalTaxPercent, balance);
     }
@@ -348,38 +346,38 @@ contract VillageCoin {
         _tokens.transfer(msg.sender, to, amount);
     }
 
-    function transferFrom(address from, address to, uint value) returns (bool success) {
+    function transferFrom(address from, address to, uint value) public returns (bool success) {
         return false; // not supported
     }
 
-    function balanceOf(address owner) constant returns (uint balance) {
-        require(_citizens.isCitizen(owner));
+    function balanceOf(address owner) constant public returns (uint balance) {
+        require(owner == 0x0 || _citizens.isCitizen(owner));
         return _tokens.balanceOf(owner);
     }
 
-    function approve(address spender, uint value) returns (bool success) {
+    function approve(address spender, uint value) public returns (bool success) {
         return false; // not supported
     }
 
-    function allowance(address owner, address spender) constant returns (uint remaining) {
+    function allowance(address owner, address spender) constant public returns (uint remaining) {
         return 0; // not supported
     }
 
-    function name() constant returns (string) {
+    function name() constant public returns (string) {
         // Annoyingly can't return _parameters.getString("name")
         return _parameters.parameters["name"].stringValue;
     }
 
-    function symbol() constant returns (string) {
+    function symbol() constant public returns (string) {
         // Annoyingly can't return _parameters.getString("symbol")
         return _parameters.parameters["symbol"].stringValue;
     }
 
-    function decimals() constant returns (uint8) {
+    function decimals() constant public returns (uint8) {
         return uint8(_parameters.getNumber("decimals"));
     }
 
-    function totalSupply() constant returns (uint256) {
+    function totalSupply() constant public returns (uint256) {
         return _tokens.totalSupply;
     }
 
