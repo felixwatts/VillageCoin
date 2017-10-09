@@ -7,14 +7,18 @@
 </head>
 <body>
     <h1><span class="villageName"></span></h1>
-    <h2>Open Proposals</h2>  
+    <h2>Proposals</h2>  
     <ul class="menu">
         <li class="menu"><a class="menu" href="index.html">Home</a></li>
         <li class="menu"><a class="menu" href="proposals.html">Vote</a></li>
         <li class="menu"><a class="menu" href="createProposal.html">Make a Proposal</a></li>
-    </ul>     
+    </ul>  
+    <h3>Undecided Proposals</h3>   
     <p>This is a list of proposals that are currently undecided. Although you never <em>have</em> to vote, it's important if you want to influence the future of the currency</p>    
-    <table id="tableProposals"></table>
+    <table id="tableProposalsUndecided"></table>
+
+    <h3>Decided Proposals</h3>   
+    <table id="tableProposalsDecided"></table>
 
     <div id="status"></div>   
     <div id="overlayMessage" class="overlayMessage">
@@ -27,23 +31,39 @@
 </html>
 <script lang="javascript">
 
-async function buildProposalRow(proposal)
+function decisionToString(decision)
 {
-    return "<tr><td><a href='proposal.html?id=" + proposal.id + "'>proposal #" + proposal.id + "</a></td><td>" + proposal.description + "</a>";
+    switch(decision)
+    {
+        case app.ProposalDecision.Undecided:
+            return "";
+        case app.ProposalDecision.Accepted:
+            return "ACCEPTED";
+        case app.ProposalDecision.Rejected:
+            return "REJECTED";
+        case app.ProposalDecision.Expired:
+            return "EXPIRED";
+        default: throw("unknown decision: " + decision);   
+    }
 }
 
-async function populateProposalsTable() 
+async function buildProposalRow(proposal)
+{
+    return "<tr><td><a href='proposal.html?id=" + proposal.id + "'>proposal #" + proposal.id + "</a></td><td>" + proposal.description + "</td><td>" + decisionToString(proposal.decision) +"</td>";
+}
+
+async function populateProposalsTable(proposals, tableName) 
 {
     try 
     {
-        var votableProposals = await app.getUndecidedProposals();
+        var votableProposals = await proposals;
         var votableProposals = await Promise.all(votableProposals.map(buildProposalRow));
 
         var proposalsTableHtml = votableProposals.length == 0 
-            ? "There are no outstanding proposals" 
+            ? "There are no proposals" 
             : votableProposals.reduce(function(accumulator, currentValue) { return accumulator + currentValue; }, "");
 
-        document.getElementById("tableProposals").innerHTML = proposalsTableHtml;
+        document.getElementById(tableName).innerHTML = proposalsTableHtml;
     } 
     catch(error)
     {
@@ -56,6 +76,7 @@ window.addEventListener('load', async function()
 {
     await init();
     app.redirectNonCitizen();
-    await populateProposalsTable();
+    await populateProposalsTable(app.getUndecidedProposals(), "tableProposalsUndecided");
+    await populateProposalsTable(app.getDecidedProposals(), "tableProposalsDecided");
 });
 </script>

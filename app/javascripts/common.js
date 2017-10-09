@@ -307,9 +307,19 @@ async function getProposalDescription(proposal)
     return description
 }
 
+function compareProposalsByExpiryTime(a, b)
+{
+    return b.expiryTime - a.expiryTime;
+}
+
 function filterProposalByUndecided(proposal) 
 {
     return proposal.isExistent && proposal.decision == app.ProposalDecision.Undecided && !proposal.isPartOfPackage;
+}
+
+function filterProposalByDecided(proposal) 
+{
+    return proposal.isExistent && proposal.decision != app.ProposalDecision.Undecided && !proposal.isPartOfPackage;
 }
 
 function filterProposalByPendingPackagePart(proposal) 
@@ -331,6 +341,15 @@ async function getUndecidedProposals()
     var allProposals = await getAllProposals();
 
     var votableProposals = allProposals.filter(filterProposalByUndecided);
+    
+    return votableProposals;
+}
+
+async function getDecidedProposals() 
+{
+    var allProposals = await getAllProposals();
+
+    var votableProposals = allProposals.filter(filterProposalByDecided).sort(compareProposalsByExpiryTime);
     
     return votableProposals;
 }
@@ -655,6 +674,7 @@ function setupCommonFunctions()
     window.app.populateVillageName = populateVillageName;
     window.app.populateVillageSymbol = populateVillageSymbol;
     window.app.getUndecidedProposals = getUndecidedProposals;
+    window.app.getDecidedProposals = getDecidedProposals;
     window.app.getPendingPackageParts = getPendingPackageParts;
     window.app.populateProposalTax = populateProposalTax;
 
