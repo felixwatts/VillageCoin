@@ -111,8 +111,9 @@ li.menu {
 }
 
 table {  
-  width: 100%;
-  background: #f9f9f9; 
+  width: 100%;  
+  border-collapse: collapse; 
+  border-bottom: 1px solid #dcdcdc;
 }
 
 td {
@@ -121,9 +122,8 @@ td {
 }
 
 td.header {
-  padding: 8px;
-  margin: 0;
   border-bottom: 1px solid #dcdcdc;
+  background: #f9f9f9;
   font-weight: bold;
 }
 
@@ -138,6 +138,12 @@ td.header {
   border-left-style: solid; 
   border-left-width: 3px;
   border-left-color:black
+}
+
+.form {
+  border: 1px dashed #dcdcdc;
+  padding: 16px;
+  background: #fff8de;
 }
 
 #inputInvalidMessage {

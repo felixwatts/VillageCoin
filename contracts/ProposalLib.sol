@@ -29,11 +29,11 @@ library ProposalLib {
 
         ProposalType typ;
         address proposer;                
-        string supportingEvidenceUrl;
+        bytes32 supportingEvidenceUrl;
 
         // these generic parameters have different meanings for different types of proposal
-        string stringParam1;
-        string stringParam2;        
+        bytes32 stringParam1;
+        bytes32 stringParam2;        
         uint numberParam1;                
         address addressParam1;  
         
@@ -54,7 +54,7 @@ library ProposalLib {
     // Parts must be marked as isPartOfPacakge
     // Parts must NOT be maked as isAssignedToPackage
     // This function sets isAssignedToPackage to true for all the specified parts
-    function proposePackage(Proposals storage self, uint[] partIds, string supportingEvidence) public returns(uint) {
+    function proposePackage(Proposals storage self, uint[] partIds, bytes32 supportingEvidence) public returns(uint) {
 
         require(partIds.length <= 32);
 
@@ -81,10 +81,10 @@ library ProposalLib {
     // Note: this function does not check the validity of the input parameters so you need to do that elsewhere
     function proposeSetParameter (
         Proposals storage self, 
-        string parameterName,
-        string stringValue,
+        bytes32 parameterName,
+        bytes32 stringValue,
         uint numberValue,
-        string supportingEvidence,
+        bytes32 supportingEvidence,
         bool isPartOfPackage
     ) public returns(uint)
     {
@@ -94,7 +94,7 @@ library ProposalLib {
     // Create a new Proposal of type CreateMoney
     // If the Proposal is Accepted then the specified amount of new tokens will be added to the Public Account
     // For implementation see VillageCoin.enactProposal
-    function proposeCreateMoney(Proposals storage self, uint amount, string supportingEvidence, bool isPartOfPackage) public returns(uint) {
+    function proposeCreateMoney(Proposals storage self, uint amount, bytes32 supportingEvidence, bool isPartOfPackage) public returns(uint) {
 
         return createProposal(self, ProposalType.CreateMoney, supportingEvidence, "", "", amount, 0x0, isPartOfPackage);
     }
@@ -102,7 +102,7 @@ library ProposalLib {
     // Create a new Proposal of type DestroyMoney
     // If the Proposal is Accepted then the specified amount of tokens from Public Account will be burned, or the full public account balance, whichever is smaller
     // For implementation see VillageCoin.enactProposal
-    function proposeDestroyMoney(Proposals storage self, uint amount, string supportingEvidence, bool isPartOfPackage) public returns(uint) {
+    function proposeDestroyMoney(Proposals storage self, uint amount, bytes32 supportingEvidence, bool isPartOfPackage) public returns(uint) {
 
         return createProposal(self, ProposalType.DestroyMoney, supportingEvidence, "", "", amount, 0x0, isPartOfPackage);
     }
@@ -110,18 +110,18 @@ library ProposalLib {
     // Create a new Proposal of type PayCitizen
     // If the Proposal is Accepted then the specified amount of tokens will bre transferred from the Public Account to the specified Citizen
     // For implementation see VillageCoin.enactProposal
-    function proposePayCitizen(Proposals storage self, address citizen, uint amount, string supportingEvidence, bool isPartOfPackage) public returns(uint) {
+    function proposePayCitizen(Proposals storage self, address citizen, uint amount, bytes32 supportingEvidence, bool isPartOfPackage) public returns(uint) {
         return createProposal(self, ProposalType.PayCitizen, supportingEvidence, "", "", amount, citizen, isPartOfPackage);
     }
 
     // Create a new Proposal of type FineCitizen
     // If the Proposal is Accepted then the specified amount of tokens will bre transferred from the specified Citizen to the Public Account
     // For implementation see VillageCoin.enactProposal
-    function proposeFineCitizen(Proposals storage self, address citizen, uint amount, string supportingEvidence, bool isPartOfPackage) public returns(uint) {
+    function proposeFineCitizen(Proposals storage self, address citizen, uint amount, bytes32 supportingEvidence, bool isPartOfPackage) public returns(uint) {
         return createProposal(self, ProposalType.FineCitizen, supportingEvidence, "", "", amount, citizen, isPartOfPackage);
     }
 
-    function createProposal(Proposals storage self, ProposalType typ, string supportingEvidenceUrl, string stringParam1, string stringParam2, uint numberParam1, address addressParam1, bool isPartOfPackage) private returns(uint) {
+    function createProposal(Proposals storage self, ProposalType typ, bytes32 supportingEvidenceUrl, bytes32 stringParam1, bytes32 stringParam2, uint numberParam1, address addressParam1, bool isPartOfPackage) private returns(uint) {
                 
         var proposalId = self.nextProposalId;
         self.nextProposalId = self.nextProposalId.plus(1);

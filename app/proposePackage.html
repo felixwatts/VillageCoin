@@ -25,16 +25,18 @@
             </ol>
         </p>
 
-        <p>Select the items to include in the package:</p>
+        <div class="form">
+            <p>Select the items to include in the package:</p>
 
-        <div id="parts"></div>
-        
-        <p>You may optionally provide the URL of some <em>supporting evidence</em> to help convince other citizens of the value of your proposal.
-            <input type="text" id="supportingEvidenceUrl" class="inputUrl" placeholder="e.g. https://i.imgur.com/J5MKGp2.gifv" onchange="app.parseForm()"></input>
-        </p>
-        <div id="inputInvalidMessage"></div>
-        <button class="voteButton" id="inputSubmit" onclick="submit()" disabled>Create Proposal</button></p>
-        <div class="warning" id="proposalTaxMessage"></div>
+            <div id="parts"></div>
+            
+            <p>You may optionally provide the URL of some <em>supporting evidence</em> to help convince other citizens of the value of your proposal.
+                <input type="text" id="supportingEvidenceUrl" class="inputUrl" placeholder="e.g. https://i.imgur.com/J5MKGp2.gifv" onchange="app.parseForm()"></input>
+            </p>
+            <div id="inputInvalidMessage"></div>
+            <button class="voteButton" id="inputSubmit" onclick="submit()" disabled>Create Proposal</button></p>
+            <div class="warning" id="proposalTaxMessage"></div>
+        </div>
         
         <span id="status"></span>   
 

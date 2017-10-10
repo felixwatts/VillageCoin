@@ -5,8 +5,8 @@ var ParameterLib = artifacts.require("./ParameterLib.sol");
 var ProposalLib = artifacts.require("./ProposalLib.sol");
 var TaxLib = artifacts.require("./TaxLib.sol");
 var TokenLib = artifacts.require("./TokenLib.sol");
+var SS = artifacts.require("./Storage.sol");
 var VillageCoin = artifacts.require("./VillageCoin.sol");
-
 
 module.exports = function(deployer) 
 {
@@ -36,6 +36,8 @@ module.exports = function(deployer)
     deployer.link(ProposalLib, VillageCoin);
     deployer.link(TaxLib, VillageCoin);
     deployer.link(TokenLib, VillageCoin);
+
+    deployer.deploy(SS);
   }
   catch(error)
   {

@@ -7,6 +7,7 @@ import "./TokenLib.sol";
 import "./CitizenLib.sol";
 import "./ProposalLib.sol";
 import "./TaxLib.sol";
+import "./Storage.sol";
 
 // This is the main contract
 // VillageCoin implments a 'Democratic Currency' which has the following main features:
@@ -20,15 +21,34 @@ import "./TaxLib.sol";
 contract VillageCoin {
 
     using SafeMathLib for uint;
-    using ParameterLib for ParameterLib.Parameters;
     using ReferendumLib for ReferendumLib.Referendum;
     using CitizenLib for CitizenLib.Citizens;
     using TokenLib for TokenLib.Tokens;
     using ProposalLib for ProposalLib.Proposals;
 
     //
+    // Constants
+    //
+
+    bytes32 constant public PRM_NAME = sha3("PRM_NAME");
+    bytes32 constant public PRM_DECIMALS = sha3("PRM_DECIMALS");
+    bytes32 constant public PRM_INITIAL_ACCOUNT_BALANCE = sha3("PRM_INITIAL_ACCOUNT_BALANCE");
+    bytes32 constant public PRM_TAX_PERIOD_DAYS = sha3("PRM_TAX_PERIOD_DAYS");
+    bytes32 constant public PRM_PROPOSAL_DECIDE_THRESHOLD_PERCENT = sha3("PRM_PROPOSAL_DECIDE_THRESHOLD_PERCENT");
+    bytes32 constant public PRM_PROPOSAL_TAX_FLAT = sha3("PRM_PROPOSAL_TAX_FLAT");
+    bytes32 constant public PRM_PROPOSAL_TAX_PERCENT = sha3("PRM_PROPOSAL_TAX_PERCENT");
+    bytes32 constant public PRM_TRANSACTION_TAX_FLAT = sha3("PRM_TRANSACTION_TAX_FLAT");
+    bytes32 constant public PRM_TRANSACTION_TAX_PERCENT = sha3("PRM_TRANSACTION_TAX_PERCENT");
+    bytes32 constant public PRM_PROPOSAL_TIME_LIMIT_DAYS = sha3("PRM_PROPOSAL_TIME_LIMIT_DAYS");
+    bytes32 constant public PRM_POLL_TAX = sha3("PRM_POLL_TAX");
+    bytes32 constant public PRM_WEALTH_TAX_PERCENT = sha3("PRM_WEALTH_TAX_PERCENT");
+    bytes32 constant public PRM_BASIC_INCOME = sha3("PRM_BASIC_INCOME");
+
+    //
     // Fields
     //
+
+    Storage _storage;
 
     // The address of the priviliged user that can create accounts and do some other special things
     address public _gatekeeper;
@@ -37,8 +57,6 @@ contract VillageCoin {
     // A message to display at the top of the website for special annoucements etc.
     string public _announcementMessage; 
 
-    // A store for various mutable contract parameters, all of these can be changed by citiens using proposals
-    ParameterLib.Parameters _parameters;
     // Each citizen's token balance
     TokenLib.Tokens _tokens;
     // The address and username of each registered citizen (account owner)
@@ -69,18 +87,18 @@ contract VillageCoin {
 
     // Called once by the gatekeeper after deploying the contract
     // Initializes the contract with some required state
-    function init() onlyGatekeeper public {
+    function init(address storageAddr) onlyGatekeeper public {
 
-        _citizens.init();     
-        _nextTaxTime = now.plus(_parameters.getNumber("taxPeriodDays").times(1 days)); 
+        _storage = Storage(storageAddr);
+        _citizens.init();
     }
 
-    function addStringParameter(string name, string initialValue) onlyGatekeeper public {
-        _parameters.addString(name, initialValue);
+    function addStringParameter(bytes32 name, bytes32 initialValue) onlyGatekeeper public {
+        ParameterLib.addString(_storage, name, initialValue);
     }
 
-    function addNumberParameter (string name, uint initialValue, uint min, uint max) onlyGatekeeper public {
-        _parameters.addNumber(name, initialValue, min, max);
+    function addNumberParameter (bytes32 name, uint initialValue, uint min, uint max) onlyGatekeeper public {
+        ParameterLib.addNumber(_storage, name, initialValue, min, max);
     }
 
     // Set the announcement message at the top of the website
@@ -104,7 +122,7 @@ contract VillageCoin {
     // Gives the new citizen some funds to start with
     function addCitizen(address addr, string redditUsername) onlyGatekeeper public {
         _citizens.add(addr, redditUsername);
-        _tokens.init(addr, _parameters.getNumber("initialAccountBalance"));
+        _tokens.init(addr, getNumberParameter(PRM_INITIAL_ACCOUNT_BALANCE));
     }
 
     //
@@ -118,7 +136,7 @@ contract VillageCoin {
             return;
         }
 
-        _nextTaxTime = _nextTaxTime.plus(_parameters.getNumber("taxPeriodDays").times(1 days)); 
+        _nextTaxTime = _nextTaxTime.plus(getNumberParameter(PRM_TAX_PERIOD_DAYS).times(1 days)); 
 
         applyPollTax();
         applyWealthTax();
@@ -134,7 +152,7 @@ contract VillageCoin {
         
         var referendum = _referendums[proposalId];
 
-        var decision = referendum.tryDecide(_citizens.count, _parameters.getNumber("proposalDecideThresholdPercent"));
+        var decision = referendum.tryDecide(_citizens.count, getNumberParameter(PRM_PROPOSAL_DECIDE_THRESHOLD_PERCENT));
 
         if (decision == ReferendumLib.ReferendumState.Accepted) {
             enactProposal(proposalId);
@@ -146,48 +164,48 @@ contract VillageCoin {
     //
 
     // See ProposalLib.sol
-    function proposePackage(uint[] partIds, string supportingEvidence) public onlyCitizen {
+    function proposePackage(uint[] partIds, bytes32 supportingEvidence) public onlyCitizen {
         uint proposalId = _proposals.proposePackage(partIds, supportingEvidence);
         afterCreateProposal(proposalId);        
     }
 
     // See ProposalLib.sol
     function proposeSetParameter (
-        string parameterName,
-        string stringValue,
+        bytes32 parameterName,
+        bytes32 stringValue,
         uint numberValue,
-        string supportingEvidence,
+        bytes32 supportingEvidence,
         bool isPartOfPackage
     ) public onlyCitizen 
     {
         // throw if it is not legal to set this parameter to this value
-        _parameters.validateValue(parameterName, stringValue, numberValue);
+        ParameterLib.validateValue(_storage, parameterName, stringValue, numberValue);
 
         uint proposalId = _proposals.proposeSetParameter(parameterName, stringValue, numberValue, supportingEvidence, isPartOfPackage);
         afterCreateProposal(proposalId);      
     }
 
     // See ProposalLib.sol
-    function proposeCreateMoney(uint amount, string supportingEvidence, bool isPartOfPackage) public onlyCitizen {
+    function proposeCreateMoney(uint amount, bytes32 supportingEvidence, bool isPartOfPackage) public onlyCitizen {
         uint proposalId = _proposals.proposeCreateMoney(amount, supportingEvidence, isPartOfPackage);
         afterCreateProposal(proposalId);
     }
 
     // See ProposalLib.sol
-    function proposeDestroyMoney(uint amount, string supportingEvidence, bool isPartOfPackage) public onlyCitizen {
+    function proposeDestroyMoney(uint amount, bytes32 supportingEvidence, bool isPartOfPackage) public onlyCitizen {
         uint proposalId = _proposals.proposeDestroyMoney(amount, supportingEvidence, isPartOfPackage);
         afterCreateProposal(proposalId);
     }
 
     // See ProposalLib.sol
-    function proposePayCitizen(address citizen, uint amount, string supportingEvidence, bool isPartOfPackage) public onlyCitizen {
+    function proposePayCitizen(address citizen, uint amount, bytes32 supportingEvidence, bool isPartOfPackage) public onlyCitizen {
         require(_citizens.isCitizen(citizen));
         uint proposalId = _proposals.proposePayCitizen(citizen, amount, supportingEvidence, isPartOfPackage);
         afterCreateProposal(proposalId);
     }
 
     // See ProposalLib.sol
-    function proposeFineCitizen(address citizen, uint amount, string supportingEvidence, bool isPartOfPackage) public onlyCitizen {
+    function proposeFineCitizen(address citizen, uint amount, bytes32 supportingEvidence, bool isPartOfPackage) public onlyCitizen {
         require(_citizens.isCitizen(citizen));
         uint proposalId = _proposals.proposeFineCitizen(citizen, amount, supportingEvidence, isPartOfPackage);        
         afterCreateProposal(proposalId);
@@ -215,17 +233,17 @@ contract VillageCoin {
     // Return the tax due if the specified Citizen makes a proposal
     function calculateProposalTax(address proposer) public constant returns(uint) {
 
-        uint proposalTaxFlat = _parameters.getNumber("taxProposalTaxFlat");
+        uint proposalTaxFlat = getNumberParameter(PRM_PROPOSAL_TAX_FLAT);
         uint balance = _tokens.balanceOf(proposer);
-        uint proposalTaxPercent = _parameters.getNumber("taxProposalTaxPercent");
+        uint proposalTaxPercent = getNumberParameter(PRM_PROPOSAL_TAX_PERCENT);
 
         return TaxLib.calculateProposalTax(proposalTaxFlat, proposalTaxPercent, balance);
     }
 
     // Return the tax due if the specified Citizen makes the specified transaction
     function calculateTransactionTax(address from, address to, uint amount) public constant returns(uint) {
-        uint transactionTaxFlat = _parameters.getNumber("taxTransactionTaxFlat");
-        uint transactionTaxPercent = _parameters.getNumber("taxTransactionTaxPercent");
+        uint transactionTaxFlat = getNumberParameter(PRM_TRANSACTION_TAX_FLAT);
+        uint transactionTaxPercent = getNumberParameter(PRM_TRANSACTION_TAX_PERCENT);
 
         return TaxLib.calculateTransactionTax(amount, from, to, transactionTaxFlat, transactionTaxPercent);
     }
@@ -235,11 +253,11 @@ contract VillageCoin {
         ProposalLib.ProposalType typ, 
         address proposer, 
         bool isExistent,
-        string stringParam1,
-        string stringParam2,        
+        bytes32 stringParam1,
+        bytes32 stringParam2,        
         uint numberParam1,              
         address addressParam1,                    
-        string supportingEvidenceUrl,
+        bytes32 supportingEvidenceUrl,
         bool isPartOfPackage,
         bool isAssignedToPackage) 
         {
@@ -305,28 +323,24 @@ contract VillageCoin {
         return;
     }
     
-    function isNumberParameter(string name) public constant returns(bool) {
-        return _parameters.isNumberParameter(name);
+    function isNumberParameter(bytes32 name) public constant returns(bool) {
+        return ParameterLib.isNumberParameter(_storage, name);
     }
 
-    function isStringParameter(string name) public constant returns(bool) {
-        return _parameters.isStringParameter(name);
+    function isStringParameter(bytes32 name) public constant returns(bool) {
+        return ParameterLib.isStringParameter(_storage, name);
     }
 
-    function getNumberParameter(string name) public constant returns(uint current) {
-        return _parameters.getNumber(name);
+    function getNumberParameter(bytes32 name) public constant returns(uint current) {
+        return ParameterLib.getNumber(_storage, name);
     }
 
-    function getNumberParameterRange(string name) public constant returns(uint min, uint max) {
-        require(_parameters.isNumberParameter(name));
-        min = _parameters.parameters[name].minNumberValue;
-        max = _parameters.parameters[name].maxNumberValue;
-        return;
+    function getNumberParameterRange(bytes32 name) public constant returns(uint min, uint max) {
+        return ParameterLib.getNumberParameterRange(_storage, name);
     }
 
-    function getStringParameter(string name) public constant returns(string) {
-        require(_parameters.isStringParameter(name));
-        return _parameters.parameters[name].stringValue;
+    function getStringParameter(bytes32 name) public constant returns(bytes32) {
+        return ParameterLib.getString(_storage, name);
     }
 
     function getHasSenderVoted(uint proposalId) returns(bool) {
@@ -364,17 +378,17 @@ contract VillageCoin {
     }
 
     function name() constant public returns (string) {
-        // Annoyingly can't return _parameters.getString("name")
-        return _parameters.parameters["name"].stringValue;
+        // TODO
+        return "VoteCoin";
     }
 
     function symbol() constant public returns (string) {
-        // Annoyingly can't return _parameters.getString("symbol")
-        return _parameters.parameters["symbol"].stringValue;
+        // TODO
+        return "VTC";
     }
 
     function decimals() constant public returns (uint8) {
-        return uint8(_parameters.getNumber("decimals"));
+        return uint8(getNumberParameter(PRM_DECIMALS));
     }
 
     function totalSupply() constant public returns (uint256) {
@@ -391,7 +405,7 @@ contract VillageCoin {
             return;
         }
         payProposalTax();
-        _referendums[proposalId].init(_parameters.getNumber("proposalTimeLimitDays") * 1 days);
+        _referendums[proposalId].init(getNumberParameter(PRM_PROPOSAL_TIME_LIMIT_DAYS) * 1 days);
     }
 
     function payProposalTax() private {
@@ -405,7 +419,7 @@ contract VillageCoin {
         assert(proposal.isExistent);
 
         if (proposal.typ == ProposalLib.ProposalType.SetParameter) {
-                _parameters.set(proposal.stringParam1, proposal.stringParam2, proposal.numberParam1);
+                ParameterLib.set(_storage, proposal.stringParam1, proposal.stringParam2, proposal.numberParam1);
             } else if (proposal.typ == ProposalLib.ProposalType.CreateMoney) {
                 _tokens.createMoney(proposal.numberParam1);
             } else if (proposal.typ == ProposalLib.ProposalType.DestroyMoney) {
@@ -427,7 +441,7 @@ contract VillageCoin {
     // The amount transfered for Poll Tax is the value of the parameter 'taxPollTax'
     // If a citizen does not have the required funds then their balance is emptied    
     function applyPollTax() private {
-        var pollTaxAmount = _parameters.getNumber("taxPollTax");
+        var pollTaxAmount = getNumberParameter(PRM_POLL_TAX);
         if (pollTaxAmount == 0) {
             return;
         }
@@ -442,7 +456,7 @@ contract VillageCoin {
     // The amount transfered for Wealth Tax is the Citizen's balance multiplied by the percentage parameter 'taxWealthTaxPercent'   
     function applyWealthTax() private {
 
-        var wealthTaxPercent = _parameters.getNumber("taxWealthTaxPercent");
+        var wealthTaxPercent = getNumberParameter(PRM_WEALTH_TAX_PERCENT);
         if (wealthTaxPercent == 0) {
             return;
         }
@@ -458,7 +472,7 @@ contract VillageCoin {
     // The amount transfered for Basic Income is the value of the parameter 'taxBasicIncome'
     // If the public account does not have enough funds to make all basic income payments then each citizen gets an equal share of the total public funds
     function applyBasicIncome() private {
-        var basicIncomeAmount = _parameters.getNumber("taxBasicIncome");
+        var basicIncomeAmount = getNumberParameter(PRM_BASIC_INCOME);
         if (basicIncomeAmount == 0) {
             return;
         }

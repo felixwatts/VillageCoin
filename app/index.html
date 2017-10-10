@@ -22,9 +22,11 @@
 
         <p>Your balance is <span style="font-size:24pt;" id="balance"></span></p>
 
-        <p>Send <input type="text" id="amount" class="inputAmount" placeholder="e.g., 5" onchange="parseSendForm()"></input> to <input type="text" id="toAddress" class="inputAddress" placeholder="username or address" onchange="parseSendForm()"><button id="inputSubmit" onclick="send()" disabled>SEND <span class="villageSymbol"></span></button></p>
-        <div class="warning" id="transactionTaxMessage"></div>
-        <div id="inputInvalidMessage"></div>
+        <div class="form">
+            Send <input type="text" id="amount" class="inputAmount" placeholder="e.g., 5" onchange="parseSendForm()"></input> to <input type="text" id="toAddress" class="inputAddress" placeholder="username or address" onchange="parseSendForm()"><button id="inputSubmit" onclick="send()" disabled>SEND <span class="villageSymbol"></span></button>
+            <div class="warning" id="transactionTaxMessage"></div>
+            <div id="inputInvalidMessage"></div>
+        </div>
 
         <h3>Recent Transfers</h3>
         <table id="recentTransfers"></table>

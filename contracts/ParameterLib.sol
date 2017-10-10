@@ -1,3 +1,6 @@
+import "./Storage.sol";
+
+
 pragma solidity ^0.4.9;
 
 // Parameters is a key-value store where the key is a string and the value can be either a string or a number
@@ -7,50 +10,46 @@ pragma solidity ^0.4.9;
 // Number type parameters have an enforced min-max range. 
 library ParameterLib {
 
-    struct Parameter {
-        uint numberValue;
-        string stringValue;
-        bool isNumber;
-        bool isExistent;
-        uint minNumberValue;
-        uint maxNumberValue; // 0 = no max
-    }
-
-    struct Parameters {
-        mapping(string=>Parameter) parameters;
-    }
+    bytes32 constant public F_NUMBER_VALUE = sha3("F_PRM_NUMBER_VALUE");
+    bytes32 constant public F_STRING_VALUE = sha3("F_PRM_STRING_VALUE");
+    bytes32 constant public F_IS_NUMBER = sha3("F_PRM_IS_NUMBER");
+    bytes32 constant public F_IS_EXISTENT = sha3("F_PRM_IS_EXISTENT");
+    bytes32 constant public F_MIN_NUMBER_VALUE = sha3("F_PRM_MIN_NUMBER_VALUE");
+    bytes32 constant public F_MAX_NUMBER_VALUE = sha3("F_PRM_MAX_NUMBER_VALUE");
 
     //
     // Views
     //
 
-    function isParameter(Parameters storage self, string name) public constant returns(bool) {
-        return self.parameters[name].isExistent;
+    function isParameter(Storage self, bytes32 name) public constant returns(bool) {
+        return self.getBool(name, F_IS_EXISTENT);
     }
 
-    function isNumberParameter(Parameters storage self, string name) public constant returns(bool) {
-        return self.parameters[name].isExistent && self.parameters[name].isNumber;
+    function isNumberParameter(Storage self, bytes32 name) public constant returns(bool) {
+        return isParameter(self, name) && self.getBool(name, F_IS_NUMBER);
     }
 
-    function isStringParameter(Parameters storage self, string name) public constant returns(bool) {
-        return self.parameters[name].isExistent && !self.parameters[name].isNumber;
+    function isStringParameter(Storage self, bytes32 name) public constant returns(bool) {
+        return isParameter(self, name) && !self.getBool(name, F_IS_NUMBER);
     }
 
-    function getString(Parameters storage self, string name) public returns(string) {
-        require(self.parameters[name].isExistent);
-        require(!self.parameters[name].isNumber);
-
-        return self.parameters[name].stringValue;
+    function getString(Storage self, bytes32 name) public constant returns(bytes32) {
+        require(isStringParameter(self, name));
+        return self.getBytes32(name, F_STRING_VALUE);
     }
 
-    function getNumber(Parameters storage self, string name) public returns(uint) {
-        require(self.parameters[name].isExistent);
-        require(self.parameters[name].isNumber);
-
-        return self.parameters[name].numberValue;
+    function getNumber(Storage self, bytes32 name) public constant returns(uint) {
+        require(isNumberParameter(self, name));
+        return self.getUInt(name, F_NUMBER_VALUE);
     }
 
-    function validateValue(Parameters storage self, string name, string stringValue, uint numberValue) public constant {
+    function getNumberParameterRange(Storage self, bytes32 name) public constant returns(uint min, uint max) {
+        require(isNumberParameter(self, name));
+        min = self.getUInt(name, F_MIN_NUMBER_VALUE);
+        max = self.getUInt(name, F_MAX_NUMBER_VALUE);
+    }
+
+    function validateValue(Storage self, bytes32 name, bytes32 stringValue, uint numberValue) public constant {
         if (isStringParameter(self, name)) {
             return;
         } else if (isNumberParameter(self, name)) {
@@ -60,28 +59,34 @@ library ParameterLib {
         }
     }
 
-    function validateNumberValue(Parameters storage self, string name, uint value) public constant {
-        require(self.parameters[name].isExistent);
-        require(self.parameters[name].isNumber);
-        require(value >= self.parameters[name].minNumberValue);
-        require(self.parameters[name].maxNumberValue == 0 || value <= self.parameters[name].maxNumberValue);
+    function validateNumberValue(Storage self, bytes32 name, uint value) public constant {
+        require(isNumberParameter(self, name));
+        require(value >= self.getUInt(name, F_MIN_NUMBER_VALUE));
+        uint max = self.getUInt(name, F_MAX_NUMBER_VALUE);
+        require(max == 0 || value <= max);
     }
 
     //
     // Modifiers
     //
 
-    function addString(Parameters storage self, string name, string value) public {
-        require(!self.parameters[name].isExistent);
-        self.parameters[name] = Parameter({stringValue:value, numberValue:0, isNumber:false, isExistent:true, minNumberValue:0, maxNumberValue:0});
+    function addString(Storage self, bytes32 name, bytes32 value) public {
+        require(!isParameter(self, name));        
+        self.setBool(name, F_IS_EXISTENT, true);
+        self.setBool(name, F_IS_NUMBER, false);
+        self.setBytes32(name, F_STRING_VALUE, value);
     }
 
-    function addNumber(Parameters storage self, string name, uint value, uint minValue, uint maxValue) public {
-        require(!self.parameters[name].isExistent);
-        self.parameters[name] = Parameter({stringValue:"", numberValue:value, isNumber:true, isExistent:true, minNumberValue:minValue, maxNumberValue:maxValue});
+    function addNumber(Storage self, bytes32 name, uint value, uint min, uint max) public {
+        require(!isParameter(self, name));
+        self.setBool(name, F_IS_EXISTENT, true);
+        self.setBool(name, F_IS_NUMBER, true);
+        self.setUInt(name, F_NUMBER_VALUE, value);
+        self.setUInt(name, F_MIN_NUMBER_VALUE, min);
+        self.setUInt(name, F_MAX_NUMBER_VALUE, max);
     }
 
-    function set(Parameters storage self, string name, string stringValue, uint numberValue) public {
+    function set(Storage self, bytes32 name, bytes32 stringValue, uint numberValue) public {
         if (isStringParameter(self, name)) {
             setString(self, name, stringValue);
         } else if (isNumberParameter(self, name)) {
@@ -91,16 +96,13 @@ library ParameterLib {
         }
     }
 
-    function setString(Parameters storage self, string name, string value) public {
-        require(self.parameters[name].isExistent);
-        require(!self.parameters[name].isNumber);
-
-        self.parameters[name].stringValue = value;
+    function setString(Storage self, bytes32 name, bytes32 value) public {
+        require(isStringParameter(self, name));
+        self.setBytes32(name, F_STRING_VALUE, value);
     }
 
-    function setNumber(Parameters storage self, string name, uint value) public {
+    function setNumber(Storage self, bytes32 name, uint value) public {
         validateNumberValue(self, name, value);
-
-        self.parameters[name].numberValue = value;
+        self.setUInt(name, F_NUMBER_VALUE, value);
     }
 }

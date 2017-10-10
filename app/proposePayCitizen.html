@@ -21,17 +21,19 @@
 
         <p>Use the form below to propose paying a citizen</p>
 
-        <p>I propose to pay
-            <input type="text" id="amount" class="inputAmount" placeholder="e.g., 5" onchange="app.parseForm()"></input><span class="villageSymbol"></span> 
-            from the public account to <input type="text" id="citizen" class="inputAddress" placeholder="username or address" onchange="app.parseForm()"></input>
-        </p>
-        <p>You may optionally provide the URL of some <em>supporting evidence</em> to help convince other citizens of the value of your proposal.
-            <input type="text" id="supportingEvidenceUrl" class="inputUrl" placeholder="e.g. https://i.imgur.com/J5MKGp2.gifv" onchange="app.parseForm()"></input>
-        </p>
-        <p><input type="checkbox" class="inputBool" id="isPartOfPackage" onchange="app.populateProposalTax()">This proposal is part of a package</input></p>
-        <div id="inputInvalidMessage"></div>
-        <button class="voteButton" id="inputSubmit" onclick="submit()" disabled>Create Proposal</button></p>
-        <div class="warning" id="proposalTaxMessage"></div>
+        <div class="form">
+            <p>I propose to pay
+                <input type="text" id="amount" class="inputAmount" placeholder="e.g., 5" onchange="app.parseForm()"></input><span class="villageSymbol"></span> 
+                from the public account to <input type="text" id="citizen" class="inputAddress" placeholder="username or address" onchange="app.parseForm()"></input>
+            </p>
+            <p>You may optionally provide the URL of some <em>supporting evidence</em> to help convince other citizens of the value of your proposal.
+                <input type="text" id="supportingEvidenceUrl" class="inputUrl" placeholder="e.g. https://i.imgur.com/J5MKGp2.gifv" onchange="app.parseForm()"></input>
+            </p>
+            <p><input type="checkbox" class="inputBool" id="isPartOfPackage" onchange="app.populateProposalTax()">This proposal is part of a package</input></p>
+            <div id="inputInvalidMessage"></div>
+            <button class="voteButton" id="inputSubmit" onclick="submit()" disabled>Create Proposal</button></p>
+            <div class="warning" id="proposalTaxMessage"></div>
+        </div>
         
         <span id="status"></span> 
         

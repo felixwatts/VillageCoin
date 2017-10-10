@@ -85,16 +85,18 @@
 
         <p>Use the form below to propose a change to a parameter</p>
 
-        <p>I propose to change the value of 
-            <input type="text" id="inputParameterName" placeholder="parameter name" onchange="app.parseForm()"></input> to 
-            <input type="text" id="inputParameterValue" placeholder="parameter value" onchange="app.parseForm()"></input>
-        </p>
-        <p>You may optionally provide the URL of some <em>supporting evidence</em> to help convince other citizens of the value of your proposal.
-            <input type="text" id="supportingEvidenceUrl" class="inputUrl" placeholder="e.g. https://i.imgur.com/J5MKGp2.gifv" onchange="app.parseForm()"></input></p>
-        <p><input type="checkbox" class="inputBool" id="isPartOfPackage" onchange="app.populateProposalTax()">This proposal is part of a package</input></p>
-        <div id="inputInvalidMessage"></div>
-        <button class="voteButton" id="inputSubmit" onclick="submit()" disabled>Create Proposal</button></p>
-        <div class="warning" id="proposalTaxMessage"></div>    
+        <div class="form">
+            <p>I propose to change the value of 
+                <input type="text" id="inputParameterName" placeholder="parameter name" onchange="app.parseForm()"></input> to 
+                <input type="text" id="inputParameterValue" placeholder="parameter value" onchange="app.parseForm()"></input>
+            </p>
+            <p>You may optionally provide the URL of some <em>supporting evidence</em> to help convince other citizens of the value of your proposal.
+                <input type="text" id="supportingEvidenceUrl" class="inputUrl" placeholder="e.g. https://i.imgur.com/J5MKGp2.gifv" onchange="app.parseForm()"></input></p>
+            <p><input type="checkbox" class="inputBool" id="isPartOfPackage" onchange="app.populateProposalTax()">This proposal is part of a package</input></p>
+            <div id="inputInvalidMessage"></div>
+            <button class="voteButton" id="inputSubmit" onclick="submit()" disabled>Create Proposal</button></p>
+            <div class="warning" id="proposalTaxMessage"></div>  
+        </div>  
         <span id="status"></span>  
         
         <div id="overlayMessage" class="overlayMessage">
