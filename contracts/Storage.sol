@@ -24,6 +24,8 @@ contract Storage {
     mapping(address=>mapping(bytes32=>bytes32)) _bytes32ByAddress;
     mapping(uint=>mapping(bytes32=>bytes32)) _bytes32ByUInt;
 
+    mapping(uint=>mapping(bytes32=>uint[64])) _arrByUInt;
+
     function Storage() payable {
         _writers[msg.sender] = true;
     }
@@ -108,6 +110,10 @@ contract Storage {
         return _bytes32ByBytes32[n][key];
     } 
 
+    function getArr(bytes32 key, uint n) public constant returns(uint[64]) {
+        return _arrByUInt[n][key];
+    } 
+
     //
     // Setters
     //
@@ -175,6 +181,10 @@ contract Storage {
     function setAddress(bytes32 key, bytes32 n, address val) public onlyWriter {
         _addrByBytes32[n][key] = val;
     }
+
+    function setArr(bytes32 key, uint n, uint[64] val) public constant returns(uint[64]) {
+        return _arrByUInt[n][key] = val;
+    } 
 
     //
     // Function Modifiers

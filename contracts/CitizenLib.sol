@@ -3,12 +3,12 @@ pragma solidity ^0.4.9;
 import "./SafeMathLib.sol";
 import "./Storage.sol";
 
-// Citizens is an iterable collection of Citizen objects
-// Lookup is provided by either address or username
+// This models a collection of Citizens stored in a Storage
+// A Citizen has an Id, a Username and an Address
+// All three fields of a citizen are unique
+// The collection is iterable
 // Citizens can be added and removed
-// No two Citizens may share an address or a username
 // A count is maintained
-// There is a special citizen with username '!PublicAccount' and address 0x0 that is always present and is not included in the iteration
 library CitizenLib {
 
     using SafeMathLib for uint;
@@ -24,16 +24,8 @@ library CitizenLib {
     bytes32 constant public F_ID_BY_ADDRESS = sha3("F_CITIZEN_ID_BY_ADDRESS");   
     bytes32 constant public F_ID_BY_USERNAME = sha3("F_CITIZEN_ID_BY_USERNAME");   
 
-    // struct Citizens {
-    //     mapping(uint=>Citizen) citizens;
-    //     mapping(address=>uint) idByAddress;
-    //     mapping(string=>uint) idByUsername;
-    //     uint count;        
-    //     uint iterationIndex;
-    // }
-
     function iterateStart(Storage self) public {
-        self.setUInt(F_ITERATION_INDEX, 0); // iteration skips public account
+        self.setUInt(F_ITERATION_INDEX, 0);
     }
 
     function iterateValid(Storage self) public returns(bool) {
@@ -54,9 +46,13 @@ library CitizenLib {
         require(sha3(username) != sha3(""));
         require(!isCitizen(self, addr));
         require(!isCitizen(self, username));
+        require(addr != 0x0);
 
         uint id = self.getUInt(F_NEXT_ID);
-        self.setUInt(F_NEXT_ID, self.getUInt(F_NEXT_ID).plus(1));
+        if (id == 0) {
+            id = 1; // zero is not a valid ID
+        }        
+        self.setUInt(F_NEXT_ID, id.plus(1));
         assert(!self.getBool(F_IS_EXISTENT, id));
 
         self.setBool(F_IS_EXISTENT, id, true);
@@ -71,20 +67,24 @@ library CitizenLib {
 
     function remove(Storage self, bytes32 username) public {
         require(isCitizen(self, username));
-        require(username != sha3("!PublicAccount")); // TODO
         uint id = self.getUInt(F_ID_BY_USERNAME, username);
+        
         self.setBool(F_IS_EXISTENT, id, false);
         self.setUInt(F_COUNT, self.getUInt(F_COUNT).minus(1));
+
+        address addr = self.getAddress(F_ADDRESS, id);
+        self.setUInt(F_ID_BY_ADDRESS, addr, 0);
+        self.setUInt(F_ID_BY_USERNAME, username, 0);
     }
 
     function isCitizen(Storage self, address addr) public constant returns(bool) {
         uint id = self.getUInt(F_ID_BY_ADDRESS, addr);
-        return id != 0 && self.getBool(F_IS_EXISTENT, id);
+        return id != 0;
     }
 
     function isCitizen(Storage self, bytes32 username) public constant returns(bool) {
         uint id = self.getUInt(F_ID_BY_USERNAME, username);
-        return id != 0 && self.getBool(F_IS_EXISTENT, id);
+        return id != 0;
     }
 
     function getAddress(Storage self, bytes32 username) public constant returns(address) {
@@ -96,4 +96,33 @@ library CitizenLib {
         require(isCitizen(self, addr));
         return self.getBytes32(F_USERNAME, self.getUInt(F_ID_BY_ADDRESS, addr));
     } 
+
+    function getPopulation(Storage self) public constant returns(uint) {
+        return self.getUInt(F_COUNT);
+    }
+
+    function get(Storage self, uint id) public constant returns(bytes32 username, address addr, bool isExistent) {
+        username = self.getBytes32(F_USERNAME, id);
+        addr = self.getAddress(F_ADDRESS, id);
+        isExistent = self.getBool(F_IS_EXISTENT, id);
+        return;
+    }
+
+    function get(Storage self, bytes32 username) public constant returns(address addr, bool isExistent) {
+        var id = self.getUInt(F_ID_BY_USERNAME, username);
+        if (id != 0) {
+            addr = self.getAddress(F_ADDRESS, id);
+            isExistent = self.getBool(F_IS_EXISTENT, id);
+        }
+        return;
+    }
+
+    function get(Storage self, address addr) public constant returns(bytes32 username, bool isExistent) {
+        var id = self.getUInt(F_ID_BY_ADDRESS, addr);
+        if (id != 0) {
+            username = self.getBytes32(F_USERNAME, id);
+            isExistent = self.getBool(F_IS_EXISTENT, id);
+        }
+        return;
+    }
 }

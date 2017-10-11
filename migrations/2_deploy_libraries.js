@@ -23,10 +23,14 @@ module.exports = function(deployer)
     deployer.link(SafeMathLib, ReferendumLib);
     deployer.link(SafeMathLib, ProposalLib);
     deployer.link(SafeMathLib, TaxLib);
+
+    deployer.deploy(ParameterLib);
+    deployer.link(ParameterLib, ProposalLib);
+    deployer.link(TokenLib, ProposalLib);    
   
     deployer.deploy(CitizenLib);
     deployer.deploy(ReferendumLib);
-    deployer.deploy(ParameterLib);
+    
     deployer.deploy(ProposalLib);
     deployer.deploy(TaxLib);
     

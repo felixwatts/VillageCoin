@@ -22,31 +22,31 @@ library ParameterLib {
     //
 
     function isParameter(Storage self, bytes32 name) public constant returns(bool) {
-        return self.getBool(name, F_IS_EXISTENT);
+        return self.getBool(F_IS_EXISTENT, name);
     }
 
     function isNumberParameter(Storage self, bytes32 name) public constant returns(bool) {
-        return isParameter(self, name) && self.getBool(name, F_IS_NUMBER);
+        return isParameter(self, name) && self.getBool(F_IS_NUMBER, name);
     }
 
     function isStringParameter(Storage self, bytes32 name) public constant returns(bool) {
-        return isParameter(self, name) && !self.getBool(name, F_IS_NUMBER);
+        return isParameter(self, name) && !self.getBool(F_IS_NUMBER, name);
     }
 
     function getString(Storage self, bytes32 name) public constant returns(bytes32) {
         require(isStringParameter(self, name));
-        return self.getBytes32(name, F_STRING_VALUE);
+        return self.getBytes32(F_STRING_VALUE, name);
     }
 
     function getNumber(Storage self, bytes32 name) public constant returns(uint) {
         require(isNumberParameter(self, name));
-        return self.getUInt(name, F_NUMBER_VALUE);
+        return self.getUInt(F_NUMBER_VALUE, name);
     }
 
     function getNumberParameterRange(Storage self, bytes32 name) public constant returns(uint min, uint max) {
         require(isNumberParameter(self, name));
-        min = self.getUInt(name, F_MIN_NUMBER_VALUE);
-        max = self.getUInt(name, F_MAX_NUMBER_VALUE);
+        min = self.getUInt(F_MIN_NUMBER_VALUE, name);
+        max = self.getUInt(F_MAX_NUMBER_VALUE, name);
     }
 
     function validateValue(Storage self, bytes32 name, bytes32 stringValue, uint numberValue) public constant {
@@ -61,8 +61,8 @@ library ParameterLib {
 
     function validateNumberValue(Storage self, bytes32 name, uint value) public constant {
         require(isNumberParameter(self, name));
-        require(value >= self.getUInt(name, F_MIN_NUMBER_VALUE));
-        uint max = self.getUInt(name, F_MAX_NUMBER_VALUE);
+        require(value >= self.getUInt(F_MIN_NUMBER_VALUE, name));
+        uint max = self.getUInt(F_MAX_NUMBER_VALUE, name);
         require(max == 0 || value <= max);
     }
 
@@ -72,18 +72,18 @@ library ParameterLib {
 
     function addString(Storage self, bytes32 name, bytes32 value) public {
         require(!isParameter(self, name));        
-        self.setBool(name, F_IS_EXISTENT, true);
-        self.setBool(name, F_IS_NUMBER, false);
-        self.setBytes32(name, F_STRING_VALUE, value);
+        self.setBool(F_IS_EXISTENT, name, true);
+        self.setBool(F_IS_NUMBER, name, false);
+        self.setBytes32(F_STRING_VALUE, name, value);
     }
 
     function addNumber(Storage self, bytes32 name, uint value, uint min, uint max) public {
         require(!isParameter(self, name));
-        self.setBool(name, F_IS_EXISTENT, true);
-        self.setBool(name, F_IS_NUMBER, true);
-        self.setUInt(name, F_NUMBER_VALUE, value);
-        self.setUInt(name, F_MIN_NUMBER_VALUE, min);
-        self.setUInt(name, F_MAX_NUMBER_VALUE, max);
+        self.setBool(F_IS_EXISTENT, name, true);
+        self.setBool(F_IS_NUMBER, name, true);
+        self.setUInt(F_NUMBER_VALUE, name, value);
+        self.setUInt(F_MIN_NUMBER_VALUE, name, min);
+        self.setUInt(F_MAX_NUMBER_VALUE, name, max);
     }
 
     function set(Storage self, bytes32 name, bytes32 stringValue, uint numberValue) public {
@@ -98,11 +98,11 @@ library ParameterLib {
 
     function setString(Storage self, bytes32 name, bytes32 value) public {
         require(isStringParameter(self, name));
-        self.setBytes32(name, F_STRING_VALUE, value);
+        self.setBytes32(F_STRING_VALUE, name, value);
     }
 
     function setNumber(Storage self, bytes32 name, uint value) public {
         validateNumberValue(self, name, value);
-        self.setUInt(name, F_NUMBER_VALUE, value);
+        self.setUInt(F_NUMBER_VALUE, name, value);
     }
 }

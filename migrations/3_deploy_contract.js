@@ -16,20 +16,22 @@ module.exports = function(deployer)
     var vc, ss;
     deployer.then(function() {
       // Create a new version of A
-      return VillageCoin.new();
+      return SS.new();// VillageCoin.new();
+    }).then(function(instance) {
+      ss = instance;
+      SS.address = ss.address;
+      return VillageCoin.new(ss.address);
+
     }).then(function(instance) {
       vc = instance;
+      VillageCoin.address = vc.address
 
-      VillageCoin.address = vc.address;
-
-      vc.init(SS.deployed().address, {gas: 6700000});  
-
-      // Get the deployed instance of B
+      ss.addWriter(vc.address);
 
       vc.addStringParameter("name", "RedditVillage", {gas: 6700000});
       vc.addStringParameter("symbol", "RVX", {gas: 6700000});
   
-      vc.addNumberParameter("decimals", 0, 0, 18, {gas: 6700000});
+      vc.addNumberParameter( "decimals", 0, 0, 18, {gas: 6700000});
       vc.addNumberParameter("initialAccountBalance", 1000, 0, 0, {gas: 6700000});
       vc.addNumberParameter("proposalDecideThresholdPercent", 60, 0, 100, {gas: 6700000});
       vc.addNumberParameter("proposalTimeLimitDays", 30, 0, 0, {gas: 6700000});
@@ -43,17 +45,10 @@ module.exports = function(deployer)
       vc.addNumberParameter("taxTransactionTaxFlat", 0, 0, 0, {gas: 6700000});
       vc.addNumberParameter("taxTransactionTaxPercent", 0, 0, 100, {gas: 6700000});
       vc.addNumberParameter("taxProposalTaxFlat", 0, 0, 0, {gas: 6700000});
-      vc.addNumberParameter("taxProposalTaxPercent", 0, 0, 100, {gas: 6700000}); 
-  
-      
-
-      vc.addCitizen("0x52ec249dd2eec428b1e2f389c7d032caf5d1a238", "felixwatts", {gas: 2000000});  
-
-      return SS.deployed();
-    }).then(function(instance) {
-      ss = instance;
-      // Set the new instance of A's address on B via B's setA() function.
-      return ss.addWriter(vc.address);
+      return vc.addNumberParameter("taxProposalTaxPercent", 0, 0, 100, {gas: 6700000});                         
+           
+    }).then(function(){
+      return vc.addCitizen("0x52ec249dd2eec428b1e2f389c7d032caf5d1a238", "felixwatts", {gas: 2000000});   
     });
   }
   catch(error)
