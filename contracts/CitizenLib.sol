@@ -125,4 +125,8 @@ library CitizenLib {
         }
         return;
     }
+
+    function getNextId(Storage self) public constant returns (uint) {
+        return self.getUInt(F_NEXT_ID);
+    }
 }

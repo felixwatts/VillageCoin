@@ -3,11 +3,12 @@ import "./Storage.sol";
 
 pragma solidity ^0.4.9;
 
-// Parameters is a key-value store where the key is a string and the value can be either a string or a number
+// Parameters is a key-value store where the key is a bytes32 (by convension the sha3() of the parameter name prefixed by PRM_) and the value can be either a string or a number
 // Parameters are defined using the addString and addNumber functions
 // Parameters can be get and set using getString, setString, getNumber, setNumber and set functions
 // Undefined parameters cannot be get or set
-// Number type parameters have an enforced min-max range. 
+// Number type parameters have an enforced min-max range.
+// String parameters are stored as ascii encoded as bytes32 
 library ParameterLib {
 
     bytes32 constant public F_NUMBER_VALUE = sha3("F_PRM_NUMBER_VALUE");

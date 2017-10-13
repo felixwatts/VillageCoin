@@ -27,6 +27,7 @@ contract VillageCoin {
     //
 
     bytes32 constant public PRM_NAME = sha3("PRM_NAME");
+    bytes32 constant public PRM_SYMBOL = sha3("PRM_SYMBOL");
     bytes32 constant public PRM_DECIMALS = sha3("PRM_DECIMALS");
     bytes32 constant public PRM_INITIAL_ACCOUNT_BALANCE = sha3("PRM_INITIAL_ACCOUNT_BALANCE");
     bytes32 constant public PRM_TAX_PERIOD_DAYS = sha3("PRM_TAX_PERIOD_DAYS");
@@ -38,12 +39,13 @@ contract VillageCoin {
     bytes32 constant public PRM_PROPOSAL_TIME_LIMIT_DAYS = sha3("PRM_PROPOSAL_TIME_LIMIT_DAYS");
     bytes32 constant public PRM_POLL_TAX = sha3("PRM_POLL_TAX");
     bytes32 constant public PRM_WEALTH_TAX_PERCENT = sha3("PRM_WEALTH_TAX_PERCENT");
-    bytes32 constant public PRM_BASIC_INCOME = sha3("PRM_BASIC_INCOME");
+    bytes32 constant public PRM_BASIC_INCOME = sha3("PRM_BASIC_INCOME");    
 
     //
     // Fields
     //
 
+    // Eternal storage for contract data
     Storage _storage;
 
     // The address of the priviliged user that can create accounts and do some other special things
@@ -133,7 +135,7 @@ contract VillageCoin {
         var enact = ReferendumLib.tryDecide(_storage, proposalId, CitizenLib.getPopulation(_storage), getNumberParameter(PRM_PROPOSAL_DECIDE_THRESHOLD_PERCENT));
 
         if (enact) {
-            enactProposal(proposalId);
+            ProposalLib.enactProposal(_storage, proposalId);
         }
     }
 
@@ -198,33 +200,17 @@ contract VillageCoin {
     // Views
     //
 
-    function getCitizen(uint id) public constant returns (bytes32 username, address addr, bool isExistent) {
-        (username, addr, isExistent) = CitizenLib.get(_storage, id);
-    }
+        //
+        // Proposals
+        //
 
-    function isCitizen(address addr) public constant returns(bool) {
-        return CitizenLib.isCitizen(_storage, addr);
-    }
-
-    // Return the tax due if the specified Citizen makes a proposal
-    function calculateProposalTax(address proposer) public constant returns(uint) {
-
-        uint proposalTaxFlat = getNumberParameter(PRM_PROPOSAL_TAX_FLAT);
-        uint balance = TokenLib.balanceOf(_storage, proposer);
-        uint proposalTaxPercent = getNumberParameter(PRM_PROPOSAL_TAX_PERCENT);
-
-        return TaxLib.calculateProposalTax(proposalTaxFlat, proposalTaxPercent, balance);
-    }
-
-    // Return the tax due if the specified Citizen makes the specified transaction
-    function calculateTransactionTax(address from, address to, uint amount) public constant returns(uint) {
-        uint transactionTaxFlat = getNumberParameter(PRM_TRANSACTION_TAX_FLAT);
-        uint transactionTaxPercent = getNumberParameter(PRM_TRANSACTION_TAX_PERCENT);
-
-        return TaxLib.calculateTransactionTax(amount, from, to, transactionTaxFlat, transactionTaxPercent);
+    function getNextProposalId() public constant returns(uint) {
+        return ProposalLib.getNextId(_storage);
     }
 
     // Return all details of specified proposal
+    // Because of a technical restriction is it not possible to return all the fields of a Proposal from a seingle function
+    // so this is split into A and B parts that together return all Proposal fields
     function getProposalA(uint proposalId) public constant returns(
         uint typ, 
         address proposer, 
@@ -236,6 +222,9 @@ contract VillageCoin {
             return;
     }
 
+    // Return all details of specified proposal
+    // Because of a technical restriction is it not possible to return all the fields of a Proposal from a seingle function
+    // so this is split into A and B parts that together return all Proposal fields
     function getProposalB(uint proposalId) public constant returns(         
         uint numberParam1,              
         address addressParam1,                    
@@ -247,9 +236,48 @@ contract VillageCoin {
             return;
     }
 
-    // Return ids of Parts of specified Proposal
-    function getPartsOfPackage(uint proposalId) public constant returns(uint[64]) {
-        return ProposalLib.getPackageParts(_storage, proposalId);
+    // Return the number of parts in the specified package proposal
+    function getPackagePartCount(uint proposalId) public constant returns(uint) {
+        return ProposalLib.getPackagePartCount(_storage, proposalId);
+    }
+
+    // Return the id of the part with specified index within the specified package proposal
+    function getPackagePart(uint proposalId, uint i) public constant returns(uint) {
+        return ProposalLib.getPackagePart(_storage, proposalId, i);
+    }
+
+        //
+        // Referendums
+        //
+
+    function getReferendum(uint id) returns(bool isExistent, uint state, uint expiryTime, uint voteCountYes, uint voteCountNo, bool hasSenderVoted) {
+        (isExistent, state, expiryTime, voteCountYes, voteCountNo) = ReferendumLib.get(_storage, id);
+        hasSenderVoted = ReferendumLib.hasVoted(_storage, id, msg.sender);
+        return;
+    } 
+
+    function getHasSenderVoted(uint proposalId) returns(bool) {
+        return ReferendumLib.hasVoted(_storage, proposalId, msg.sender);
+    }
+
+        //
+        // Citizens
+        //
+
+    function getNextCitizenId() public constant returns (uint) {
+        return CitizenLib.getNextId(_storage);
+    }
+
+    function getPopulation() public constant returns(uint) {
+        return CitizenLib.getPopulation(_storage);
+    }
+
+    function getCitizen(uint id) public constant returns (bytes32 username, address addr, bool isExistent) {
+        (username, addr, isExistent) = CitizenLib.get(_storage, id);
+    }
+
+    function isCitizen(address addr) public constant returns(bool) {
+        return CitizenLib.isCitizen(_storage, addr);
     }
 
     // Return all details of citizen with specified username
@@ -275,6 +303,32 @@ contract VillageCoin {
         balance = TokenLib.balanceOf(_storage, addr);
         return;
     }
+
+        //
+        // Tax
+        //
+
+    // Return the tax due if the specified Citizen makes a proposal
+    function calculateProposalTax(address proposer) public constant returns(uint) {
+
+        uint proposalTaxFlat = getNumberParameter(PRM_PROPOSAL_TAX_FLAT);
+        uint balance = TokenLib.balanceOf(_storage, proposer);
+        uint proposalTaxPercent = getNumberParameter(PRM_PROPOSAL_TAX_PERCENT);
+
+        return TaxLib.calculateProposalTax(proposalTaxFlat, proposalTaxPercent, balance);
+    }
+
+    // Return the tax due if the specified Citizen makes the specified transaction
+    function calculateTransactionTax(address from, address to, uint amount) public constant returns(uint) {
+        uint transactionTaxFlat = getNumberParameter(PRM_TRANSACTION_TAX_FLAT);
+        uint transactionTaxPercent = getNumberParameter(PRM_TRANSACTION_TAX_PERCENT);
+
+        return TaxLib.calculateTransactionTax(amount, from, to, transactionTaxFlat, transactionTaxPercent);
+    }
+
+        //
+        // Parameters
+        //
     
     function isNumberParameter(bytes32 name) public constant returns(bool) {
         return ParameterLib.isNumberParameter(_storage, name);
@@ -296,10 +350,6 @@ contract VillageCoin {
         return ParameterLib.getString(_storage, name);
     }
 
-    function getHasSenderVoted(uint proposalId) returns(bool) {
-        return ReferendumLib.hasVoted(_storage, proposalId, msg.sender);
-    }
-
     //
     // ERC20
     //
@@ -319,7 +369,7 @@ contract VillageCoin {
 
     function balanceOf(address owner) constant public returns (uint balance) {
         require(owner == 0x0 || isCitizen(owner));
-        return 100;// TokenLib.balanceOf(_storage, owner);
+        return TokenLib.balanceOf(_storage, owner);
     }
 
     function approve(address spender, uint value) public returns (bool success) {
@@ -331,13 +381,11 @@ contract VillageCoin {
     }
 
     function name() constant public returns (string) {
-        // TODO
-        return "VoteCoin";
+        return bytes32ToString(getStringParameter(PRM_NAME));
     }
 
     function symbol() constant public returns (string) {
-        // TODO
-        return "VTC";
+        return bytes32ToString(getStringParameter(PRM_SYMBOL));
     }
 
     function decimals() constant public returns (uint8) {
@@ -352,6 +400,28 @@ contract VillageCoin {
     // Internal Stuff
     //
 
+    // Only used to implement name() and symbol() from ERC20. Internally they are stored as bytes32
+    function bytes32ToString(bytes32 x) constant returns (string) {
+        bytes memory bytesString = new bytes(32);
+        uint charCount = 0;
+        for (uint j = 0; j < 32; j++) {
+            byte char = byte(bytes32(uint(x) * 2 ** (8 * j)));
+            if (char != 0) {
+                bytesString[charCount] = char;
+                charCount++;
+            }
+        }
+        bytes memory bytesStringTrimmed = new bytes(charCount);
+        for (j = 0; j < charCount; j++) {
+            bytesStringTrimmed[j] = bytesString[j];
+        }
+        return string(bytesStringTrimmed);
+    }
+
+    // Stuff that needs to happen after a proposal is created:
+    // - change proposal tax to the sender
+    // - start a referendum
+    // (Except for parts of packages)
     function afterCreateProposal(uint proposalId) private {
         bool isPartOfPackage = ProposalLib.getIsPartOfPackage(_storage, proposalId);
         if (isPartOfPackage) {
@@ -366,12 +436,7 @@ contract VillageCoin {
         TokenLib.transfer(_storage, msg.sender, TokenLib.getPublicAccount(), tax);
     }
 
-    function enactProposal(uint proposalId) private {
-
-        ProposalLib.enactProposal(_storage, proposalId);
-    }
-
-    // Each type fo tax is a token transfer made periodically from each citizen to the public account 
+    // Each type of tax is a token transfer made periodically from each citizen to the public account 
     // The amount transfered for Poll Tax is the value of the parameter 'taxPollTax'
     // If a citizen does not have the required funds then their balance is emptied    
     function applyPollTax() private {

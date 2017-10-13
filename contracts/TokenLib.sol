@@ -13,6 +13,7 @@ import "./Storage.sol";
 // The createMoney function adds new tokens to the Public Account
 // The destroyMoney function burns tokens from the Public Account
 // The Tranfer event is fired whenever a transfer occurs
+// All data is stored in a Storage
 library TokenLib {
   using SafeMathLib for uint;
 
@@ -70,7 +71,7 @@ library TokenLib {
         amount = self.getUInt(F_BALANCE, PUBLIC_ACCOUNT);
     }
 
-    self.setUInt(F_BALANCE, PUBLIC_ACCOUNT, self.getUInt(F_BALANCE).minus(amount));
+    self.setUInt(F_BALANCE, PUBLIC_ACCOUNT, self.getUInt(F_BALANCE, PUBLIC_ACCOUNT).minus(amount));
     self.setUInt(F_TOTAL_SUPPLY, self.getUInt(F_TOTAL_SUPPLY).minus(amount));
 
     Transfer(PUBLIC_ACCOUNT, PUBLIC_ACCOUNT, amount);

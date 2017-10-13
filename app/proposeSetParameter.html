@@ -23,63 +23,63 @@
                 <td class="header">Parameter</td><td class="header">Meaning</td><td class="header">Current Value</td>
             </tr>
             <tr>
-                <td>name</td><td>The name of the currency</td><td id="nameValue"></td>
+                <td>PRM_NAME</td><td>The name of the currency</td><td id="PRM_NAME"></td>
             </tr>
             <tr>
-                <td>symbol</td><td>The ticker symbol of the currency</td><td id="symbolValue"></td>
+                <td>PRM_SYMBOL</td><td>The ticker symbol of the currency</td><td id="PRM_SYMBOL"></td>
             </tr>
             <tr>
-                <td>decimals</td><td>How many decimal places to print when displaying amounts of the currency</td><td id="decimalsValue"></td>
+                <td>PRM_DECIMALS</td><td>How many decimal places to print when displaying amounts of the currency</td><td id="PRM_DECIMALS"></td>
             </tr>
 
             <tr>
-                <td>citizenRequirementMinCommentKarma</td><td>Reddit users with less comment karma than this cannot join</td><td id="citizenRequirementMinCommentKarmaValue"></td>
+                <td>PRM_CITIZEN_REQUIREMENT_MIN_COMMENT_KARMA</td><td>Reddit users with less comment karma than this cannot join</td><td id="PRM_CITIZEN_REQUIREMENT_MIN_COMMENT_KARMA"></td>
             </tr>  
 
             <tr>
-                <td>citizenRequirementMinPostKarma</td><td>Reddit users with less post karma than this cannot join</td><td id="citizenRequirementMinPostKarmaValue"></td>
+                <td>PRM_CITIZEN_REQUIREMENT_MIN_POST_KARMA</td><td>Reddit users with less post karma than this cannot join</td><td id="PRM_CITIZEN_REQUIREMENT_MIN_POST_KARMA"></td>
             </tr>  
 
             <tr>
-                <td>initialAccountBalance</td><td>How much of the currency is given to new users when they join.</td><td id="initialAccountBalanceValue"></td>
+                <td>PRM_INITIAL_ACCOUNT_BALANCE</td><td>How much of the currency is given to new users when they join.</td><td id="PRM_INITIAL_ACCOUNT_BALANCE"></td>
             </tr>
             <tr>
-                <td>proposalDecideThresholdPercent</td><td>The minimum percentage of the population that need to vote YES or NO on a proposal for it to be decided</td><td id="proposalDecideThresholdPercentValue"></td>
+                <td>PRM_PROPOSAL_DECIDE_THRESHOLD_PERCENT</td><td>The minimum percentage of the population that need to vote YES or NO on a proposal for it to be decided</td><td id="PRM_PROPOSAL_DECIDE_THRESHOLD_PERCENT"></td>
             </tr>
             <tr>
-                <td>proposalTimeLimitDays</td><td>The number of days a proposal can remain undecided before it expires</td><td id="proposalTimeLimitDaysValue"></td>
+                <td>PRM_PROPOSAL_TIME_LIMIT_DAYS</td><td>The number of days a proposal can remain undecided before it expires</td><td id="PRM_PROPOSAL_TIME_LIMIT_DAYS"></td>
             </tr>  
 
             <tr>
-                <td>taxPeriodDays</td><td>How frequently taxes are applied, in days</td><td id="taxPeriodDaysValue"></td>
+                <td>PRM_TAX_PERIOD_DAYS</td><td>How frequently taxes are applied, in days</td><td id="PRM_TAX_PERIOD_DAYS"></td>
             </tr>  
 
             <tr>
-                <td>taxPollTax</td><td>A fixed amount transferred from each citizen account to the public account every time taxes are applied</td><td id="taxPollTaxValue"></td>
+                <td>PRM_POLL_TAX</td><td>A fixed amount transferred from each citizen account to the public account every time taxes are applied</td><td id="PRM_POLL_TAX"></td>
             </tr>  
 
             <tr>
-                <td>taxWealthTaxPercent</td><td>A percentage of each citizen's balance that is transferred to the public account each time taxes are applied</td><td id="taxWealthTaxPercentValue"></td>
+                <td>PRM_WEALTH_TAX_PERCENT</td><td>A percentage of each citizen's balance that is transferred to the public account each time taxes are applied</td><td id="PRM_WEALTH_TAX_PERCENT"></td>
             </tr>  
 
             <tr>
-                <td>taxBasicIncome</td><td>A fixed amount that is transferred from the public account to each citizen account each time taxes are applied</td><td id="taxBasicIncomeValue"></td>
+                <td>PRM_BASIC_INCOME</td><td>A fixed amount that is transferred from the public account to each citizen account each time taxes are applied</td><td id="PRM_BASIC_INCOME"></td>
             </tr>  
 
             <tr>
-                <td>taxTransactionTaxFlat</td><td>A fixed charge applied to each transfer. On each transfer between citizens the sender pays this fixed amount into the public account</td><td id="taxTransactionTaxFlatValue"></td>
+                <td>PRM_TRANSACTION_TAX_FLAT</td><td>A fixed charge applied to each transfer. On each transfer between citizens the sender pays this fixed amount into the public account</td><td id="PRM_TRANSACTION_TAX_FLAT"></td>
             </tr>  
 
             <tr>
-                <td>taxTransactionTaxPercent</td><td>A sliding charge applied to each transfer. On each transfer between citizens the sender pays this percentage of the transfer amount into the public account</td><td id="taxTransactionTaxPercentValue"></td>
+                <td>PRM_TRANSACTION_TAX_PERCENT</td><td>A sliding charge applied to each transfer. On each transfer between citizens the sender pays this percentage of the transfer amount into the public account</td><td id="PRM_TRANSACTION_TAX_PERCENT"></td>
             </tr> 
             
             <tr>
-                <td>taxProposalTaxFlat</td><td>A fixed amount that is transferred from a citizen's balance to the public account when they create a proposal</td><td id="taxProposalTaxFlatValue"></td>
+                <td>PRM_PROPOSAL_TAX_FLAT</td><td>A fixed amount that is transferred from a citizen's balance to the public account when they create a proposal</td><td id="PRM_PROPOSAL_TAX_FLAT"></td>
             </tr>  
 
             <tr>
-                <td>taxProposalTaxPercent</td><td>A percentage of each citizen's balance that is transferred to the public account when they create a proposal</td><td id="taxProposalTaxPercentValue"></td>
+                <td>PRM_PROPOSAL_TAX_PERCENT</td><td>A percentage of each citizen's balance that is transferred to the public account when they create a proposal</td><td id="PRM_PROPOSAL_TAX_PERCENT"></td>
             </tr> 
         </table>
 
@@ -114,33 +114,33 @@ async function populateParameterValues()
 {
     var numberParameters = 
     [
-        "decimals",
-        "citizenRequirementMinCommentKarma",
-        "citizenRequirementMinPostKarma",
-        "initialAccountBalance",
-        "proposalDecideThresholdPercent",
-        "proposalTimeLimitDays",
-        "taxPeriodDays",
-        "taxPollTax",
-        "taxWealthTaxPercent",
-        "taxBasicIncome",
-        "taxTransactionTaxFlat",
-        "taxTransactionTaxPercent",
-        "taxProposalTaxFlat",
-        "taxProposalTaxPercent"
+        "PRM_DECIMALS",
+        "PRM_CITIZEN_REQUIREMENT_MIN_COMMENT_KARMA",
+        "PRM_CITIZEN_REQUIREMENT_MIN_POST_KARMA",
+        "PRM_INITIAL_ACCOUNT_BALANCE",
+        "PRM_PROPOSAL_DECIDE_THRESHOLD_PERCENT",
+        "PRM_PROPOSAL_TIME_LIMIT_DAYS",
+        "PRM_TAX_PERIOD_DAYS",
+        "PRM_POLL_TAX",
+        "PRM_WEALTH_TAX_PERCENT",
+        "PRM_BASIC_INCOME",
+        "PRM_TRANSACTION_TAX_FLAT",
+        "PRM_TRANSACTION_TAX_PERCENT",
+        "PRM_PROPOSAL_TAX_FLAT",
+        "PRM_PROPOSAL_TAX_PERCENT"
     ];
 
-    var parameterValues = await Promise.all(numberParameters.map(function(parameterName){ return app.contract.getNumberParameter.call(parameterName); }));
-    parameterValues.map(function(v, i){ document.getElementById(numberParameters[i] + "Value").innerHTML = v.toNumber(); return undefined; })
+    var parameterValues = await Promise.all(numberParameters.map(function(parameterName){ return app.contract.getNumberParameter.call(web3.sha3(parameterName)); }));
+    parameterValues.map(function(v, i){ document.getElementById(numberParameters[i]).innerHTML = v.toNumber(); return undefined; })
 
     var stringParameters =
     [
-        "name",
-        "symbol",
+        "PRM_NAME",
+        "PRM_SYMBOL",
     ];  
 
-    parameterValues = await Promise.all(stringParameters.map(function(parameterName){ return app.contract.getStringParameter.call(parameterName); }));
-    parameterValues.map(function(v, i){ document.getElementById(stringParameters[i] + "Value").innerHTML = v; return undefined; })
+    parameterValues = await Promise.all(stringParameters.map(function(parameterName){ return app.contract.getStringParameter.call(web3.sha3(parameterName)); }));
+    parameterValues.map(function(v, i){ document.getElementById(stringParameters[i]).innerHTML = app.toAscii(v); return undefined; })
 }
 
 async function submit() 
@@ -148,7 +148,7 @@ async function submit()
     try
     {
         var results = await app.parseForm();
-        if(!results.isValid) return;
+        if(!results.isValid) return;        
 
         var receipt = await app.doTransaction(app.contract.proposeSetParameter(results.parameterName, results.parameterStringValue, results.parameterNumberValue, results.supportingEvidenceUrl, results.isPartOfPackage, {from: app.account}));
         if(receipt == undefined) return;

@@ -1,5 +1,9 @@
 pragma solidity ^0.4.9;
 
+// A general persistent data store.
+// This contract is designed to be deployed only once, and be the eternal datastore for the dapp
+// Stores various types of data keyed by a bytes32 and optionally one other key
+// Only registered actors may modify the data
 contract Storage {
 
     mapping(address=>bool) public _writers;
@@ -23,8 +27,6 @@ contract Storage {
     mapping(bytes32=>mapping(bytes32=>bytes32)) _bytes32ByBytes32;
     mapping(address=>mapping(bytes32=>bytes32)) _bytes32ByAddress;
     mapping(uint=>mapping(bytes32=>bytes32)) _bytes32ByUInt;
-
-    mapping(uint=>mapping(bytes32=>uint[64])) _arrByUInt;
 
     function Storage() payable {
         _writers[msg.sender] = true;
@@ -108,11 +110,7 @@ contract Storage {
 
     function getBytes32(bytes32 key, bytes32 n) public constant returns(bytes32) {
         return _bytes32ByBytes32[n][key];
-    } 
-
-    function getArr(bytes32 key, uint n) public constant returns(uint[64]) {
-        return _arrByUInt[n][key];
-    } 
+    }
 
     //
     // Setters
@@ -181,10 +179,6 @@ contract Storage {
     function setAddress(bytes32 key, bytes32 n, address val) public onlyWriter {
         _addrByBytes32[n][key] = val;
     }
-
-    function setArr(bytes32 key, uint n, uint[64] val) public constant returns(uint[64]) {
-        return _arrByUInt[n][key] = val;
-    } 
 
     //
     // Function Modifiers

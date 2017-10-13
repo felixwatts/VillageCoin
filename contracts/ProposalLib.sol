@@ -12,8 +12,7 @@ import "./TokenLib.sol";
 // Proposals is a collection of Proposal objects
 // Items can be added to the Proposals collection using the proposeXXX functions
 // All data is stored in a Storage
-//
-// Actual implementation of proposal changes is in VillageCoin.sol
+// The changes described by a proposal may be enacted using the enactProposal function
 library ProposalLib {
 
     using SafeMathLib for uint;
@@ -39,7 +38,8 @@ library ProposalLib {
     bytes32 constant public F_ADDRESS_PARAM_1 = sha3("F_PROPOSAL_ADDRESS_PARAM_1");
     bytes32 constant public F_IS_PART_OF_PACKAGE = sha3("F_PROPOSAL_IS_PART_OF_PACKAGE");
     bytes32 constant public F_IS_ASSIGNED_TO_PACKAGE = sha3("F_PROPOSAL_IS_ASSIGNED_TO_PACKAGE");
-    bytes32 constant public F_PACKAGE_PARTS = sha3("F_PROPOSAL_PACKAGE_PARTS");
+    bytes32 constant public F_NUM_PACKAGE_PARTS = sha3("F_PROPOSAL_NUM_PACKAGE_PARTS");
+    bytes32 constant public F_PACKAGE_PART = sha3("F_PROPOSAL_PACKAGE_PART");
 
     // create a new Proposal of type Package
     // a Package Proposal is a Proposal that contains a number of other Proposals called 'Parts'
@@ -54,7 +54,8 @@ library ProposalLib {
 
         var proposalId = createProposal(self, E_PROPOSAL_TYPE_PACKAGE, supportingEvidence, "", "", 0, 0x0, false);
         
-        var parts = self.getArr(F_PACKAGE_PARTS, proposalId);
+        self.setUInt(F_NUM_PACKAGE_PARTS, proposalId, partIds.length);
+
         for (uint i = 0; i < partIds.length; i++) {
             var partId = partIds[i];
             
@@ -64,7 +65,8 @@ library ProposalLib {
             require(self.getUInt(F_TYPE, partId) != E_PROPOSAL_TYPE_PACKAGE);
             require(self.getAddress(F_PROPOSER, partId) == msg.sender);
 
-            parts[i] = partId;
+            var packagePartKey = keccak256(F_PACKAGE_PART, i);
+            self.setUInt(packagePartKey, proposalId, partId);
             self.setBool(F_IS_ASSIGNED_TO_PACKAGE, partId, true);
         }
 
@@ -141,6 +143,7 @@ library ProposalLib {
         self.setBytes32(F_SUPPORTING_EVIDENCE_URL, proposalId, supportingEvidenceUrl);
         self.setBytes32(F_STRING_PARAM_1, proposalId, stringParam1);
         self.setBytes32(F_STRING_PARAM_2, proposalId, stringParam2);
+        self.setUInt(F_NUMBER_PARAM_1, proposalId, numberParam1);
         self.setAddress(F_ADDRESS_PARAM_1, proposalId, addressParam1);
         self.setBool(F_IS_PART_OF_PACKAGE, proposalId, isPartOfPackage);                 
 
@@ -152,6 +155,10 @@ library ProposalLib {
     function getIsPartOfPackage(Storage self, uint proposalId) public constant returns(bool) {
         require(self.getBool(F_IS_EXISTENT, proposalId));
         return self.getBool(F_IS_PART_OF_PACKAGE, proposalId);
+    }
+
+    function getNextId(Storage self) public constant returns(uint) {
+        return self.getUInt(F_NEXT_ID);
     }
 
     function getProposalA(Storage self, uint proposalId) public constant returns(
@@ -186,11 +193,20 @@ library ProposalLib {
             return;
     }
 
-    function getPackageParts(Storage self, uint proposalId) public constant returns(uint[64]) {
+    function getPackagePartCount(Storage self, uint proposalId) public constant returns(uint) {
         require(self.getBool(F_IS_EXISTENT, proposalId));
         require(self.getUInt(F_TYPE, proposalId) == E_PROPOSAL_TYPE_PACKAGE);
 
-        return self.getArr(F_PACKAGE_PARTS, proposalId);
+        return self.getUInt(F_NUM_PACKAGE_PARTS, proposalId);
+    }
+
+    function getPackagePart(Storage self, uint proposalId, uint i) public constant returns(uint) {
+        require(self.getBool(F_IS_EXISTENT, proposalId));
+        require(self.getUInt(F_TYPE, proposalId) == E_PROPOSAL_TYPE_PACKAGE);
+        require(self.getUInt(F_NUM_PACKAGE_PARTS, proposalId) > i);
+
+        var packagePartKey = keccak256(F_PACKAGE_PART, i);
+        return self.getUInt(packagePartKey, proposalId);
     }
 
     function enactProposal(Storage self, uint proposalId) public {
@@ -219,9 +235,10 @@ library ProposalLib {
             } else if (typ == E_PROPOSAL_TYPE_FINE_CITIZEN) {
                 TokenLib.transferAsMuchAsPossibleOf(self, addressParam1, TokenLib.getPublicAccount(), numberParam1);
             } else if (typ == E_PROPOSAL_TYPE_PACKAGE) {
-                var parts = getPackageParts(self, proposalId);
-                for (uint i = 0; i < parts.length; i++) {
-                    enactProposal(self, parts[i]);
+                var partCount = getPackagePartCount(self, proposalId);
+                for (uint i = 0; i < partCount; i++) {
+                    var partId = getPackagePart(self, proposalId, i);
+                    enactProposal(self, partId);
                 }
             } else {
                 revert();

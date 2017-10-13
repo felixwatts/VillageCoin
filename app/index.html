@@ -123,7 +123,7 @@
 
     async function populatePopulation()
     {
-        var population = (await app.contract._citizens.call({from: app.account}))[1].toNumber();
+        var population = (await app.contract.getPopulation.call({from: app.account})).toNumber();
         document.getElementById("population").innerHTML = population;
     }
 
@@ -166,12 +166,12 @@
             await init();
             app.redirectNonCitizen();
             await populateBalance();
-            // await populatePopulation();
-            // await populatePublicAccountBalance();
-            // await populateOpenProposals();  
-            // await app.populateRedditUsername(); 
-            // await populateAnnouncement();
-            // await populateRecentTransfers();
+            await populatePopulation();
+            await populatePublicAccountBalance();
+            await populateOpenProposals();  
+            await app.populateRedditUsername(); 
+            await populateAnnouncement();
+            await populateRecentTransfers();
         }
         catch(error)
         {

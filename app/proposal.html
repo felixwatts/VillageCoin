@@ -273,13 +273,14 @@
             var isCitizen = await app.contract.isCitizen.call(app.account, {from: app.account});                  
 
             var proposal = await app.getProposal(proposalId, {from: app.account});
+
             var hasSenderVoted = await app.contract.getHasSenderVoted.call(proposalId, {from: app.account});           
 
             if(!proposal.isExistent) return;             
 
-            var thresholdPercent = (await app.contract.getNumberParameter.call("proposalDecideThresholdPercent", {from: app.account})).toNumber();
+            var thresholdPercent = (await app.contract.getNumberParameter.call(web3.sha3("PRM_PROPOSAL_DECIDE_THRESHOLD_PERCENT"), {from: app.account})).toNumber();
 
-            var citizenCount = (await app.contract._citizens.call({from: app.account}))[1].toNumber();    
+            var citizenCount = (await app.contract.getPopulation.call({from: app.account})).toNumber();    
             
             document.getElementById("proposalDetails").style.display = "inline";
             populateProposalDescription(proposal.description);

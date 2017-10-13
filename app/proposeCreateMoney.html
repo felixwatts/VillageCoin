@@ -59,7 +59,6 @@ async function submit()
 
         var proposalId = receipt.logs.filter(function(log){ return log.event == "OnProposalCreated"})[0].args.proposalId.toNumber();
 
-        console.log(proposalId);
         window.location.replace("proposal.html?id=" + proposalId);
     }
     catch(error)

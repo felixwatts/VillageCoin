@@ -33,7 +33,7 @@
 async function buildCitizenRow(citizen)
 {
     var balance = await app.formatCurrencyAmount(citizen.balance);
-    return "<tr><td>" + citizen.username + "</td><td>" + citizen.address + "</td><td>" + balance + "</td></tr>";
+    return "<tr><td><a target='_blank' href='https://www.reddit.com/user/" + citizen.username + "'>" + citizen.username + "</a></td><td>" + citizen.address + "</td><td>" + balance + "</td></tr>";
 }
 
 async function populateCitizensTable(citizens) 

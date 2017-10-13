@@ -83,7 +83,7 @@ async function getCitizen(id)
     var citizen = 
     {
         id: id,
-        username: data[0],
+        username: app.toAscii(data[0]),
         address: data[1],
         isExistent: data[2]
     }
@@ -98,7 +98,7 @@ async function getCitizen(id)
 
 async function getCitizens() 
 {
-    var nextId = (await app.contract._citizens.call())[0].toNumber();
+    var nextId = (await app.contract.getNextCitizenId.call()).toNumber();
     var allIds = [...Array(nextId).keys()];
     
     var allCitizens = await Promise.all(allIds.map(getCitizen));
@@ -192,7 +192,7 @@ async function getCitizenByAddress(addr)
 
     var citizen = 
     {
-        username: citizenData[1],
+        username: app.toAscii(citizenData[1]),
         isExistent: citizenData[0],
         addr: addr,
         balance: citizenData[2].toNumber()
@@ -203,56 +203,66 @@ async function getCitizenByAddress(addr)
 
 async function getProposal(proposalId) 
 {
-    var proposalData = await app.contract.getProposal.call(proposalId, {from: app.account});
-    var referendumData = await app.contract._referendums.call(proposalId, {from: app.account});  
+    var proposalDataA = await app.contract.getProposalA.call(proposalId, {from: app.account});
+    var proposalDataB = await app.contract.getProposalB.call(proposalId, {from: app.account});
+    var referendumData = await app.contract.getReferendum.call(proposalId, {from: app.account});     
 
     var proposal = 
     {
         id: proposalId,
-        type: proposalData[0].toNumber(),        
-        proposer: proposalData[1],
-        isExistent: proposalData[2],
+        type: proposalDataA[0].toNumber(),        
+        proposer: proposalDataA[1],
+        isExistent: proposalDataA[2],
         expiryTime: referendumData[2].toNumber(),
-        supportingEvidenceUrl: proposalData[7],
-        isPartOfPackage: proposalData[8],
-        isAssignedToPackage: proposalData[9],
+        supportingEvidenceUrl: app.toAscii(proposalDataB[2]),
+        isPartOfPackage: proposalDataB[3],
+        isAssignedToPackage: proposalDataB[4],
         
         voteCountYes: referendumData[3].toNumber(),
         voteCountNo: referendumData[4].toNumber(),            
         decision: referendumData[1].toNumber(),                        
     };
 
-    var proposer = await app.contract.getCitizenByAddress.call(proposalData[1]);
-    proposal.proposerUsername = proposer[1];
+    
+
+    if(!proposal.isExistent) return proposal;    
+
+    var proposer = await getCitizenByAddress(proposalDataA[1]);
+    proposal.proposerUsername = proposer.username;
 
     switch(proposal.type)
     {
         case app.ProposalType.SetParameter:
-            proposal.parameterName = proposalData[3];
-            proposal.stringValue = proposalData[4];
-            proposal.numberValue = proposalData[5].toNumber();
+            proposal.parameterName = app.parameters[proposalDataA[3]].name;
+            proposal.stringValue = app.toAscii(proposalDataA[4]);
+            proposal.numberValue = proposalDataB[0].toNumber();
             break;
 
         case app.ProposalType.CreateMoney:
-            proposal.amount = proposalData[5].toNumber();
+            proposal.amount = proposalDataB[0].toNumber();
             break;
 
         case app.ProposalType.DestroyMoney:
-            proposal.amount = proposalData[5].toNumber();
+            proposal.amount = proposalDataB[0].toNumber();
             break;
 
         case app.ProposalType.PayCitizen:
-            proposal.citizen = proposalData[6];
-            proposal.amount = proposalData[5].toNumber();
+            proposal.citizen = proposalDataB[1];
+            proposal.amount = proposalDataB[0].toNumber();
             break;
 
         case app.ProposalType.FineCitizen:
-            proposal.citizen = proposalData[6];
-            proposal.amount = proposalData[5].toNumber();
+            proposal.citizen = proposalDataB[1];
+            proposal.amount = proposalDataB[0].toNumber();
             break;
 
         case app.ProposalType.Package:
-            proposal.packageParts = await app.contract.getItemsOfPackage.call(proposalId, { from: app.account });
+
+            var partCount = (await app.contract.getPackagePartCount.call(proposalId, { from: app.account })).toNumber();
+            var partIndexes = [...Array(partCount).keys()];
+            var partIds = await Promise.all(partIndexes.map(function(i){ return app.contract.getPackagePart.call(proposal.id, i, { from: app.account }); }));
+
+            proposal.packageParts = partIds.map(function(id){ return id.toNumber(); });
             break;
     }
 
@@ -287,7 +297,7 @@ async function getProposalDescription(proposal)
     { 
         case app.ProposalType.SetParameter:
         {
-            var isNumberParameter = await app.contract.isNumberParameter(proposal.parameterName);
+            var isNumberParameter = app.parameters[web3.sha3(proposal.parameterName)].isNumber;
             var parameterValue = isNumberParameter ? proposal.numberValue : proposal.stringValue;
             return "set parameter <strong>" + proposal.parameterName + "</strong> to <strong>" + parameterValue + "</strong>";
         }
@@ -362,7 +372,7 @@ function filterProposalByPendingPackagePart(proposal)
 
 async function getAllProposals()
 {
-    var maxProposalId = (await app.contract._proposals.call({from: app.account})).toNumber();
+    var maxProposalId = (await app.contract.getNextProposalId.call({from: app.account})).toNumber();
     var allProposalIds = [...Array(maxProposalId).keys()];
     var allProposals = await Promise.all(allProposalIds.map(function(id){ return getProposal(id);}));
 
@@ -516,8 +526,8 @@ async function parseParameterInput(parsingErrors, results)
         return;  
     }
 
-    var isNumberParameter = await app.contract.isNumberParameter.call(parameterName, {from: app.account});
-    var isStringParameter = await app.contract.isStringParameter.call(parameterName, {from: app.account});
+    var isNumberParameter = await app.contract.isNumberParameter.call(web3.sha3(parameterName), {from: app.account});
+    var isStringParameter = await app.contract.isStringParameter.call(web3.sha3(parameterName), {from: app.account});
 
     if(isNumberParameter)
     {
@@ -529,7 +539,7 @@ async function parseParameterInput(parsingErrors, results)
         }
         else
         {
-            var range = await app.contract.getNumberParameterRange(parameterName);
+            var range = await app.contract.getNumberParameterRange(web3.sha3(parameterName));
             var min = range[0].toNumber();
             var max = range[1].toNumber();
 
@@ -545,16 +555,23 @@ async function parseParameterInput(parsingErrors, results)
                 return;
             }
 
-            results.parameterName = parameterName;
+            results.parameterName = web3.sha3(parameterName);
             results.parameterNumberValue = parameterValueNum;
-            results.parameterStringValue = "";
+            results.parameterStringValue = web3.fromAscii("");
         }
     }
     else if(isStringParameter)
     {
-        results.parameterName = parameterName;
-        results.parameterNumberValue = 0;
-        results.parameterStringValue = parameterValueStr;
+        if(canEncodeAsBytes32(parameterValueStr))
+        {
+            results.parameterName = web3.sha3(parameterName);
+            results.parameterNumberValue = 0;
+            results.parameterStringValue = web3.fromAscii(parameterValueStr);
+        }
+        else
+        {
+            parsingErrors.push("The parameter value is too long. Max. length is 32 characters");
+        }
     }
     else
     {
@@ -621,12 +638,24 @@ async function parseUrlInput(element, parsingErrors, results)
 
     if(urlStr == "" || validUrl.isWebUri(urlStr))
     {
-        results[element.id] = urlStr;
+        if(canEncodeAsBytes32(urlStr))
+        {
+            results[element.id] = web3.fromAscii(urlStr);            
+        }
+        else
+        {
+            parsingErrors.push("The URL is too long. The max. length is 32 characters. Try using a <a target='_blank' href='https://goo.gl/'>URL shortening service<a/>");
+        }        
     }
     else
     {
         parsingErrors.push("Invalid URL");
     }
+}
+
+function canEncodeAsBytes32(str)
+{
+    return web3.fromAscii(str).length < 66;
 }
 
 async function doTransaction(transaction)
@@ -686,10 +715,16 @@ function dismissOverlayMessage()
     document.getElementById("overlayBackground").style.display = "none";
 }
 
+function toAscii(str)
+{
+    return web3.toAscii(str).replace(/\u0000/g, '');
+}
+
 function setupCommonFunctions() 
 {
     window.app.VillageCoin = VillageCoin;
 
+    window.app.toAscii = toAscii;
     window.app.doTransaction = doTransaction;
     window.app.getCitizenByUsername = getCitizenByUsername;
     window.app.getCitizenByAddress = getCitizenByAddress;
@@ -725,6 +760,44 @@ function setupCommonFunctions()
     ProposalDecision.Undecided = 0;
     ProposalDecision.Accepted = 1;
     ProposalDecision.Rejected = 2;
+
+    var parameters = {};
+
+    var numberParameters = 
+    [
+        "PRM_DECIMALS",
+        "PRM_CITIZEN_REQUIREMENT_MIN_COMMENT_KARMA",
+        "PRM_CITIZEN_REQUIREMENT_MIN_POST_KARMA",
+        "PRM_INITIAL_ACCOUNT_BALANCE",
+        "PRM_PROPOSAL_DECIDE_THRESHOLD_PERCENT",
+        "PRM_PROPOSAL_TIME_LIMIT_DAYS",
+        "PRM_TAX_PERIOD_DAYS",
+        "PRM_POLL_TAX",
+        "PRM_WEALTH_TAX_PERCENT",
+        "PRM_BASIC_INCOME",
+        "PRM_TRANSACTION_TAX_FLAT",
+        "PRM_TRANSACTION_TAX_PERCENT",
+        "PRM_PROPOSAL_TAX_FLAT",
+        "PRM_PROPOSAL_TAX_PERCENT"
+    ];
+
+    for(var i = 0; i < numberParameters.length; i++)
+    {
+        parameters[web3.sha3(numberParameters[i])] = { name: numberParameters[i], isNumber: true };
+    }
+
+    var stringParameters =
+    [
+        "PRM_NAME",
+        "PRM_SYMBOL",
+    ];  
+
+    for(var i = 0; i < stringParameters.length; i++)
+    {
+        parameters[web3.sha3(stringParameters[i])] = { name: stringParameters[i], isNumber: false };
+    }
+
+    app.parameters = parameters;
 
     window.app.ProposalDecision = ProposalDecision;
 }

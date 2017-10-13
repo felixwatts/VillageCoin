@@ -15,7 +15,7 @@ import "./Storage.sol";
 // - else if the Referendum's ExpiryTime has passed then 
 //   - If there are more YES than NO votes then the proposal is Accepted, 
 //   - Else it is Rejected
-// In practice, T is the parameter 'voteDecideThresholdPercent' and P is the total population of account holders.
+// In practice, T is the parameter 'PRM_VOTE_DECIDE_THRESHOLD_PERCENT' and P is the total population of account voters.
 // All data is stored in a Storage
 library ReferendumLib {
 
@@ -92,4 +92,13 @@ library ReferendumLib {
         var hasVotedKey = keccak256(voter, id);
         return self.getBool(F_HAS_VOTED, hasVotedKey);
     }
+
+    function get(Storage self, uint id) public constant returns(bool isExistent, uint state, uint expiryTime, uint voteCountYes, uint voteCountNo) {
+        isExistent = self.getBool(F_IS_EXISTENT, id);
+        state = self.getUInt(F_STATE, id);
+        expiryTime = self.getUInt(F_EXPIRY_TIME, id);
+        voteCountYes = self.getUInt(F_VOTE_COUNT_YES, id);
+        voteCountNo = self.getUInt(F_VOTE_COUNT_NO, id);
+        return;
+    }    
 }

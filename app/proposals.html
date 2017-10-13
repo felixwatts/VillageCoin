@@ -15,11 +15,11 @@
             <li class="menu"><a class="menu" href="createProposal.html">Make a Proposal</a></li>
             <li class="menu"><a class="menu" href="citizens.html">Citizens</a></li>
         </ul>  
-        <h3>Undecided Proposals</h3>   
+        <h3>Ongoing Referendums</h3>   
         <p>This is a list of proposals that are currently undecided. Although you never <em>have</em> to vote, it's important if you want to influence the future of the currency</p>    
         <table id="tableProposalsUndecided"></table>
 
-        <h3>Decided Proposals</h3>   
+        <h3>Past Referendums</h3>   
         <table id="tableProposalsDecided"></table>
 
         <div id="status"></div>   
@@ -62,7 +62,7 @@ async function populateProposalsTable(proposals, tableName)
 
         var proposalsTableHtml = votableProposals.length == 0 
             ? "There are no proposals" 
-            : votableProposals.reduce(function(accumulator, currentValue) { return accumulator + currentValue; }, "<td class='header'>Name</td><td class='header'>Description</td><td class='header'>State</td></tr>");
+            : votableProposals.reduce(function(accumulator, currentValue) { return accumulator + currentValue; }, "<td class='header'>Name</td><td class='header'>Description</td><td class='header'>Outcome</td></tr>");
 
         document.getElementById(tableName).innerHTML = proposalsTableHtml;
     } 
