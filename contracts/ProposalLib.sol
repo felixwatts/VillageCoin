@@ -93,7 +93,7 @@ library ProposalLib {
     // For implementation see VillageCoin.enactProposal
     function proposeCreateMoney(Storage self, uint amount, bytes32 supportingEvidence, bool isPartOfPackage) public returns(uint) {
 
-        return createProposal(self, E_PROPOSAL_TYPE_CREATE_MONEY, supportingEvidence, "", "", amount, 0x0, isPartOfPackage);
+        return createProposal(self, E_PROPOSAL_TYPE_CREATE_MONEY, supportingEvidence, 0x0, 0x0, amount, 0x0, isPartOfPackage);
     }
 
     // Create a new Proposal of type DestroyMoney
@@ -101,21 +101,21 @@ library ProposalLib {
     // For implementation see VillageCoin.enactProposal
     function proposeDestroyMoney(Storage self, uint amount, bytes32 supportingEvidence, bool isPartOfPackage) public returns(uint) {
 
-        return createProposal(self, E_PROPOSAL_TYPE_DESTROY_MONEY, supportingEvidence, "", "", amount, 0x0, isPartOfPackage);
+        return createProposal(self, E_PROPOSAL_TYPE_DESTROY_MONEY, supportingEvidence, 0x0, 0x0, amount, 0x0, isPartOfPackage);
     }
 
     // Create a new Proposal of type PayCitizen
     // If the Proposal is Accepted then the specified amount of tokens will bre transferred from the Public Account to the specified Citizen
     // For implementation see VillageCoin.enactProposal
     function proposePayCitizen(Storage self, address citizen, uint amount, bytes32 supportingEvidence, bool isPartOfPackage) public returns(uint) {
-        return createProposal(self, E_PROPOSAL_TYPE_PAY_CITIZEN, supportingEvidence, "", "", amount, citizen, isPartOfPackage);
+        return createProposal(self, E_PROPOSAL_TYPE_PAY_CITIZEN, supportingEvidence, 0x0, 0x0, amount, citizen, isPartOfPackage);
     }
 
     // Create a new Proposal of type FineCitizen
     // If the Proposal is Accepted then the specified amount of tokens will bre transferred from the specified Citizen to the Public Account
     // For implementation see VillageCoin.enactProposal
     function proposeFineCitizen(Storage self, address citizen, uint amount, bytes32 supportingEvidence, bool isPartOfPackage) public returns(uint) {
-        return createProposal(self, E_PROPOSAL_TYPE_FINE_CITIZEN, supportingEvidence, "", "", amount, citizen, isPartOfPackage);
+        return createProposal(self, E_PROPOSAL_TYPE_FINE_CITIZEN, supportingEvidence, 0x0, 0x0, amount, citizen, isPartOfPackage);
     }
 
     function createProposal(
@@ -140,12 +140,25 @@ library ProposalLib {
         self.setBool(F_IS_EXISTENT, proposalId, true);
         self.setAddress(F_PROPOSER, proposalId, msg.sender);
         self.setUInt(F_TYPE, proposalId, typ);
-        self.setBytes32(F_SUPPORTING_EVIDENCE_URL, proposalId, supportingEvidenceUrl);
-        self.setBytes32(F_STRING_PARAM_1, proposalId, stringParam1);
-        self.setBytes32(F_STRING_PARAM_2, proposalId, stringParam2);
-        self.setUInt(F_NUMBER_PARAM_1, proposalId, numberParam1);
-        self.setAddress(F_ADDRESS_PARAM_1, proposalId, addressParam1);
-        self.setBool(F_IS_PART_OF_PACKAGE, proposalId, isPartOfPackage);                 
+
+        if (supportingEvidenceUrl != 0x0) {
+            self.setBytes32(F_SUPPORTING_EVIDENCE_URL, proposalId, supportingEvidenceUrl);
+        }
+        if (stringParam1 != 0x0) {
+            self.setBytes32(F_STRING_PARAM_1, proposalId, stringParam1);
+        }
+        if (stringParam2 != 0x0) {
+            self.setBytes32(F_STRING_PARAM_2, proposalId, stringParam2);
+        }
+        if (numberParam1 != 0) {
+            self.setUInt(F_NUMBER_PARAM_1, proposalId, numberParam1);
+        }
+        if (addressParam1 != 0x0) {
+            self.setAddress(F_ADDRESS_PARAM_1, proposalId, addressParam1);
+        }
+        if (isPartOfPackage) {
+            self.setBool(F_IS_PART_OF_PACKAGE, proposalId, isPartOfPackage);
+        }
 
         OnProposalCreated(proposalId);           
 

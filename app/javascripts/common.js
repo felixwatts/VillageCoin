@@ -640,7 +640,7 @@ async function parseUrlInput(element, parsingErrors, results)
     {
         if(canEncodeAsBytes32(urlStr))
         {
-            results[element.id] = web3.fromAscii(urlStr);            
+            results[element.id] = web3.fromAscii(urlStr);        
         }
         else
         {
