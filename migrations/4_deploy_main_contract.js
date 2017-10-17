@@ -3,7 +3,6 @@ var VillageCoin = artifacts.require("./VillageCoin.sol");
 
 module.exports = function(deployer) 
 {
-
   deployer
     .then(function(){
     return Storage.deployed();

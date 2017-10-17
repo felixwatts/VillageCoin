@@ -29,15 +29,14 @@ library TokenLib {
   event Transfer(address indexed from, address indexed to, uint value);
 
   function init(Storage self, address addr, uint initialBalance) public {
-      assert(balanceOf(self, addr) == 0);
-      self.setUInt(F_BALANCE, addr, initialBalance);
+      self.setUInt(F_BALANCE, addr, self.getUInt(F_BALANCE, addr).plus(initialBalance));
       self.setUInt(F_TOTAL_SUPPLY, self.getUInt(F_TOTAL_SUPPLY).plus(initialBalance));
   }
 
   function transfer(Storage self, address from, address to, uint value) {
-    if (value == 0) {
-      return;
-    }
+    // if (value == 0) {
+    //   return;
+    // }
     self.setUInt(F_BALANCE, from, self.getUInt(F_BALANCE, from).minus(value));
     self.setUInt(F_BALANCE, to, self.getUInt(F_BALANCE, to).plus(value));
 

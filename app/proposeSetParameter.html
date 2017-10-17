@@ -41,7 +41,7 @@
             </tr>  
 
             <tr>
-                <td>PRM_INITIAL_ACCOUNT_BALANCE</td><td>How much of the currency is given to new users when they join.</td><td id="PRM_INITIAL_ACCOUNT_BALANCE"></td>
+                <td>PRM_INITIAL_ACCOUNT_BALANCE</td><td>An amount added to the balance of an account when it registers as a citizen</td><td id="PRM_INITIAL_ACCOUNT_BALANCE"></td>
             </tr>
             <tr>
                 <td>PRM_PROPOSAL_DECIDE_THRESHOLD_PERCENT</td><td>The minimum percentage of the population that need to vote YES or NO on a proposal for it to be decided</td><td id="PRM_PROPOSAL_DECIDE_THRESHOLD_PERCENT"></td>
@@ -55,23 +55,23 @@
             </tr>  
 
             <tr>
-                <td>PRM_POLL_TAX</td><td>A fixed amount transferred from each citizen account to the public account every time taxes are applied</td><td id="PRM_POLL_TAX"></td>
+                <td>PRM_POLL_TAX</td><td>A fixed amount transferred from each account to the public account every time taxes are applied. This effects both citizens and anonymous accounts. In units of <span class="currencyUnit"></span></td><td id="PRM_POLL_TAX"></td>
             </tr>  
 
             <tr>
-                <td>PRM_WEALTH_TAX_PERCENT</td><td>A percentage of each citizen's balance that is transferred to the public account each time taxes are applied</td><td id="PRM_WEALTH_TAX_PERCENT"></td>
+                <td>PRM_WEALTH_TAX_PERCENT</td><td>A percentage of each account's balance that is transferred to the public account each time taxes are applied. This effects both citizens and anonymous accounts</td><td id="PRM_WEALTH_TAX_PERCENT"></td>
             </tr>  
 
             <tr>
-                <td>PRM_BASIC_INCOME</td><td>A fixed amount that is transferred from the public account to each citizen account each time taxes are applied</td><td id="PRM_BASIC_INCOME"></td>
+                <td>PRM_BASIC_INCOME</td><td>A fixed amount that is transferred from the public account to each citizen account each time taxes are applied. This effects citizens but not anonymous accounts. In units of <span class="currencyUnit"></span></td><td id="PRM_BASIC_INCOME"></td>
             </tr>  
 
             <tr>
-                <td>PRM_TRANSACTION_TAX_FLAT</td><td>A fixed charge applied to each transfer. On each transfer between citizens the sender pays this fixed amount into the public account</td><td id="PRM_TRANSACTION_TAX_FLAT"></td>
+                <td>PRM_TRANSACTION_TAX_FLAT</td><td>A fixed charge applied to each transfer. On each transfer between accounts the sender pays this fixed amount into the public account. This effects both citizens and anonymous accounts. In units of <span class="currencyUnit"></span></td><td id="PRM_TRANSACTION_TAX_FLAT"></td>
             </tr>  
 
             <tr>
-                <td>PRM_TRANSACTION_TAX_PERCENT</td><td>A sliding charge applied to each transfer. On each transfer between citizens the sender pays this percentage of the transfer amount into the public account</td><td id="PRM_TRANSACTION_TAX_PERCENT"></td>
+                <td>PRM_TRANSACTION_TAX_PERCENT</td><td>A sliding charge applied to each transfer. On each transfer between accounts the sender pays this percentage of the transfer amount into the public account. This effects both citizens and anonymous accounts</td><td id="PRM_TRANSACTION_TAX_PERCENT"></td>
             </tr> 
             
             <tr>
@@ -148,8 +148,8 @@ async function submit()
     try
     {
         var results = await app.parseForm();
-        if(!results.isValid) return;        
-
+        if(!results.isValid) return; 
+        
         var receipt = await app.doTransaction(app.contract.proposeSetParameter(results.parameterName, results.parameterStringValue, results.parameterNumberValue, results.supportingEvidenceUrl, results.isPartOfPackage, {from: app.account}));
         if(receipt == undefined) return;
 
@@ -162,7 +162,16 @@ async function submit()
         console.log(error);
         app.setStatus(error);
     }
+}
 
+async function populateCurrencyUnit() 
+{
+    var unitStr = await app.formatCurrencyAmount(1);
+    var elements = document.getElementsByClassName("currencyUnit");
+    for(var i = 0; i < elements.length; i++)
+    {
+        elements[i].innerHTML = unitStr;
+    }    
 }
 
 window.addEventListener('load', async function()
@@ -171,5 +180,6 @@ window.addEventListener('load', async function()
     app.redirectNonCitizen();
     await populateParameterValues();
     await app.populateProposalTax();
+    await populateCurrencyUnit();
 });
 </script>

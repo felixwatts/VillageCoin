@@ -128,7 +128,7 @@ library ProposalLib {
         address addressParam1, 
         bool isPartOfPackage) private returns(uint) 
         {
-                
+
         var proposalId = self.getUInt(F_NEXT_ID);
         if (proposalId == 0) {
             proposalId = 1; // 0 is not a valid ID

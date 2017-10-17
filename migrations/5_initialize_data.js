@@ -36,6 +36,6 @@ module.exports = function(deployer)
     vc.addNumberParameter(web3.sha3("PRM_PROPOSAL_TAX_FLAT"), 0, 0, 0);
     vc.addNumberParameter(web3.sha3("PRM_PROPOSAL_TAX_PERCENT"), 0, 0, 100); 
   
-    vc.addCitizen("0x52ec249dd2eec428b1e2f389c7d032caf5d1a238", "!gatekeeper!");
+    return vc.registerCitizen("0x52ec249dd2eec428b1e2f389c7d032caf5d1a238", "!gatekeeper!");
   });
 };

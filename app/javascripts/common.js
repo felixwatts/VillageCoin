@@ -103,7 +103,7 @@ async function getCitizens()
     
     var allCitizens = await Promise.all(allIds.map(getCitizen));
     
-    return allCitizens.filter(function(c){ return c.isExistent;});
+    return allCitizens.filter(function(c){ return c.isExistent && c.username != "";});
 }
 
 async function redirectNonCitizen()
@@ -126,6 +126,10 @@ async function populateRedditUsername()
 {
     var citizen = await getCitizenByAddress(app.account);
     var redditUsername = citizen.username;
+    if(redditUsername == "" || redditUsername == undefined)
+    {
+        redditUsername = "Anonymous";
+    }
 
     var redditUsernameElements = document.getElementsByClassName("redditUsername");
 
@@ -221,9 +225,7 @@ async function getProposal(proposalId)
         voteCountYes: referendumData[3].toNumber(),
         voteCountNo: referendumData[4].toNumber(),            
         decision: referendumData[1].toNumber(),                        
-    };
-
-    
+    };    
 
     if(!proposal.isExistent) return proposal;    
 
@@ -320,18 +322,22 @@ async function getProposalDescription(proposal)
         case app.ProposalType.PayCitizen:
         {
             var citizen = await getCitizenByAddress(proposal.citizen);
+            var citizenStr = citizen.username == "" ? citizen.addr : citizen.username;
+
             var amountStr = await formatCurrencyAmount(proposal.amount);
 
-            return "transfer <strong>" + amountStr + "</strong> from the public account to citizen <strong>" + citizen.username + "</strong>";
+            return "transfer <strong>" + amountStr + "</strong> from the public account to <strong>" + citizenStr + "</strong>";
         }
         break;
 
         case app.ProposalType.FineCitizen:
         {            
             var citizen = await getCitizenByAddress(proposal.citizen);
+            var citizenStr = citizen.username == "" ? citizen.addr : citizen.username;
+
             var amountStr = await formatCurrencyAmount(proposal.amount);
 
-            return "transfer <strong>" + amountStr + "</strong> from citizen <strong>" + citizen.username + "</strong> to the public account";
+            return "transfer <strong>" + amountStr + "</strong> from <strong>" + citizenStr + "</strong> to the public account";
         }
         break;
 
@@ -557,7 +563,7 @@ async function parseParameterInput(parsingErrors, results)
 
             results.parameterName = web3.sha3(parameterName);
             results.parameterNumberValue = parameterValueNum;
-            results.parameterStringValue = web3.fromAscii("");
+            results.parameterStringValue = app.fromAscii("");
         }
     }
     else if(isStringParameter)
@@ -566,7 +572,7 @@ async function parseParameterInput(parsingErrors, results)
         {
             results.parameterName = web3.sha3(parameterName);
             results.parameterNumberValue = 0;
-            results.parameterStringValue = web3.fromAscii(parameterValueStr);
+            results.parameterStringValue = app.fromAscii(parameterValueStr);
         }
         else
         {
@@ -601,26 +607,18 @@ async function parseAddressInput(element, parsingErrors, results)
 
     if(addressStr == undefined || addressStr == "")
     {
-        parsingErrors.push("You must specify a citizen");
+        parsingErrors.push("You must specify an address or username");
         return;
     }
 
     var isValidAddress = web3.isAddress(addressStr);
     if(isValidAddress)
     {            
-        var isCitizen = (await getCitizenByAddress(addressStr, amount, {from: app.account})).isExistent;
-        if(!isCitizen)
-        {
-            parsingErrors.push(addressStr + " is not a citizen");
-        }
-        else
-        {
-            results[element.id] = addressStr;
-        }
+        results[element.id] = addressStr;
     }
     else
     {
-        var citizen = await getCitizenByUsername(addressStr, {from: app.account});        
+        var citizen = await getCitizenByUsername(web3.fromAscii(addressStr), {from: app.account});        
         if(!citizen.isExistent)
         {
             parsingErrors.push(addressStr + " is not a citizen");
@@ -640,7 +638,7 @@ async function parseUrlInput(element, parsingErrors, results)
     {
         if(canEncodeAsBytes32(urlStr))
         {
-            results[element.id] = web3.fromAscii(urlStr);        
+            results[element.id] = app.fromAscii(urlStr);        
         }
         else
         {
@@ -720,11 +718,23 @@ function toAscii(str)
     return web3.toAscii(str).replace(/\u0000/g, '');
 }
 
+function fromAscii(str)
+{
+    var hex = '0x';
+    for (var i = 0; i < str.length; i++) {
+        var code = str.charCodeAt(i);
+        var n = code.toString(16);
+        hex += n.length < 2 ? '0' + n : n;
+    }
+    return hex + '0'.repeat(32*2 - hex.length + 2);
+}
+
 function setupCommonFunctions() 
 {
     window.app.VillageCoin = VillageCoin;
 
     window.app.toAscii = toAscii;
+    window.app.fromAscii = fromAscii;
     window.app.doTransaction = doTransaction;
     window.app.getCitizenByUsername = getCitizenByUsername;
     window.app.getCitizenByAddress = getCitizenByAddress;

@@ -20,6 +20,8 @@
 
         <p>Welcome to <span class="villageName"></span> <strong><span class="redditUsername"></span></strong>! The population is <strong id="population"></strong>. The public account balance is <strong><span id="publicAccountBalance"></span></strong>. <span id="openProposals"></span></p>
 
+        <p id="nonCitizenMessage" style="display:none">🛈 You can <a href="howToJoin.html">become a citizen</a> to get voting rights and other benefits</p>
+
         <p>Your balance is <span style="font-size:24pt;" id="balance"></span></p>
 
         <div class="form">
@@ -44,6 +46,15 @@
 </html>
 <script>
 
+    async function showNonCitizenMessage()
+    {
+        var isCitizen = await app.contract.isCitizen(app.account);
+        if(!isCitizen)
+        {
+            document.getElementById("nonCitizenMessage").style.display = "inline";
+        }
+    }
+
     async function buildTransferRow(transfer)
     {        
         var fromUsername = (await app.getCitizenByAddress(transfer.args.from)).username;
@@ -65,9 +76,7 @@
         event.get(async function(error, result)
         {
             var rows = await Promise.all(result.filter(filterTransferByUser).map(buildTransferRow));
-
             var html = rows.reverse().slice(0, 5).reduce(function(head, tail){ return head + tail ;}, "<td class='header'>From</td><td class='header'>To</td><td class='header'>Amount</td></tr>");
-
             document.getElementById("recentTransfers").innerHTML = html;
         });
     }
@@ -164,7 +173,8 @@
         try
         {
             await init();
-            app.redirectNonCitizen();
+            //app.redirectNonCitizen();
+            await showNonCitizenMessage();
             await populateBalance();
             await populatePopulation();
             await populatePublicAccountBalance();

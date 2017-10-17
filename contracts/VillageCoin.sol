@@ -4,7 +4,7 @@ import "./SafeMathLib.sol";
 import "./ParameterLib.sol";
 import "./ReferendumLib.sol";
 import "./TokenLib.sol";
-import "./CitizenLib.sol";
+import "./AccountLib.sol";
 import "./ProposalLib.sol";
 import "./TaxLib.sol";
 import "./Storage.sol";
@@ -102,8 +102,8 @@ contract VillageCoin {
     // This should only be called after verifying that the applicant is a real person and that they do not already own an account, this check prevents sybil attacks on the democracy and basic income systems
     // Throws if the username or the address already belong to a citizen
     // Gives the new citizen some funds to start with
-    function addCitizen(address addr, bytes32 username) onlyGatekeeper public {
-        CitizenLib.add(_storage, addr, username);
+    function registerCitizen(address addr, bytes32 username) onlyGatekeeper public {
+        AccountLib.registerCitizen(_storage, addr, username);
         TokenLib.init(_storage, addr, getNumberParameter(PRM_INITIAL_ACCOUNT_BALANCE));
     }
 
@@ -113,10 +113,10 @@ contract VillageCoin {
 
     // If taxes are now due then take/give all taxes, otherwise do nothing
     function applyTaxesIfDue() public {
-        var isDue = now > _nextTaxTime;
-        if (!isDue) {
-            return;
-        }
+        // var isDue = now > _nextTaxTime;
+        // if (!isDue) {
+        //     return;
+        // }
 
         _nextTaxTime = _nextTaxTime.plus(getNumberParameter(PRM_TAX_PERIOD_DAYS).times(1 days)); 
 
@@ -132,7 +132,7 @@ contract VillageCoin {
     // Enacts the changes of the proposal if it is newly Accepted
     function tryDecideProposal(uint proposalId) public {
 
-        var enact = ReferendumLib.tryDecide(_storage, proposalId, CitizenLib.getPopulation(_storage), getNumberParameter(PRM_PROPOSAL_DECIDE_THRESHOLD_PERCENT));
+        var enact = ReferendumLib.tryDecide(_storage, proposalId, AccountLib.getPopulation(_storage), getNumberParameter(PRM_PROPOSAL_DECIDE_THRESHOLD_PERCENT));
 
         if (enact) {
             ProposalLib.enactProposal(_storage, proposalId);
@@ -179,14 +179,12 @@ contract VillageCoin {
 
     // See ProposalLib.sol
     function proposePayCitizen(address citizen, uint amount, bytes32 supportingEvidence, bool isPartOfPackage) public onlyCitizen {
-        require(CitizenLib.isCitizen(_storage, citizen));
         uint proposalId = ProposalLib.proposePayCitizen(_storage, citizen, amount, supportingEvidence, isPartOfPackage);
         afterCreateProposal(proposalId);
     }
 
     // See ProposalLib.sol
     function proposeFineCitizen(address citizen, uint amount, bytes32 supportingEvidence, bool isPartOfPackage) public onlyCitizen {
-        require(CitizenLib.isCitizen(_storage, citizen));
         uint proposalId = ProposalLib.proposeFineCitizen(_storage, citizen, amount, supportingEvidence, isPartOfPackage);        
         afterCreateProposal(proposalId);
     }
@@ -233,6 +231,7 @@ contract VillageCoin {
         bool isAssignedToPackage) 
         {
             (numberParam1, addressParam1, supportingEvidenceUrl, isPartOfPackage, isAssignedToPackage) = ProposalLib.getProposalB(_storage, proposalId);
+            //assert(numberParam1 != 0);
             return;
     }
 
@@ -265,19 +264,19 @@ contract VillageCoin {
         //
 
     function getNextCitizenId() public constant returns (uint) {
-        return CitizenLib.getNextId(_storage);
+        return AccountLib.getNextId(_storage);
     }
 
     function getPopulation() public constant returns(uint) {
-        return CitizenLib.getPopulation(_storage);
+        return AccountLib.getPopulation(_storage);
     }
 
     function getCitizen(uint id) public constant returns (bytes32 username, address addr, bool isExistent) {
-        (username, addr, isExistent) = CitizenLib.get(_storage, id);
+        (username, addr, isExistent) = AccountLib.get(_storage, id);
     }
 
     function isCitizen(address addr) public constant returns(bool) {
-        return CitizenLib.isCitizen(_storage, addr);
+        return AccountLib.isCitizen(_storage, addr);
     }
 
     // Return all details of citizen with specified username
@@ -287,7 +286,7 @@ contract VillageCoin {
         address addr,
         uint balance)
     {
-        (addr, isExistent) = CitizenLib.get(_storage, username);
+        (addr, isExistent) = AccountLib.get(_storage, username);
         balance = TokenLib.balanceOf(_storage, addr);
         return;
     }
@@ -299,7 +298,7 @@ contract VillageCoin {
         bytes32 username,
         uint balance)
     {
-        (username, isExistent) = CitizenLib.get(_storage, addr);
+        (username, isExistent) = AccountLib.get(_storage, addr);
         balance = TokenLib.balanceOf(_storage, addr);
         return;
     }
@@ -356,8 +355,9 @@ contract VillageCoin {
 
     event Transfer(address indexed from, address indexed to, uint amount);
   
-    function transfer(address to, uint amount) public onlyCitizen returns (bool success) {
-        require(isCitizen(to));
+    function transfer(address to, uint amount) public returns (bool success) {
+        AccountLib.ensureAccountIsRegistered(_storage, msg.sender);
+        AccountLib.ensureAccountIsRegistered(_storage, to);
         uint transactionTax = calculateTransactionTax(msg.sender, to, amount);
         TokenLib.transfer(_storage, msg.sender, TokenLib.getPublicAccount(), transactionTax);
         TokenLib.transfer(_storage, msg.sender, to, amount);  
@@ -368,7 +368,6 @@ contract VillageCoin {
     }
 
     function balanceOf(address owner) constant public returns (uint balance) {
-        require(owner == 0x0 || isCitizen(owner));
         return TokenLib.balanceOf(_storage, owner);
     }
 
@@ -445,9 +444,16 @@ contract VillageCoin {
             return;
         }
 
-        for (CitizenLib.iterateStart(_storage); CitizenLib.iterateValid(_storage); CitizenLib.iterateNext(_storage)) {
-            var citizen = CitizenLib.iterateCurrent(_storage);
-            TokenLib.transferAsMuchAsPossibleOf(_storage, citizen, TokenLib.getPublicAccount(), pollTaxAmount);
+        var maxAccountId = AccountLib.getNextId(_storage);
+        for (uint i = 1; i < maxAccountId; i++) {
+            bytes32 username;
+            address addr; 
+            bool isExistent;
+            (username, addr, isExistent) = AccountLib.get(_storage, i);
+            if (!isExistent) {
+                continue;
+            }
+            TokenLib.transferAsMuchAsPossibleOf(_storage, addr, TokenLib.getPublicAccount(), pollTaxAmount);
         }
     }
 
@@ -460,10 +466,17 @@ contract VillageCoin {
             return;
         }
 
-        for (CitizenLib.iterateStart(_storage); CitizenLib.iterateValid(_storage); CitizenLib.iterateNext(_storage)) {
-            var citizen = CitizenLib.iterateCurrent(_storage);
-            var wealthTaxAmount = TaxLib.calculateWealthTax(TokenLib.balanceOf(_storage, citizen), wealthTaxPercent);
-            TokenLib.transfer(_storage, citizen, TokenLib.getPublicAccount(), wealthTaxAmount); 
+        var maxAccountId = AccountLib.getNextId(_storage);
+        for (uint i = 1; i < maxAccountId; i++) {
+            bytes32 username;
+            address addr; 
+            bool isExistent;
+            (username, addr, isExistent) = AccountLib.get(_storage, i);
+            if (!isExistent) {
+                continue;
+            }
+            var wealthTaxAmount = TaxLib.calculateWealthTax(TokenLib.balanceOf(_storage, addr), wealthTaxPercent);
+            TokenLib.transfer(_storage, addr, TokenLib.getPublicAccount(), wealthTaxAmount); 
         }
     }
 
@@ -476,15 +489,25 @@ contract VillageCoin {
             return;
         }
 
-        var totalValue = basicIncomeAmount.times(CitizenLib.getPopulation(_storage));
+        var totalValue = basicIncomeAmount.times(AccountLib.getPopulation(_storage));
         var publicFunds = TokenLib.balanceOf(_storage, TokenLib.getPublicAccount());
         if (totalValue > publicFunds) {
-            basicIncomeAmount = publicFunds / CitizenLib.getPopulation(_storage);
+            basicIncomeAmount = publicFunds / AccountLib.getPopulation(_storage);
         }
 
-        for (CitizenLib.iterateStart(_storage); CitizenLib.iterateValid(_storage); CitizenLib.iterateNext(_storage)) {
-            var citizen = CitizenLib.iterateCurrent(_storage);
-            TokenLib.transfer(_storage, TokenLib.getPublicAccount(), citizen, basicIncomeAmount);  
+        var maxAccountId = AccountLib.getNextId(_storage);
+        for (uint i = 1; i < maxAccountId; i++) {
+            bytes32 username;
+            address addr; 
+            bool isExistent;
+            (username, addr, isExistent) = AccountLib.get(_storage, i);
+            if (!isExistent) {
+                continue;
+            }
+            if (username == 0) {
+                continue;
+            }
+            TokenLib.transfer(_storage, TokenLib.getPublicAccount(), addr, basicIncomeAmount);  
         }
     }
 

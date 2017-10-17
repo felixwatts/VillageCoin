@@ -54,8 +54,6 @@ async function submit()
         var results = await app.parseForm();
         if(!results.isValid) return;
 
-        console.log(web3.fromAscii(results.supportingEvidenceUrl));
-
         var receipt = await app.doTransaction(app.contract.proposeDestroyMoney(results.amount, results.supportingEvidenceUrl, results.isPartOfPackage, {from: app.account}));
         if(receipt == undefined) return;
 
