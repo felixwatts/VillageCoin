@@ -13,3 +13,5 @@ Account holders control and manage the currency through referendums, doing thing
 - Spending public funds
 
 To prevent sybil attacks, account creation is controlled by a privileged user called the _gatekeeper_. In the current implementation the gatekeeper uses [Reddit](https://www.reddit.com/) to verify and validate applicants
+
+The DApp is live on Kovan testnet. Point your ethereum browser at http://redditvillage.bitballoon.com
