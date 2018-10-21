@@ -34,9 +34,9 @@ library TokenLib {
   }
 
   function transfer(Storage self, address from, address to, uint value) {
-    // if (value == 0) {
-    //   return;
-    // }
+    if (value == 0) {
+      return;
+    }
     self.setUInt(F_BALANCE, from, self.getUInt(F_BALANCE, from).minus(value));
     self.setUInt(F_BALANCE, to, self.getUInt(F_BALANCE, to).plus(value));
 
